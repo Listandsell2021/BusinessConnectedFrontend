@@ -1,0 +1,91 @@
+{
+  "timestamp": "2025-09-11T11:55:35.428Z",
+  "tests": [
+    {
+      "testName": "Partner Registration - Success",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:39.174Z",
+      "details": {
+        "data": {
+          "partnerId": "68c2b8b74b471cb67140e1f4",
+          "companyName": "Test Moving Company GmbH",
+          "email": "test.partner@example.com",
+          "nextSteps": "Admin approval required before login access is granted"
+        }
+      }
+    },
+    {
+      "testName": "Partner Registration - Duplicate Prevention",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:39.188Z",
+      "details": {
+        "data": {
+          "message": "Partner with this email already exists"
+        }
+      }
+    },
+    {
+      "testName": "Partner Registration - Input Validation",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:39.195Z",
+      "details": {
+        "data": {
+          "validationErrors": 6,
+          "errors": [
+            "Company name is required",
+            "Valid email is required",
+            "Phone is required",
+            "Street address is required",
+            "City is required",
+            "At least one service must be selected"
+          ]
+        }
+      }
+    },
+    {
+      "testName": "Email Functionality - Registration Email",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:45.157Z",
+      "details": {
+        "data": {
+          "email": "test.1757591739195@example.com",
+          "emailSent": true,
+          "message": "Email functionality appears to be working"
+        }
+      }
+    },
+    {
+      "testName": "Services Structure - Individual Status",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:49.227Z",
+      "details": {
+        "data": {
+          "partnerId": "68c2b8c14b471cb67140e207",
+          "servicesProvided": [
+            "moving",
+            "cleaning"
+          ],
+          "message": "Services should be stored with individual pending status"
+        }
+      }
+    },
+    {
+      "testName": "Logging Functionality - Registration Logs",
+      "status": "PASSED",
+      "timestamp": "2025-09-11T11:55:53.005Z",
+      "details": {
+        "data": {
+          "email": "logging.test.1757591749228@example.com",
+          "logsDirectoryExists": false,
+          "registrationTime": "2025-09-11T11:55:49.228Z",
+          "message": "Registration logging should be working (check server logs)"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  }
+}
