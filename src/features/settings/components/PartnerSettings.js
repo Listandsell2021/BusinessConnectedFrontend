@@ -53,6 +53,20 @@ const PartnerSettings = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  const [passwordReset, setPasswordReset] = useState({
+    showForm: false,
+    step: 'request', // 'request', 'verify', 'reset'
+    email: user?.email || '',
+    otpId: '',
+    otp: '',
+    newPassword: '',
+    confirmPassword: '',
+    loading: false,
+    message: '',
+    otpSent: false,
+    resetToken: ''
+  });
+
   useEffect(() => {
     // Load user settings - replace with API call
     if (isPartner) {
@@ -118,7 +132,7 @@ const PartnerSettings = () => {
     try {
       // API call would go here
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
+
       setMessage(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
@@ -127,6 +141,177 @@ const PartnerSettings = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePasswordResetRequest = async () => {
+    setPasswordReset(prev => ({ ...prev, loading: true, message: '' }));
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: passwordReset.email
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setPasswordReset(prev => ({
+          ...prev,
+          loading: false,
+          step: 'verify',
+          otpId: result.otpId,
+          otpSent: true,
+          message: isGerman ? 'OTP wurde an Ihre E-Mail gesendet' : 'OTP sent to your email'
+        }));
+      } else {
+        setPasswordReset(prev => ({
+          ...prev,
+          loading: false,
+          message: result.message || (isGerman ? 'Fehler beim Senden der OTP' : 'Error sending OTP')
+        }));
+      }
+    } catch (error) {
+      setPasswordReset(prev => ({
+        ...prev,
+        loading: false,
+        message: isGerman ? 'Fehler beim Senden der OTP' : 'Error sending OTP'
+      }));
+    }
+  };
+
+  const handleOTPVerification = async () => {
+    if (!passwordReset.otp || passwordReset.otp.length !== 6) {
+      setPasswordReset(prev => ({
+        ...prev,
+        message: isGerman ? 'Bitte geben Sie eine gültige 6-stellige OTP ein' : 'Please enter a valid 6-digit OTP'
+      }));
+      return;
+    }
+
+    setPasswordReset(prev => ({ ...prev, loading: true, message: '' }));
+
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          otpId: passwordReset.otpId,
+          otp: passwordReset.otp
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setPasswordReset(prev => ({
+          ...prev,
+          loading: false,
+          step: 'reset',
+          resetToken: result.resetToken,
+          message: isGerman ? 'OTP verifiziert. Neues Passwort eingeben' : 'OTP verified. Enter new password'
+        }));
+      } else {
+        setPasswordReset(prev => ({
+          ...prev,
+          loading: false,
+          message: result.message || (isGerman ? 'Ungültige OTP' : 'Invalid OTP')
+        }));
+      }
+    } catch (error) {
+      setPasswordReset(prev => ({
+        ...prev,
+        loading: false,
+        message: isGerman ? 'Fehler bei der OTP-Verifizierung' : 'Error verifying OTP'
+      }));
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (passwordReset.newPassword !== passwordReset.confirmPassword) {
+      setPasswordReset(prev => ({
+        ...prev,
+        message: isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match'
+      }));
+      return;
+    }
+
+    if (passwordReset.newPassword.length < 8) {
+      setPasswordReset(prev => ({
+        ...prev,
+        message: isGerman ? 'Passwort muss mindestens 8 Zeichen lang sein' : 'Password must be at least 8 characters long'
+      }));
+      return;
+    }
+
+    setPasswordReset(prev => ({ ...prev, loading: true, message: '' }));
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          resetToken: passwordReset.resetToken,
+          newPassword: passwordReset.newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setPasswordReset({
+          showForm: false,
+          step: 'request',
+          email: user?.email || '',
+          otpId: '',
+          otp: '',
+          newPassword: '',
+          confirmPassword: '',
+          loading: false,
+          message: '',
+          otpSent: false,
+          resetToken: ''
+        });
+        setMessage(isGerman ? 'Passwort erfolgreich geändert!' : 'Password changed successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setPasswordReset(prev => ({
+          ...prev,
+          loading: false,
+          message: result.message || (isGerman ? 'Fehler beim Ändern des Passworts' : 'Error changing password')
+        }));
+      }
+    } catch (error) {
+      setPasswordReset(prev => ({
+        ...prev,
+        loading: false,
+        message: isGerman ? 'Fehler beim Ändern des Passworts' : 'Error changing password'
+      }));
+    }
+  };
+
+  const togglePasswordForm = () => {
+    setPasswordReset(prev => ({
+      showForm: !prev.showForm,
+      step: 'request',
+      email: user?.email || '',
+      otpId: '',
+      otp: '',
+      newPassword: '',
+      confirmPassword: '',
+      loading: false,
+      message: '',
+      otpSent: false,
+      resetToken: ''
+    }));
   };
 
   if (!isPartner && !isSuperAdmin) {
@@ -562,12 +747,201 @@ const PartnerSettings = () => {
 
             <div className="pt-3 border-t" style={{ borderColor: 'var(--theme-border)' }}>
               <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman 
+                {isGerman
                   ? 'Sie erhalten Benachrichtigungen nur für Leads, die Ihren Präferenzen entsprechen.'
                   : 'You will only receive notifications for leads matching your preferences.'
                 }
               </p>
             </div>
+          </div>
+
+          {/* Password Reset Section */}
+          <div className="p-6 rounded-lg border" style={{
+            backgroundColor: 'var(--theme-bg-secondary)',
+            borderColor: 'var(--theme-border)'
+          }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Passwort zurücksetzen' : 'Password Reset'}
+              </h3>
+              <button
+                onClick={togglePasswordForm}
+                className="px-3 py-1 rounded text-sm transition-colors"
+                style={{
+                  backgroundColor: passwordReset.showForm ? '#ef4444' : '#3b82f6',
+                  color: 'white'
+                }}
+              >
+                {passwordReset.showForm ?
+                  (isGerman ? 'Abbrechen' : 'Cancel') :
+                  (isGerman ? 'Ändern' : 'Change')
+                }
+              </button>
+            </div>
+
+            {passwordReset.showForm && (
+              <div className="space-y-4 border-t pt-4" style={{ borderColor: 'var(--theme-border)' }}>
+                {passwordReset.message && (
+                  <div className={`p-3 rounded text-sm ${
+                    passwordReset.message.includes('erfolg') || passwordReset.message.includes('success') || passwordReset.message.includes('sent') || passwordReset.message.includes('verified')
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {passwordReset.message}
+                  </div>
+                )}
+
+                {passwordReset.step === 'request' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm mb-2" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? 'E-Mail-Adresse' : 'Email Address'}
+                      </label>
+                      <input
+                        type="email"
+                        value={passwordReset.email}
+                        onChange={(e) => setPasswordReset(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: 'var(--theme-border)',
+                          color: 'var(--theme-text)'
+                        }}
+                        disabled={passwordReset.loading}
+                      />
+                    </div>
+                    <button
+                      onClick={handlePasswordResetRequest}
+                      disabled={passwordReset.loading || !passwordReset.email}
+                      className={`w-full px-4 py-2 rounded text-sm transition-colors ${
+                        passwordReset.loading || !passwordReset.email ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      style={{
+                        backgroundColor: '#3b82f6',
+                        color: 'white'
+                      }}
+                    >
+                      {passwordReset.loading ? (
+                        <span className="flex items-center justify-center">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                          {isGerman ? 'Senden...' : 'Sending...'}
+                        </span>
+                      ) : (
+                        isGerman ? 'OTP senden' : 'Send OTP'
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {passwordReset.step === 'verify' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm mb-2" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? 'OTP-Code eingeben' : 'Enter OTP Code'}
+                      </label>
+                      <input
+                        type="text"
+                        value={passwordReset.otp}
+                        onChange={(e) => setPasswordReset(prev => ({ ...prev, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                        placeholder="000000"
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500 text-center text-lg tracking-widest"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: 'var(--theme-border)',
+                          color: 'var(--theme-text)'
+                        }}
+                        disabled={passwordReset.loading}
+                        maxLength="6"
+                      />
+                      <p className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                        {isGerman ? 'Code aus E-Mail eingeben' : 'Enter code from email'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleOTPVerification}
+                      disabled={passwordReset.loading || passwordReset.otp.length !== 6}
+                      className={`w-full px-4 py-2 rounded text-sm transition-colors ${
+                        passwordReset.loading || passwordReset.otp.length !== 6 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      style={{
+                        backgroundColor: '#10b981',
+                        color: 'white'
+                      }}
+                    >
+                      {passwordReset.loading ? (
+                        <span className="flex items-center justify-center">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                          {isGerman ? 'Prüfen...' : 'Verifying...'}
+                        </span>
+                      ) : (
+                        isGerman ? 'Code bestätigen' : 'Verify Code'
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {passwordReset.step === 'reset' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm mb-2" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? 'Neues Passwort' : 'New Password'}
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordReset.newPassword}
+                        onChange={(e) => setPasswordReset(prev => ({ ...prev, newPassword: e.target.value }))}
+                        placeholder={isGerman ? 'Mindestens 8 Zeichen' : 'At least 8 characters'}
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: 'var(--theme-border)',
+                          color: 'var(--theme-text)'
+                        }}
+                        disabled={passwordReset.loading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-2" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? 'Passwort bestätigen' : 'Confirm Password'}
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordReset.confirmPassword}
+                        onChange={(e) => setPasswordReset(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder={isGerman ? 'Passwort wiederholen' : 'Repeat password'}
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: 'var(--theme-border)',
+                          color: 'var(--theme-text)'
+                        }}
+                        disabled={passwordReset.loading}
+                      />
+                    </div>
+                    <button
+                      onClick={handlePasswordReset}
+                      disabled={passwordReset.loading || !passwordReset.newPassword || !passwordReset.confirmPassword}
+                      className={`w-full px-4 py-2 rounded text-sm transition-colors ${
+                        passwordReset.loading || !passwordReset.newPassword || !passwordReset.confirmPassword ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      style={{
+                        backgroundColor: '#059669',
+                        color: 'white'
+                      }}
+                    >
+                      {passwordReset.loading ? (
+                        <span className="flex items-center justify-center">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                          {isGerman ? 'Ändern...' : 'Updating...'}
+                        </span>
+                      ) : (
+                        isGerman ? 'Passwort aktualisieren' : 'Update Password'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

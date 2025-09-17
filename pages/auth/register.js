@@ -25,6 +25,7 @@ export default function PartnerRequest() {
     company: '',
     address: '',
     postcodeCity: '',
+    country: '',
     agreeToTerms: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -295,10 +296,11 @@ export default function PartnerRequest() {
             street: formData.address,
             city: formData.postcodeCity,
             postalCode: formData.postcodeCity.split(' ')[0] || '',
-            country: 'Germany'
+            country: formData.country
           },
           services: formData.pursue,
-          partnerType: 'basic'
+          partnerType: 'basic',
+          language: isGerman ? 'de' : 'en' // Add current language preference
         }),
       });
 

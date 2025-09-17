@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { leadsAPI } from '../../services/api';
+import { leadsAPI } from '../../src/lib/api/api';
 import { toast } from 'react-hot-toast';
 
 const LeadDetailPage = () => {
@@ -139,7 +139,22 @@ const LeadDetailPage = () => {
     
     if (typeof value === 'boolean') return value ? (isGerman ? 'Ja' : 'Yes') : (isGerman ? 'Nein' : 'No');
     if (typeof value === 'string' || typeof value === 'number') return String(value);
-    if (Array.isArray(value)) return value.join(', ');
+    if (Array.isArray(value)) {
+      // Format service names properly
+      console.log('Processing array value:', value);
+      const formattedValues = value.map(item => {
+        if (typeof item === 'string') {
+          // Convert snake_case to readable text
+          const formatted = item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          console.log(`Formatted '${item}' -> '${formatted}'`);
+          return formatted;
+        }
+        return String(item);
+      });
+      const result = formattedValues.join(', ');
+      console.log('Final formatted result:', result);
+      return result;
+    }
     
     if (typeof value === 'object') {
       try {

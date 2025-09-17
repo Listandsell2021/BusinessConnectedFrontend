@@ -17,6 +17,7 @@ import { PartnerManagement } from '../src/features/partners';
 import { LogsModule } from '../src/features/logs';
 import { IncomeInvoices } from '../src/features/income';
 import { PartnerSettings, AdminSettings } from '../src/features/settings';
+import EnhancedDashboard from '../src/components/dashboard/EnhancedDashboard';
 
 export default function Dashboard({ initialData = {} }) {
   const router = useRouter();
@@ -362,7 +363,7 @@ export default function Dashboard({ initialData = {} }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return (
+        return isSuperAdmin ? <EnhancedDashboard /> : (
           <motion.div
             key="overview"
             initial={{ opacity: 0, y: 20 }}
@@ -377,7 +378,7 @@ export default function Dashboard({ initialData = {} }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <motion.h1 
+              <motion.h1
                 className="text-4xl font-bold mb-4"
                 style={{ color: 'var(--theme-text)' }}
                 animate={{ scale: [1, 1.02, 1] }}
@@ -386,8 +387,8 @@ export default function Dashboard({ initialData = {} }) {
                 {isGerman ? `Willkommen zurück, ${user?.name || 'Partner'}!` : `Welcome back, ${user?.name || 'Partner'}!`}
               </motion.h1>
               <p className="text-lg" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman 
-                  ? `Hier ist deine Business-Übersicht für heute.` 
+                {isGerman
+                  ? `Hier ist deine Business-Übersicht für heute.`
                   : `Here's your business overview for today.`}
               </p>
             </motion.div>
@@ -406,8 +407,8 @@ export default function Dashboard({ initialData = {} }) {
                   initial={{ opacity: 0, y: 30, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ delay: index * 0.1, duration: 0.5 }}
-                  whileHover={{ 
-                    scale: 1.05, 
+                  whileHover={{
+                    scale: 1.05,
                     y: -10,
                     transition: { duration: 0.2 }
                   }}
@@ -429,10 +430,10 @@ export default function Dashboard({ initialData = {} }) {
                       ease: "linear"
                     }}
                   />
-                  
+
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <motion.div 
+                      <motion.div
                         className="text-3xl"
                         animate={{ rotate: [0, 10, -10, 0] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -440,7 +441,7 @@ export default function Dashboard({ initialData = {} }) {
                         {stat.icon}
                       </motion.div>
                       <div className="text-right">
-                        <motion.div 
+                        <motion.div
                           className="text-xs px-3 py-1 rounded-full bg-white/20 text-white font-bold"
                           animate={{ scale: [1, 1.1, 1] }}
                           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -453,7 +454,7 @@ export default function Dashboard({ initialData = {} }) {
                       <h3 className="text-sm font-medium text-white/80">
                         {stat.title}
                       </h3>
-                      <motion.p 
+                      <motion.p
                         className="text-3xl font-bold text-white"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -466,7 +467,7 @@ export default function Dashboard({ initialData = {} }) {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Hover Glow Effect */}
                   <motion.div
                     className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100"
@@ -478,7 +479,7 @@ export default function Dashboard({ initialData = {} }) {
                 </motion.div>
               ))}
             </div>
-            
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               {/* Recent Leads Table */}
@@ -512,7 +513,7 @@ export default function Dashboard({ initialData = {} }) {
                     <motion.div
                       key={lead.id}
                       className="flex items-center justify-between p-4 rounded-xl hover:shadow-lg transition-all duration-300 border group cursor-pointer"
-                      style={{ 
+                      style={{
                         backgroundColor: 'var(--theme-card-bg)',
                         borderColor: 'var(--theme-border-light)'
                       }}
@@ -522,7 +523,7 @@ export default function Dashboard({ initialData = {} }) {
                       whileHover={{ y: -2, scale: 1.01 }}
                     >
                       <div className="flex items-center space-x-4">
-                        <motion.div 
+                        <motion.div
                           className="text-2xl"
                           animate={{ rotate: [0, 10, -10, 0] }}
                           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
@@ -559,7 +560,7 @@ export default function Dashboard({ initialData = {} }) {
                   ))}
                 </div>
               </motion.div>
-              
+
               {/* Activity & Notifications */}
               <motion.div
                 className="space-y-8"
@@ -590,7 +591,7 @@ export default function Dashboard({ initialData = {} }) {
                       <motion.div
                         key={notification._id}
                         className="flex items-start space-x-3 p-3 rounded-lg hover:shadow-md transition-all duration-200 border cursor-pointer group"
-                        style={{ 
+                        style={{
                           backgroundColor: 'var(--theme-card-bg)',
                           borderColor: 'var(--theme-border-light)'
                         }}
@@ -641,7 +642,7 @@ export default function Dashboard({ initialData = {} }) {
                       <motion.button
                         key={action.label}
                         className="p-4 rounded-xl border font-medium text-sm transition-all duration-200 hover:shadow-lg group"
-                        style={{ 
+                        style={{
                           backgroundColor: 'var(--theme-card-bg)',
                           borderColor: 'var(--theme-border)',
                           color: 'var(--theme-text)'

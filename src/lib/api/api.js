@@ -147,6 +147,7 @@ export const leadsAPI = {
   getAvailablePartners: (id) => api.get(`/leads/${id}/available-partners`),
   assign: (id, partnerId) => api.put(`/leads/${id}/assign`, { partnerId }),
   accept: (id) => api.put(`/leads/${id}/accept`),
+  reject: (id, reason) => api.post(`/leads/${id}/reject`, { reason }),
   updateStatus: (id, status) => api.patch(`/leads/${id}/status`, { status }),
   export: (format, filters) => api.get(`/leads/export/${format}`, { 
     params: filters,
@@ -156,11 +157,11 @@ export const leadsAPI = {
   createMovingLead: (data) => api.post('/leads/moving', data),
   createCleaningLead: (data) => api.post('/leads/cleaning', data),
   // Cancel requests APIs
-  getCancelledRequests: (params) => api.get('/leads/cancel-requests', { params }),
+  getCancelledRequests: (params) => api.get('/cancel-requests', { params }),
   createCancelRequest: (leadId, data) => api.post(`/leads/${leadId}/cancel-request`, data),
-  approveCancelRequest: (requestId) => api.put(`/leads/cancel-requests/${requestId}/approve`),
+  approveCancelRequest: (leadId, partnerId, data = {}) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'approve', ...data }),
   cancelLead: (leadId, data) => api.post(`/leads/${leadId}/cancel`, data),
-  rejectCancelRequest: (requestId, reason) => api.put(`/leads/cancel-requests/${requestId}/reject`, { reason })
+  rejectCancelRequest: (leadId, partnerId, reason) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'reject', reason })
 };
 
 export const partnersAPI = {

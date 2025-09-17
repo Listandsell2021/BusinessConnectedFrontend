@@ -3,6 +3,12 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/auth/login": "pages/auth/login.js",
+  "/auth/register": "pages/auth/register.js",
+  "/dashboard": "pages/dashboard.js",
   "/auth/partner-login": "pages/auth/partner-login.js",
-  "/dashboard": "pages/dashboard.js"
+  "/api/dashboard/overview": "pages/api/dashboard/overview.js",
+  "/api/dashboard/stats": "pages/api/dashboard/stats.js",
+  "/api/dashboard/revenue": "pages/api/dashboard/revenue.js",
+  "/api/dashboard/leads/distribution": "pages/api/dashboard/leads/distribution.js",
+  "/api/dashboard/partners/performance": "pages/api/dashboard/partners/performance.js"
 }

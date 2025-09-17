@@ -7,6 +7,7 @@ import { partnersAPI, settingsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import Pagination from '../../../components/ui/Pagination';
+import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
 
 const PartnerManagement = ({ initialPartners = [] }) => {
   const { currentService, setHideServiceFilter } = useService();
@@ -26,6 +27,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [currentView, setCurrentView] = useState('table'); // 'table' or 'details'
   const [partnerForDetails, setPartnerForDetails] = useState(null);
+  const [leadForDetails, setLeadForDetails] = useState(null);
+  const [showLeadDetails, setShowLeadDetails] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,10 +111,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [partnerLeadsStats, setPartnerLeadsStats] = useState({
     total: 0,
     pending: 0,
-    assigned: 0,
     accepted: 0,
-    completed: 0,
-    cancelled: 0
+    rejected: 0,
+    cancelled: 0,
+    cancel_requested: 0
   });
   const [adminSettings, setAdminSettings] = useState(null);
   const [weeklyLeadStats, setWeeklyLeadStats] = useState({
@@ -124,6 +127,25 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     key: 'createdAt',
     direction: 'desc'
   });
+
+  // Status translation function
+  const translateStatus = (status) => {
+    const statusMap = {
+      'pending': 'Ausstehend',
+      'partial_assigned': 'Teilweise zugewiesen',
+      'assigned': 'Zugewiesen',
+      'accepted': 'Akzeptiert',
+      'approved': 'Stornierung genehmigt',
+      'cancel_requested': 'Stornierung angefragt',
+      'cancellationRequested': 'Stornierung angefragt',
+      'cancelled': 'Storniert',
+      'rejected': 'Abgelehnt',
+      'cancellation_rejected': 'Stornierung abgelehnt',
+      'cancellation_approved': 'Stornierung genehmigt',
+      'completed': 'Abgeschlossen'
+    };
+    return statusMap[status] || 'Ausstehend';
+  };
 
   // Sortable header component
   const SortableHeader = ({ sortKey, children, className = "" }) => {
@@ -316,8 +338,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       console.error('Error fetching service types:', error);
       // Fallback to default service types - same as registration
       setServicesData([
-        { id: 'moving', name: isGerman ? 'Umzugsservice' : 'Moving Service' },
-        { id: 'cleaning', name: isGerman ? 'Reinigungsservice' : 'Cleaning Service' }
+        { id: 'moving', name: 'Umzugsservice' },
+        { id: 'cleaning', name: 'Reinigungsservice' }
       ]);
     }
   };
@@ -369,82 +391,110 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const handleApprovePartner = async (partnerId, partnerName) => {
     // Get current service filter to determine which service to approve
     const currentService = filters.serviceType || 'moving'; // Default to moving if no filter
-    
-    const confirmMessage = isGerman 
-      ? `Sind Sie sicher, dass Sie ${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} für ${partnerName} genehmigen möchten? Es wird eine E-Mail mit dem temporären Passwort gesendet.`
-      : `Are you sure you want to approve ${currentService === 'moving' ? 'Moving Service' : 'Cleaning Service'} for ${partnerName}? An email with temporary password will be sent.`;
+
+    const confirmMessage = `Sind Sie sicher, dass Sie ${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} für ${partnerName} genehmigen möchten? Es wird eine E-Mail mit dem temporären Passwort gesendet.`;
 
     showConfirmation({
       title: partnerName,
       message: confirmMessage,
-      confirmText: isGerman ? 'Genehmigen' : 'Approve',
-      cancelText: isGerman ? 'Abbrechen' : 'Cancel',
+      confirmText: 'Genehmigen',
+      cancelText: 'Abbrechen',
       type: 'success',
       onConfirm: async () => {
         try {
-          await partnersAPI.approveService(partnerId, currentService);
-          await loadPartners(); // Reload to get fresh data
-          toast.success(isGerman 
-            ? `${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} erfolgreich genehmigt`
-            : `${currentService === 'moving' ? 'Moving service' : 'Cleaning service'} approved successfully`
-          );
+          // Get partner details to use their actual service type
+          const partner = partners.find(p => p.id === partnerId);
+          const serviceTypeToApprove = partner?.serviceType || currentService;
+
+          const response = await partnersAPI.approveService(partnerId, serviceTypeToApprove);
+
+          // Check if response indicates success
+          if (response.data?.success) {
+            // Update local state immediately to show real-time changes
+            setPartners(prevPartners =>
+              prevPartners.map(p => {
+                const isMatch = p.id === partnerId || p._id === partnerId || p.partnerId === partnerId;
+                return isMatch
+                  ? { ...p, status: 'active', approvedAt: new Date().toISOString() }
+                  : p;
+              })
+            );
+
+            toast.success(`${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} erfolgreich genehmigt`);
+          } else {
+            throw new Error('Unexpected response format');
+          }
         } catch (error) {
           console.error('Error approving partner service:', error);
-          toast.error(isGerman ? 'Fehler beim Genehmigen des Dienstes' : 'Failed to approve service');
+          toast.error('Fehler beim Genehmigen des Dienstes');
+          // Reload partners to ensure data consistency on error
+          await loadPartners();
         }
       }
     });
   };
 
   const handleRejectPartner = async (partnerId, partnerName) => {
-    // Get current service filter to determine which service to reject
-    const currentService = filters.serviceType || 'moving'; // Default to moving if no filter
-    
+    // Get partner details to use their actual service type
+    const partner = partners.find(p => p.id === partnerId);
+    const serviceTypeToReject = partner?.serviceType || filters.serviceType || 'moving';
+
     // Show rejection reason dialog
     setRejectionDialog({
       open: true,
       partnerId,
       partnerName,
-      serviceType: currentService,
+      serviceType: serviceTypeToReject,
       reason: ''
     });
   };
 
   const handleConfirmRejection = async () => {
     if (!rejectionDialog.reason.trim()) {
-      toast.error(isGerman ? 'Grund für Ablehnung ist erforderlich' : 'Rejection reason is required');
+      toast.error('Grund für Ablehnung ist erforderlich');
       return;
     }
 
     try {
-      await partnersAPI.rejectService(
-        rejectionDialog.partnerId, 
-        rejectionDialog.serviceType, 
+      const response = await partnersAPI.rejectService(
+        rejectionDialog.partnerId,
+        rejectionDialog.serviceType,
         rejectionDialog.reason.trim()
       );
-      
-      await loadPartners(); // Reload to get fresh data
-      
-      const serviceDisplayName = rejectionDialog.serviceType === 'moving' 
-        ? (isGerman ? 'Umzugsdienst' : 'Moving service')
-        : (isGerman ? 'Reinigungsdienst' : 'Cleaning service');
-      
-      toast.success(isGerman 
-        ? `${serviceDisplayName} für ${rejectionDialog.partnerName} abgelehnt`
-        : `${serviceDisplayName} for ${rejectionDialog.partnerName} rejected`
-      );
-      
-      // Close dialog
-      setRejectionDialog({
-        open: false,
-        partnerId: null,
-        partnerName: '',
-        serviceType: '',
-        reason: ''
-      });
+
+      // Check if response indicates success
+      if (response.data?.success) {
+        // Update local state immediately to show real-time changes
+        setPartners(prevPartners =>
+          prevPartners.map(p =>
+            p.id === rejectionDialog.partnerId
+              ? { ...p, status: 'rejected', rejectedReason: rejectionDialog.reason.trim() }
+              : p
+          )
+        );
+
+        const serviceDisplayName = rejectionDialog.serviceType === 'moving'
+          ? 'Umzugsdienst'
+          : 'Reinigungsdienst';
+
+        toast.success(`${serviceDisplayName} für ${rejectionDialog.partnerName} abgelehnt`);
+
+        // Close dialog
+        setRejectionDialog({
+          open: false,
+          partnerId: null,
+          partnerName: '',
+          serviceType: '',
+          reason: ''
+        });
+      } else {
+        throw new Error('Unexpected response format');
+      }
     } catch (error) {
       console.error('Error rejecting partner service:', error);
-      toast.error(isGerman ? 'Fehler beim Ablehnen des Dienstes' : 'Failed to reject service');
+      toast.error('Fehler beim Ablehnen des Dienstes');
+      // Reload partners to ensure data consistency on error
+      await loadPartners();
     }
   };
 
@@ -858,6 +908,48 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     }
   };
 
+  // Handle view lead (similar to Lead Management)
+  const handleViewLead = async (lead) => {
+    try {
+      setLoading(true);
+      // Import leadsAPI
+      const { leadsAPI } = await import('../../../lib/api/api');
+      const response = await leadsAPI.getById(lead._id || lead.id);
+
+      // Handle the response structure from the updated backend
+      const leadData = response.data.success ? response.data.lead : response.data;
+
+      // Transform the lead data similar to Lead Management
+      const transformedLead = {
+        ...leadData,
+        id: leadData._id || leadData.id,
+        leadId: leadData.leadId || leadData.id,
+        name: leadData.user ?
+          `${leadData.user.firstName} ${leadData.user.lastName}`.trim() :
+          (leadData.name || ''),
+        email: leadData.user?.email || leadData.email || '',
+        city: leadData.location?.city || leadData.city || '',
+        status: leadData.status || 'pending'
+      };
+
+      setLeadForDetails(transformedLead);
+      setShowLeadDetails(true);
+    } catch (error) {
+      console.error('Error loading lead details:', error);
+      toast.error('Failed to load lead details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close lead details view
+  const handleCloseLeadDetails = () => {
+    setShowLeadDetails(false);
+    setLeadForDetails(null);
+  };
+
+  // Helper function to render table row for lead details
+
   // Load partner leads
   const loadPartnerLeads = async () => {
     if (!partnerForDetails || !partnerForDetails.id) return;
@@ -891,35 +983,48 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           return '';
         };
 
+        // Use the partner-specific status provided by the backend
+        const partnerStatus = lead.partnerStatus || 'pending';
+
         return {
           ...lead,
           id: lead._id || lead.id,
           leadId: lead.leadId || lead.id,
-          name: lead.user ? 
-            `${lead.user.firstName} ${lead.user.lastName}`.trim() : 
+          name: lead.user ?
+            `${lead.user.firstName} ${lead.user.lastName}`.trim() :
             (lead.name || ''),
           email: lead.user?.email || lead.email || '',
           city: getLocationString(lead.location) || lead.city || '',
           fromLocation: getLocationString(lead.fromLocation) || '',
           toLocation: getLocationString(lead.toLocation) || '',
-          pickupLocation: getLocationString(lead.pickupLocation) || '',
+          pickupLocation: getLocationString(lead.pickupLocation) || getLocationString(lead.formData?.pickupAddress) || '',
           dropoffLocation: getLocationString(lead.dropoffLocation) || '',
-          status: lead.status || 'pending'
+          status: partnerStatus
         };
       });
 
       setPartnerLeads(transformedLeads);
-      setPartnerLeadsStats({
-        total: stats.total || transformedLeads.length,
-        pending: stats.pending || 0,
-        assigned: stats.assigned || 0,
-        accepted: stats.accepted || 0,
-        cancelled: stats.cancelled || 0
-      });
+      // Calculate partner-specific stats from transformed leads
+      const partnerSpecificStats = {
+        total: transformedLeads.length,
+        pending: transformedLeads.filter(lead => lead.status === 'pending').length,
+        accepted: transformedLeads.filter(lead => lead.status === 'accepted').length,
+        rejected: transformedLeads.filter(lead => lead.status === 'rejected').length,
+        cancelled: transformedLeads.filter(lead =>
+          lead.status === 'cancelled' ||
+          lead.status === 'cancellation_approved'
+        ).length,
+        cancel_requested: transformedLeads.filter(lead =>
+          lead.status === 'cancel_requested' ||
+          lead.status === 'cancellationRequested'
+        ).length
+      };
+
+      setPartnerLeadsStats(partnerSpecificStats);
     } catch (error) {
       console.error('Error loading partner leads:', error);
       setPartnerLeads([]);
-      setPartnerLeadsStats({ total: 0, pending: 0, assigned: 0, accepted: 0, cancelled: 0 });
+      setPartnerLeadsStats({ total: 0, pending: 0, accepted: 0, rejected: 0, cancelled: 0, cancel_requested: 0 });
     } finally {
       setPartnerLeadsLoading(false);
     }
@@ -1137,7 +1242,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <option value="active">{t('partners.active')}</option>
             <option value="pending">{t('partners.pending')}</option>
             <option value="suspended">{t('partners.suspended')}</option>
-            <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
+            <option value="rejected">Abgelehnt</option>
           </select>
         </div>
 
@@ -1345,9 +1450,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               onMouseLeave={(e) => {
                                 if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                               }}
-                              title={isGerman ? 'Service genehmigen' : 'Approve service'}
+                              title="Service genehmigen"
                             >
-                              ✅ {isGerman ? 'Genehmigen' : 'Approve'}
+                              ✅ Genehmigen
                             </button>
                             <button
                               onClick={() => handleRejectPartner(partner.id, partner.name)}
@@ -1364,9 +1469,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               onMouseLeave={(e) => {
                                 if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                               }}
-                              title={isGerman ? 'Service ablehnen' : 'Reject service'}
+                              title="Service ablehnen"
                             >
-                              ❌ {isGerman ? 'Ablehnen' : 'Reject'}
+                              ❌ Ablehnen
                             </button>
                           </>
                         )}
@@ -1676,6 +1781,166 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               </div>
             </div>
             )}
+
+            {/* Service Area Preferences - Pickup and Destination for Moving Partners */}
+            {partnerForDetails.serviceType === 'moving' && partnerForDetails.preferences && (
+            <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Pickup Preferences */}
+                <div>
+                  <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
+                    📦 {isGerman ? 'Abholung-Einstellungen' : 'Pickup Preferences'}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                      <tbody>
+                        {partnerForDetails.preferences.pickup?.serviceArea && Object.keys(partnerForDetails.preferences.pickup.serviceArea).length > 0 ? (
+                          Object.entries(partnerForDetails.preferences.pickup.serviceArea).map(([country, config]) => (
+                            <tr key={`pickup-${country}`}>
+                              <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                                🌍 {country}:
+                              </td>
+                              <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                                {config.type === 'cities' ? (
+                                  <div>
+                                    <span className="text-blue-500 font-medium">{isGerman ? 'Spezifische Städte' : 'Specific Cities'}</span>
+                                    {Object.keys(config.cities || {}).length > 0 && (
+                                      <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                                        {Object.entries(config.cities).map(([city, cityConfig]) => (
+                                          <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1 mb-1">
+                                            {city} ({cityConfig.radius || 0}km)
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-green-500 font-medium">{isGerman ? 'Ganzes Land' : 'Whole Country'}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="2" className="px-4 py-3 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
+                              {isGerman ? 'Keine Abholung-Gebiete konfiguriert' : 'No pickup areas configured'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Destination Preferences */}
+                <div>
+                  <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
+                    🎯 {isGerman ? 'Ziel-Einstellungen' : 'Destination Preferences'}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                      <tbody>
+                        {partnerForDetails.preferences.destination?.serviceArea && Object.keys(partnerForDetails.preferences.destination.serviceArea).length > 0 ? (
+                          Object.entries(partnerForDetails.preferences.destination.serviceArea).map(([country, config]) => (
+                            <tr key={`destination-${country}`}>
+                              <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                                🌍 {country}:
+                              </td>
+                              <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                                {config.type === 'cities' ? (
+                                  <div>
+                                    <span className="text-blue-500 font-medium">{isGerman ? 'Spezifische Städte' : 'Specific Cities'}</span>
+                                    {Object.keys(config.cities || {}).length > 0 && (
+                                      <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                                        {Object.entries(config.cities).map(([city, cityConfig]) => (
+                                          <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1 mb-1">
+                                            {city} ({cityConfig.radius || 0}km)
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-green-500 font-medium">{isGerman ? 'Ganzes Land' : 'Whole Country'}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="2" className="px-4 py-3 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
+                              {isGerman ? 'Keine Ziel-Gebiete konfiguriert' : 'No destination areas configured'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            )}
+
+            {/* Cleaning Service Areas for Cleaning Partners */}
+            {partnerForDetails.serviceType === 'cleaning' && partnerForDetails.preferences?.cleaning && (
+            <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <div>
+                <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
+                  🧽 {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Preferences'}
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                    <tbody>
+                      <tr>
+                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                          {isGerman ? 'Länder' : 'Countries'}:
+                        </td>
+                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                          {partnerForDetails.preferences.cleaning.countries?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {partnerForDetails.preferences.cleaning.countries.map(country => (
+                                <span key={country} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                  {country}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Keine Länder konfiguriert' : 'No countries configured'}</span>
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                          {isGerman ? 'Städte' : 'Cities'}:
+                        </td>
+                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                          {partnerForDetails.preferences.cleaning.cities?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {partnerForDetails.preferences.cleaning.cities.map(city => (
+                                <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                  {city}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Keine Städte konfiguriert' : 'No cities configured'}</span>
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman ? 'Radius' : 'Radius'}:
+                        </td>
+                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)' }}>
+                          <span className="font-medium">{partnerForDetails.preferences.cleaning.radius || 50}km</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            )}
           </div>
           )}
 
@@ -1718,11 +1983,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     }}
                   >
                     <option value="all">{isGerman ? 'Status - Alle' : 'Status - All'}</option>
-                    <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
-                    <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
-                    <option value="accepted">{isGerman ? 'Akzeptiert' : 'Accepted'}</option>
-                    <option value="cancelled">{isGerman ? 'Storniert' : 'Cancelled'}</option>
-                    <option value="completed">{isGerman ? 'Abgeschlossen' : 'Completed'}</option>
+                    <option value="pending">{translateStatus('pending')}</option>
+                    <option value="accepted">{translateStatus('accepted')}</option>
+                    <option value="rejected">{translateStatus('rejected')}</option>
+                    <option value="cancelled">{translateStatus('cancelled')}</option>
+                    <option value="cancel_requested">{translateStatus('cancel_requested')}</option>
                   </select>
                 </div>
                 {/* City Filter */}
@@ -1765,29 +2030,35 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               {/* Statistics Display */}
               <div className="flex flex-wrap gap-4 mt-6 mb-6">
                 {[
-                  { 
-                    label: isGerman ? 'Gesamt Leads' : 'Total Leads', 
-                    value: partnerLeadsStats.total, 
-                    icon: '📋', 
-                    color: 'blue' 
+                  {
+                    label: isGerman ? 'Gesamt Leads' : 'Total Leads',
+                    value: partnerLeadsStats.total || 0,
+                    icon: '📋',
+                    color: 'blue'
                   },
-                  { 
-                    label: isGerman ? 'Ausstehend' : 'Pending', 
-                    value: (partnerLeadsStats.pending || 0) + (partnerLeadsStats.assigned || 0), 
-                    icon: '⏳', 
-                    color: 'yellow' 
+                  {
+                    label: translateStatus('pending'),
+                    value: partnerLeadsStats.pending || 0,
+                    icon: '⏳',
+                    color: 'yellow'
                   },
-                  { 
-                    label: isGerman ? 'Akzeptiert' : 'Accepted', 
-                    value: partnerLeadsStats.accepted, 
-                    icon: '✅', 
-                    color: 'green' 
+                  {
+                    label: translateStatus('accepted'),
+                    value: partnerLeadsStats.accepted || 0,
+                    icon: '✅',
+                    color: 'green'
                   },
-                  { 
-                    label: isGerman ? 'Storniert' : 'Cancelled', 
-                    value: partnerLeadsStats.cancelled || 0, 
-                    icon: '❌', 
-                    color: 'red' 
+                  {
+                    label: translateStatus('rejected'),
+                    value: partnerLeadsStats.rejected || 0,
+                    icon: '❌',
+                    color: 'red'
+                  },
+                  {
+                    label: translateStatus('cancelled'),
+                    value: partnerLeadsStats.cancelled || 0,
+                    icon: '🚫',
+                    color: 'gray'
                   }
                 ].map((stat, index) => (
                   <motion.div
@@ -1838,12 +2109,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         <PartnerLeadsSortableHeader sortKey="createdAt">
                           {isGerman ? 'Datum' : 'Date'}
                         </PartnerLeadsSortableHeader>
+                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman ? 'Aktionen' : 'Actions'}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
                       {partnerLeadsLoading ? (
                         <tr>
-                          <td colSpan="5" className="px-6 py-12 text-center">
+                          <td colSpan="6" className="px-6 py-12 text-center">
                             <div className="flex items-center justify-center space-x-2">
                               <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                               <span style={{ color: 'var(--theme-text)' }}>
@@ -1854,7 +2128,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         </tr>
                       ) : partnerLeads.length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                          <td colSpan="6" className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
                             {isGerman ? 'Keine Leads für diesen Partner gefunden' : 'No leads found for this partner'}
                           </td>
                         </tr>
@@ -1870,45 +2144,61 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                               {lead.leadId || lead.id}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {
-                                // Try multiple sources for customer name
-                                lead.customerName || 
-                                lead.name || 
-                                (lead.customer ? `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim() : null) ||
-                                (lead.user ? `${lead.user.firstName || ''} ${lead.user.lastName || ''}`.trim() : null) ||
-                                (lead.formData ? `${lead.formData.firstName || lead.formData.first_name || ''} ${lead.formData.lastName || lead.formData.last_name || ''}`.trim() : null) ||
-                                (lead.formData && lead.formData.name ? lead.formData.name : null) ||
-                                '-'
-                              }
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
+                                  {lead.name || (isGerman ? 'Unbekannt' : 'Unknown')}
+                                </div>
+                                {isSuperAdmin && lead.email && (
+                                  <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                                    {lead.email}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {currentService === 'moving' 
-                                ? `${lead.fromLocation || lead.pickupLocation || (lead.formData && lead.formData.fromLocation) || (lead.formData && lead.formData.pickup_location) || '-'} → ${lead.toLocation || lead.dropoffLocation || (lead.formData && lead.formData.toLocation) || (lead.formData && lead.formData.destination_location) || '-'}`
-                                : lead.city || lead.location || (lead.formData && lead.formData.city) || (lead.formData && lead.formData.location) || '-'
+                              {currentService === 'moving'
+                                ? `${lead.fromLocation || lead.pickupLocation || (lead.formData?.pickupAddress?.city) || (lead.formData?.fromLocation) || (lead.formData?.pickup_location) || '-'} → ${lead.toLocation || lead.dropoffLocation || (lead.formData?.destinationAddress?.city) || (lead.formData?.toLocation) || (lead.formData?.destination_location) || '-'}`
+                                : lead.formData?.serviceAddress?.city || lead.formData?.address?.city || lead.city || lead.location || (lead.formData && lead.formData.city) || (lead.formData && lead.formData.location) || '-'
                               }
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                                 lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                 lead.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
                                 lead.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                lead.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                lead.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                lead.status === 'cancelled' || lead.status === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
+                                lead.status === 'cancel_requested' || lead.status === 'cancellationRequested' ? 'bg-orange-100 text-orange-800' :
+                                lead.status === 'cancellation_rejected' ? 'bg-red-100 text-red-800' :
                                 lead.status === 'completed' ? 'bg-gray-100 text-gray-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {isGerman ? (
-                                  lead.status === 'pending' ? 'Ausstehend' :
-                                  lead.status === 'assigned' ? 'Zugewiesen' :
-                                  lead.status === 'accepted' ? 'Akzeptiert' :
-                                  lead.status === 'cancelled' ? 'Storniert' :
-                                  lead.status === 'completed' ? 'Abgeschlossen' :
-                                  lead.status
-                                ) : lead.status}
+                                {translateStatus(lead.status)}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                               {new Date(lead.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                onClick={() => handleViewLead(lead)}
+                                className="text-xs px-3 py-1 rounded transition-colors"
+                                style={{
+                                  backgroundColor: 'var(--theme-bg-secondary)',
+                                  color: 'var(--theme-text)',
+                                  border: '1px solid var(--theme-border)'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = 'var(--theme-hover)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
+                                }}
+                                title={isGerman ? 'Details anzeigen' : 'View Details'}
+                              >
+                                👁️ {isGerman ? 'Ansehen' : 'View'}
+                              </button>
                             </td>
                           </motion.tr>
                         ))
@@ -2047,12 +2337,12 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Service ablehnen' : 'Reject Service'}
+                    Service ablehnen
                   </h3>
                   <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                    {rejectionDialog.partnerName} - {rejectionDialog.serviceType === 'moving' 
-                      ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
-                      : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service')
+                    {rejectionDialog.partnerName} - {rejectionDialog.serviceType === 'moving'
+                      ? 'Umzugsdienst'
+                      : 'Reinigungsdienst'
                     }
                   </p>
                 </div>
@@ -2061,15 +2351,12 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               {/* Reason Input */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Grund für Ablehnung *' : 'Reason for rejection *'}
+                  Grund für Ablehnung *
                 </label>
                 <textarea
                   value={rejectionDialog.reason}
                   onChange={(e) => setRejectionDialog(prev => ({ ...prev, reason: e.target.value }))}
-                  placeholder={isGerman 
-                    ? 'Bitte geben Sie einen Grund für die Ablehnung an...'
-                    : 'Please provide a reason for rejection...'
-                  }
+                  placeholder="Bitte geben Sie einen Grund für die Ablehnung an..."
                   rows={4}
                   className="w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   style={{ 
@@ -2109,7 +2396,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   }}
                   disabled={!rejectionDialog.reason.trim()}
                 >
-                  ❌ {isGerman ? 'Ablehnen' : 'Reject'}
+                  ❌ Ablehnen
                 </button>
               </div>
             </motion.div>
@@ -2507,6 +2794,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Lead Details Modal - Using Shared Component */}
+      <LeadDetailsDialog
+        isOpen={showLeadDetails}
+        leadData={leadForDetails}
+        onClose={handleCloseLeadDetails}
+        t={t}
+        isGerman={isGerman}
+        isPartner={!isSuperAdmin}
+      />
     </div>
   );
 };

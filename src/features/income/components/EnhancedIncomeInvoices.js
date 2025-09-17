@@ -330,103 +330,35 @@ const EnhancedIncomeInvoices = () => {
         )}
       </div>
 
-      {/* Advanced Filters */}
-      <motion.div 
-        className="p-6 rounded-lg border"
-        style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}
+      {/* Filters - Lead Management Style */}
+      <motion.div
+        className="flex gap-3 p-4 rounded-lg mb-6"
+        style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Filter' : 'Filters'}
-          </h3>
-          <button
-            onClick={resetFilters}
-            className="px-3 py-1 text-sm rounded-lg transition-colors"
-            style={{ 
-              backgroundColor: 'var(--theme-bg-secondary)', 
-              color: 'var(--theme-text)' 
+        {/* Search */}
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder={isGerman ? 'Suche nach Kunden, E-Mail, Lead ID...' : 'Search by customer, email, lead ID...'}
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              backgroundColor: 'var(--theme-input-bg)',
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text)'
             }}
-          >
-            {isGerman ? 'Zurücksetzen' : 'Reset'}
-          </button>
+          />
         </div>
-        
-        {/* First Row - Main Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {/* Partner Filter */}
-          {isSuperAdmin && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Partner' : 'Partner'}
-              </label>
-              <select
-                value={filters.partnerId}
-                onChange={(e) => setFilters(prev => ({ ...prev, partnerId: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              >
-                <option value="all">{isGerman ? 'Alle Partner' : 'All Partners'}</option>
-                {partners.map(partner => (
-                  <option key={partner._id} value={partner._id}>
-                    {partner.companyName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Suche' : 'Search'}
-            </label>
-            <input
-              type="text"
-              placeholder={isGerman ? 'Kunden, E-Mail, Lead ID...' : 'Customer, email, lead ID...'}
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
-              }}
-            />
-          </div>
-
-          {/* City Filter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Stadt' : 'City'}
-            </label>
-            <input
-              type="text"
-              placeholder={isGerman ? 'Berlin, München...' : 'Berlin, Munich...'}
-              value={filters.city}
-              onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
-              }}
-            />
-          </div>
-
-          {/* Date Type Selector */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Zeitraum' : 'Date Period'}
-            </label>
+        {/* Partner Filter */}
+        {isSuperAdmin && (
+          <div className="flex-1">
             <select
-              value={filters.dateType}
-              onChange={(e) => setFilters(prev => ({ ...prev, dateType: e.target.value }))}
+              value={filters.partnerId}
+              onChange={(e) => setFilters(prev => ({ ...prev, partnerId: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{
                 backgroundColor: 'var(--theme-input-bg)',
@@ -434,183 +366,79 @@ const EnhancedIncomeInvoices = () => {
                 color: 'var(--theme-text)'
               }}
             >
-              <option value="day">{isGerman ? 'Bestimmter Tag' : 'Specific Day'}</option>
-              <option value="month">{isGerman ? 'Monat' : 'Month'}</option>
-              <option value="year">{isGerman ? 'Jahr' : 'Year'}</option>
-              <option value="custom">{isGerman ? 'Zeitraum' : 'Custom Range'}</option>
+              <option value="all">{isGerman ? 'Alle Partner' : 'All Partners'}</option>
+              {partners.map(partner => (
+                <option key={partner._id} value={partner._id}>
+                  {partner.companyName}
+                </option>
+              ))}
             </select>
           </div>
+        )}
 
-          {/* Date-specific filters - Dynamic based on dateType */}
-          {filters.dateType === 'day' && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Datum' : 'Date'}
-              </label>
-              <input
-                type="date"
-                value={filters.specificDate}
-                onChange={(e) => setFilters(prev => ({ ...prev, specificDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              />
-            </div>
-          )}
-
-          {filters.dateType === 'month' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Monat' : 'Month'}
-                </label>
-                <select
-                  value={filters.month}
-                  onChange={(e) => setFilters(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {new Date(2024, i, 1).toLocaleDateString(isGerman ? 'de-DE' : 'en-US', { month: 'long' })}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Jahr' : 'Year'}
-                </label>
-                <select
-                  value={filters.year}
-                  onChange={(e) => setFilters(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                >
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const year = new Date().getFullYear() - 2 + i;
-                    return (
-                      <option key={year} value={year}>{year}</option>
-                    );
-                  })}
-                </select>
-              </div>
-            </>
-          )}
-
-          {filters.dateType === 'year' && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Jahr' : 'Year'}
-              </label>
-              <select
-                value={filters.year}
-                onChange={(e) => setFilters(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - 2 + i;
-                  return (
-                    <option key={year} value={year}>{year}</option>
-                  );
-                })}
-              </select>
-            </div>
-          )}
-
-          {filters.dateType === 'custom' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Von Datum' : 'From Date'}
-                </label>
-                <input
-                  type="date"
-                  value={filters.customStartDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, customStartDate: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Bis Datum' : 'To Date'}
-                </label>
-                <input
-                  type="date"
-                  value={filters.customEndDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, customEndDate: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
-              </div>
-            </>
-          )}
+        {/* City Filter */}
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder={isGerman ? 'Stadt' : 'City'}
+            value={filters.city}
+            onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              backgroundColor: 'var(--theme-input-bg)',
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text)'
+            }}
+          />
         </div>
 
-        {/* Second Row - Amount Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mt-4">
-          {/* Min Amount */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Min. Betrag' : 'Min. Amount'}
-            </label>
-            <input
-              type="number"
-              placeholder="0"
-              value={filters.minAmount}
-              onChange={(e) => setFilters(prev => ({ ...prev, minAmount: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
-              }}
-            />
-          </div>
+        {/* Date Filter */}
+        <div className="flex-1">
+          <select
+            value={filters.dateType}
+            onChange={(e) => setFilters(prev => ({ ...prev, dateType: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              backgroundColor: 'var(--theme-input-bg)',
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text)'
+            }}
+          >
+            <option value="month">{isGerman ? 'Aktueller Monat' : 'Current Month'}</option>
+            <option value="year">{isGerman ? 'Aktuelles Jahr' : 'Current Year'}</option>
+            <option value="day">{isGerman ? 'Bestimmter Tag' : 'Specific Day'}</option>
+            <option value="custom">{isGerman ? 'Benutzerdefiniert' : 'Custom Range'}</option>
+          </select>
+        </div>
 
-          {/* Max Amount */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Max. Betrag' : 'Max. Amount'}
-            </label>
-            <input
-              type="number"
-              placeholder="1000"
-              value={filters.maxAmount}
-              onChange={(e) => setFilters(prev => ({ ...prev, maxAmount: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
-              }}
-            />
-          </div>
+        {/* Amount Range */}
+        <div className="flex-1">
+          <input
+            type="number"
+            placeholder={isGerman ? 'Min. Betrag' : 'Min. Amount'}
+            value={filters.minAmount}
+            onChange={(e) => setFilters(prev => ({ ...prev, minAmount: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{
+              backgroundColor: 'var(--theme-input-bg)',
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text)'
+            }}
+          />
+        </div>
+
+        {/* Reset Button */}
+        <div>
+          <button
+            onClick={resetFilters}
+            className="px-4 py-2 rounded-lg transition-colors h-10 flex items-center"
+            style={{
+              backgroundColor: 'var(--theme-button-bg)',
+              color: 'var(--theme-button-text)'
+            }}
+          >
+            {isGerman ? 'Reset' : 'Reset'}
+          </button>
         </div>
       </motion.div>
 
