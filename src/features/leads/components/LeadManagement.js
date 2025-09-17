@@ -3619,7 +3619,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       No Search Results
                     </p>
                     <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      No partners found matching "{partnerSearchQuery}"
+                      No partners found matching &quot;{partnerSearchQuery}&quot;
                     </p>
                   </div>
                 ) : (

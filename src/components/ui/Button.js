@@ -19,12 +19,20 @@ export default function Button({
   const variants = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
+    success: 'btn-success',
+    warning: 'btn-warning',
+    danger: 'btn-danger',
+    info: 'btn-info',
+    ghost: 'btn-ghost',
+    link: 'btn-link',
   };
-  
+
   const sizes = {
-    sm: 'px-4 py-2 text-sm rounded-lg',
-    md: 'px-6 py-3 text-base rounded-lg',
-    lg: 'px-8 py-4 text-lg rounded-xl',
+    xs: 'px-2 py-1 text-xs rounded-md',
+    sm: 'px-3 py-1.5 text-sm rounded-md',
+    md: 'px-4 py-2 text-base rounded-lg',
+    lg: 'px-6 py-3 text-lg rounded-lg',
+    xl: 'px-8 py-4 text-xl rounded-xl',
   };
 
   const buttonClasses = `
