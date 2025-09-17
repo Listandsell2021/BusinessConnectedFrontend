@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"../src/features/partners/components/PartnerManagement.js -> ../../../lib/api/api\":{\"id\":\"../src/features/partners/components/PartnerManagement.js -> ../../../lib/api/api\",\"files\":[]}}"
+self.__REACT_LOADABLE_MANIFEST="{}"
