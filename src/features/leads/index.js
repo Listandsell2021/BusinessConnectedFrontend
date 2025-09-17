@@ -1,0 +1,1 @@
+export { default as LeadManagement } from './components/LeadManagement';

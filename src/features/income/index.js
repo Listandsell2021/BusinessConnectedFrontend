@@ -1,0 +1,1 @@
+export { default as IncomeInvoices } from './components/IncomeInvoices';

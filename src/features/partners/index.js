@@ -1,0 +1,1 @@
+export { default as PartnerManagement } from './components/PartnerManagement';

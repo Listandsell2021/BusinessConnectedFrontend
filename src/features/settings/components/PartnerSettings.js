@@ -1,0 +1,578 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useService } from '../../../contexts/ServiceContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
+
+const PartnerSettings = () => {
+  const { currentService } = useService();
+  const { t, isGerman } = useLanguage();
+  const { user, isPartner, isSuperAdmin } = useAuth();
+  
+  const [settings, setSettings] = useState({
+    // Services
+    services: [],
+    
+    // Lead Preferences
+    cities: [],
+    countries: [],
+    radius: 50,
+    avgLeadsPerWeek: 5,
+    
+    // Moving Service specific
+    fromRadius: 50,
+    toRadius: 50,
+    
+    // Notifications
+    emailNotifications: true,
+    smsNotifications: false,
+    instantNotifications: true,
+    
+    // Contact Info
+    companyName: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
+  
+  const [availableCities] = useState([
+    'Berlin', 'Hamburg', 'Munich', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 
+    'Dortmund', 'Essen', 'Leipzig', 'Bremen', 'Dresden', 'Hanover', 'Nuremberg'
+  ]);
+  
+  const [availableCountries] = useState([
+    'Germany', 'Austria', 'Switzerland', 'Netherlands', 'Belgium'
+  ]);
+  
+  const [availableServices] = useState([
+    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' },
+    { id: 'cleaning', name: { en: 'Cleaning Services', de: 'Reinigungsservice' }, icon: '🧽' }
+  ]);
+  
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    // Load user settings - replace with API call
+    if (isPartner) {
+      setSettings({
+        services: user?.services || ['moving'], // Load from user data or default to moving
+        cities: ['Berlin', 'Hamburg'],
+        countries: ['Germany'],
+        radius: 50,
+        avgLeadsPerWeek: 5,
+        fromRadius: 50,
+        toRadius: 50,
+        emailNotifications: true,
+        smsNotifications: false,
+        instantNotifications: true,
+        companyName: user?.name || 'MoveIt Pro GmbH',
+        contactPerson: 'John Doe',
+        phone: '+49 30 12345678',
+        email: user?.email || 'info@moveitpro.de',
+        address: 'Hauptstr. 123, 10117 Berlin'
+      });
+    }
+  }, [isPartner, user]);
+
+  const handleCityChange = (city, checked) => {
+    setSettings(prev => ({
+      ...prev,
+      cities: checked 
+        ? [...prev.cities, city]
+        : prev.cities.filter(c => c !== city)
+    }));
+  };
+
+  const handleCountryChange = (country, checked) => {
+    setSettings(prev => ({
+      ...prev,
+      countries: checked 
+        ? [...prev.countries, country]
+        : prev.countries.filter(c => c !== country)
+    }));
+  };
+
+  const handleServiceChange = (serviceId, checked) => {
+    setSettings(prev => {
+      let newServices;
+      if (checked) {
+        newServices = [...prev.services, serviceId];
+      } else {
+        newServices = prev.services.filter(s => s !== serviceId);
+        // Ensure at least one service is always selected
+        if (newServices.length === 0) {
+          newServices = ['moving']; // Default to moving if trying to unselect all
+        }
+      }
+      return {
+        ...prev,
+        services: newServices
+      };
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // API call would go here
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      setMessage(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(isGerman ? 'Fehler beim Speichern der Einstellungen' : 'Error saving settings');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isPartner && !isSuperAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🔒</div>
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>
+            {isGerman ? 'Zugriff verweigert' : 'Access Denied'}
+          </h3>
+          <p style={{ color: 'var(--theme-muted)' }}>
+            {isGerman ? 'Nur Partner können Einstellungen verwalten' : 'Only Partners can access settings'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
+          {isGerman ? 'Partner-Einstellungen' : 'Partner Settings'}
+        </h2>
+        <motion.button
+          onClick={handleSave}
+          disabled={saving}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            saving ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+          }`}
+          style={{ 
+            backgroundColor: 'var(--theme-button-bg)', 
+            color: 'var(--theme-button-text)' 
+          }}
+          whileHover={!saving ? { scale: 1.02 } : {}}
+          whileTap={!saving ? { scale: 0.98 } : {}}
+        >
+          {saving ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+              <span>{isGerman ? 'Speichern...' : 'Saving...'}</span>
+            </div>
+          ) : (
+            <>💾 {isGerman ? 'Speichern' : 'Save Settings'}</>
+          )}
+        </motion.button>
+      </div>
+
+      {/* Success/Error Message */}
+      {message && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-lg ${
+            message.includes('erfolg') || message.includes('success')
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {message}
+        </motion.div>
+      )}
+
+      {/* Service Selection */}
+      <motion.div
+        className="p-6 rounded-lg"
+        style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+          🎯 {isGerman ? 'Ihre Services' : 'Your Services'}
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {availableServices.map((service) => (
+            <label 
+              key={service.id} 
+              className="flex items-center space-x-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md"
+              style={{ 
+                borderColor: settings.services.includes(service.id) ? '#3B82F6' : 'var(--theme-border)',
+                backgroundColor: settings.services.includes(service.id) ? 'rgba(59, 130, 246, 0.1)' : 'var(--theme-bg)'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={settings.services.includes(service.id)}
+                onChange={(e) => handleServiceChange(service.id, e.target.checked)}
+                className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div className="flex items-center space-x-3 flex-1">
+                <span className="text-2xl">{service.icon}</span>
+                <div>
+                  <div className="font-medium" style={{ color: 'var(--theme-text)' }}>
+                    {service.name[isGerman ? 'de' : 'en']}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+                    {isGerman ? 'Leads für diesen Service erhalten' : 'Receive leads for this service'}
+                  </div>
+                </div>
+              </div>
+            </label>
+          ))}
+        </div>
+        
+        <p className="mt-4 text-sm" style={{ color: 'var(--theme-muted)' }}>
+          {isGerman 
+            ? `${settings.services.length} Service(s) ausgewählt. Mindestens ein Service muss ausgewählt sein.`
+            : `${settings.services.length} service(s) selected. At least one service must be selected.`
+          }
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Lead Preferences */}
+        <motion.div
+          className="space-y-6 p-6 rounded-lg"
+          style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+            📍 {isGerman ? 'Lead-Präferenzen' : 'Lead Preferences'}
+          </h3>
+
+          {/* Current Service Context */}
+          <div className="p-4 rounded-lg border border-blue-200/30 bg-blue-50/10">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">{currentService === 'moving' ? '🚛' : '🧽'}</span>
+              <div>
+                <div className="font-semibold" style={{ color: 'var(--theme-text)' }}>
+                  {currentService === 'moving' 
+                    ? (isGerman ? 'Umzugsservice' : 'Moving Service')
+                    : (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
+                  }
+                </div>
+                <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                  {isGerman 
+                    ? 'Einstellungen für diesen Service'
+                    : 'Settings for this service'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cities */}
+          <div>
+            <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
+              {isGerman 
+                ? `Verfügbare Städte für ${currentService === 'moving' ? 'Umzugsservice' : 'Reinigungsservice'}`
+                : `Available Cities for ${currentService === 'moving' ? 'Moving Service' : 'Cleaning Service'}`
+              }
+            </label>
+            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+              {availableCities.map((city) => (
+                <label key={city} className="flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-opacity-50" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.cities.includes(city)}
+                    onChange={(e) => handleCityChange(city, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm" style={{ color: 'var(--theme-text)' }}>{city}</span>
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman 
+                ? `${settings.cities.length} Städte für ${currentService === 'moving' ? 'Umzüge' : 'Reinigung'} ausgewählt`
+                : `${settings.cities.length} cities selected for ${currentService === 'moving' ? 'moving' : 'cleaning'} services`
+              }
+            </p>
+          </div>
+
+          {/* Countries */}
+          <div>
+            <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Verfügbare Länder' : 'Available Countries'}
+            </label>
+            <div className="space-y-2">
+              {availableCountries.map((country) => (
+                <label key={country} className="flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-opacity-50" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.countries.includes(country)}
+                    onChange={(e) => handleCountryChange(country, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm" style={{ color: 'var(--theme-text)' }}>{country}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Radius Settings - Based on Current Service */}
+          {currentService === 'moving' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'Radius Abholungsort (km)' : 'From Address Radius (km)'}
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="200"
+                  value={settings.fromRadius}
+                  onChange={(e) => setSettings(prev => ({ ...prev, fromRadius: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                  <span>10km</span>
+                  <span className="font-medium">{settings.fromRadius}km</span>
+                  <span>200km</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'Radius Zielort (km)' : 'To Address Radius (km)'}
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="200"
+                  value={settings.toRadius}
+                  onChange={(e) => setSettings(prev => ({ ...prev, toRadius: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                  <span>10km</span>
+                  <span className="font-medium">{settings.toRadius}km</span>
+                  <span>200km</span>
+                </div>
+              </div>
+            </>
+          )}
+          
+          {currentService === 'cleaning' && (
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Service-Radius (km)' : 'Service Radius (km)'}
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                value={settings.radius}
+                onChange={(e) => setSettings(prev => ({ ...prev, radius: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                <span>10km</span>
+                <span className="font-medium">{settings.radius}km</span>
+                <span>100km</span>
+              </div>
+            </div>
+          )}
+
+          {/* Average Leads Per Week - Service Specific */}
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+              {isGerman 
+                ? `Gewünschte ${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Leads pro Woche`
+                : `Desired ${currentService === 'moving' ? 'Moving' : 'Cleaning'} Leads Per Week`
+              }
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={settings.avgLeadsPerWeek}
+              onChange={(e) => setSettings(prev => ({ ...prev, avgLeadsPerWeek: parseInt(e.target.value) }))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+              <span>1</span>
+              <span className="font-medium">{settings.avgLeadsPerWeek} {isGerman ? 'Leads/Woche' : 'leads/week'}</span>
+              <span>20</span>
+            </div>
+            <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman 
+                ? `Das CRM verwendet diese Einstellung für eine faire ${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Lead-Verteilung`
+                : `CRM uses this setting for fair ${currentService === 'moving' ? 'moving' : 'cleaning'} lead distribution`
+              }
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Contact & Notification Settings */}
+        <motion.div
+          className="space-y-6"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          {/* Contact Information */}
+          <div className="p-6 rounded-lg space-y-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+              🏢 {isGerman ? 'Kontaktinformationen' : 'Contact Information'}
+            </h3>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Firmenname' : 'Company Name'}
+              </label>
+              <input
+                type="text"
+                value={settings.companyName}
+                onChange={(e) => setSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Ansprechpartner' : 'Contact Person'}
+              </label>
+              <input
+                type="text"
+                value={settings.contactPerson}
+                onChange={(e) => setSettings(prev => ({ ...prev, contactPerson: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Telefon' : 'Phone'}
+              </label>
+              <input
+                type="tel"
+                value={settings.phone}
+                onChange={(e) => setSettings(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'E-Mail' : 'Email'}
+              </label>
+              <input
+                type="email"
+                value={settings.email}
+                onChange={(e) => setSettings(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Adresse' : 'Address'}
+              </label>
+              <textarea
+                value={settings.address}
+                onChange={(e) => setSettings(prev => ({ ...prev, address: e.target.value }))}
+                rows="3"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="p-6 rounded-lg space-y-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+              🔔 {isGerman ? 'Benachrichtigungseinstellungen' : 'Notification Settings'}
+            </h3>
+
+            <div className="space-y-3">
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={settings.emailNotifications}
+                  onChange={(e) => setSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'E-Mail-Benachrichtigungen für neue Leads' : 'Email notifications for new leads'}
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={settings.smsNotifications}
+                  onChange={(e) => setSettings(prev => ({ ...prev, smsNotifications: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'SMS-Benachrichtigungen für dringende Leads' : 'SMS notifications for urgent leads'}
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={settings.instantNotifications}
+                  onChange={(e) => setSettings(prev => ({ ...prev, instantNotifications: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'Sofortige Push-Benachrichtigungen' : 'Instant push notifications'}
+                </span>
+              </label>
+            </div>
+
+            <div className="pt-3 border-t" style={{ borderColor: 'var(--theme-border)' }}>
+              <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman 
+                  ? 'Sie erhalten Benachrichtigungen nur für Leads, die Ihren Präferenzen entsprechen.'
+                  : 'You will only receive notifications for leads matching your preferences.'
+                }
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default PartnerSettings;

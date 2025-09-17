@@ -1,0 +1,1 @@
+export { default as LogsModule } from './components/LogsModule';
