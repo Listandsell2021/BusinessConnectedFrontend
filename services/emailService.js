@@ -2,6 +2,9 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
 
+// Ensure dotenv is loaded
+require('dotenv').config();
+
 class EmailService {
   constructor() {
     this.transporter = this.createTransporter();
@@ -16,16 +19,21 @@ class EmailService {
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.warn('⚠️  Email configuration incomplete. Missing SMTP_HOST, SMTP_USER, or SMTP_PASS');
       console.warn('Email functionality will not work until these are configured in .env file');
+      return null;
     }
-    
+
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
+      port: parseInt(process.env.SMTP_PORT) || 587,
       secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Additional options for better deliverability
+      tls: {
+        rejectUnauthorized: false // Allow self-signed certificates if needed
+      }
     });
   }
 
@@ -33,17 +41,22 @@ class EmailService {
   async sendEmail(mailOptions) {
     try {
       // Check if transporter is properly configured
-      if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        return { 
-          success: false, 
-          error: 'Email configuration missing. Please configure SMTP_HOST, SMTP_USER, and SMTP_PASS in .env file.' 
+      if (!this.transporter) {
+        console.error('❌ Email transporter not initialized - missing configuration');
+        return {
+          success: false,
+          error: 'Email configuration missing. Please configure SMTP_HOST, SMTP_USER, and SMTP_PASS in .env file.'
         };
       }
-      
+
       if (!process.env.FROM_NAME || !process.env.FROM_EMAIL) {
-        return { 
-          success: false, 
-          error: 'FROM_NAME and FROM_EMAIL must be configured in .env file.' 
+        console.error('❌ FROM configuration missing:', {
+          FROM_NAME: !!process.env.FROM_NAME,
+          FROM_EMAIL: !!process.env.FROM_EMAIL
+        });
+        return {
+          success: false,
+          error: 'FROM_NAME and FROM_EMAIL must be configured in .env file.'
         };
       }
       
@@ -91,12 +104,19 @@ class EmailService {
 
   // Send lead assignment notification to partner
   async sendLeadAssignmentNotification(partner, lead) {
-    if (!partner.notifications.email) {
+    // Check if email notifications are enabled (default to true if not specified)
+    if (partner.notifications && partner.notifications.email === false) {
       return { success: true, message: 'Email notifications disabled' };
     }
 
+    // Get partner email
+    const partnerEmail = partner.contactPerson?.email || partner.email;
+    if (!partnerEmail) {
+      return { success: false, error: 'Partner email address not found' };
+    }
+
     const mailOptions = {
-      to: partner.contactPerson.email,
+      to: partnerEmail,
       subject: `New Lead Assignment - ${lead.serviceType}`,
       html: this.getLeadAssignmentTemplate(partner, lead)
     };
@@ -106,10 +126,17 @@ class EmailService {
 
   // Send partner registration confirmation
   async sendPartnerRegistrationConfirmation(partner) {
+    // Detect language preference
+    const isGerman = this.detectLanguagePreference(partner);
+
+    const subject = isGerman
+      ? `Registrierung erhalten - Willkommen bei ${this.companyName}!`
+      : `Registration Received - Welcome to ${this.companyName}!`;
+
     const mailOptions = {
       to: partner.contactPerson.email,
-      subject: `Registration Received - Welcome to ${this.companyName}!`,
-      html: this.getPartnerRegistrationTemplate(partner)
+      subject: subject,
+      html: this.getPartnerRegistrationTemplate(partner, isGerman)
     };
 
     return this.sendEmail(mailOptions);
@@ -198,7 +225,11 @@ class EmailService {
 
   // Helper method to detect language preference
   detectLanguagePreference(user) {
-    // Check if user has German country or language settings
+    // Priority 1: Explicit language preference from request
+    if (user.language === 'de' || user.language === 'german') return true;
+    if (user.language === 'en' || user.language === 'english') return false;
+
+    // Priority 2: Check if user has German country or language settings
     if (user.address && user.address.country === 'Germany') return true;
     if (user.contactPerson && user.contactPerson.language === 'de') return true;
     if (user.language === 'de') return true;
@@ -238,22 +269,33 @@ class EmailService {
   }
 
   getLeadAssignmentTemplate(partner, lead) {
+    // Get partner name safely
+    const partnerName = partner.contactPerson?.firstName || partner.firstName || 'Partner';
+
+    // Get customer name safely
+    const customerName = lead.user?.firstName && lead.user?.lastName
+      ? `${lead.user.firstName} ${lead.user.lastName}`
+      : 'Customer';
+
+    // Get location safely
+    const location = lead.serviceLocation?.city || lead.location?.city || lead.city || 'Not specified';
+
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #28a745; color: white; padding: 20px; text-align: center;">
           <h1>New Lead Assignment</h1>
         </div>
         <div style="padding: 20px;">
-          <p>Dear ${partner.contactPerson.firstName},</p>
-          
+          <p>Dear ${partnerName},</p>
+
           <p>You have been assigned a new lead for ${lead.serviceType} services.</p>
-          
+
           <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
             <h3>Lead Information:</h3>
             <p><strong>Lead ID:</strong> ${lead.leadId}</p>
             <p><strong>Service:</strong> ${lead.serviceType}</p>
-            <p><strong>Customer:</strong> ${lead.user.firstName} ${lead.user.lastName}</p>
-            <p><strong>Location:</strong> ${lead.location.city || 'Not specified'}</p>
+            <p><strong>Customer:</strong> ${customerName}</p>
+            <p><strong>Location:</strong> ${location}</p>
             <p><strong>Assigned:</strong> ${new Date().toLocaleString()}</p>
           </div>
           
@@ -279,128 +321,136 @@ class EmailService {
     `;
   }
 
-  getPartnerRegistrationTemplate(partner) {
-    const services = partner.services.map(s => s.serviceType || s).join(', ');
-    
+  getPartnerRegistrationTemplate(partner, isGerman = false) {
+    // Handle both old and new partner model structures
+    let services;
+    if (Array.isArray(partner.services)) {
+      // New structure: services is an array of service types
+      services = partner.services.join(', ');
+    } else if (partner.serviceType) {
+      // Single service structure
+      services = partner.serviceType;
+    } else {
+      // Fallback
+      services = 'Not specified';
+    }
+
+    // Return language-specific template
+    if (isGerman) {
+      return this.getGermanRegistrationTemplate(partner, services);
+    } else {
+      return this.getEnglishRegistrationTemplate(partner, services);
+    }
+  }
+
+  // English registration template
+  getEnglishRegistrationTemplate(partner, services) {
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #3d68ff; color: white; padding: 20px; text-align: center;">
-          <h1>Registration Received / Registrierung erhalten</h1>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
+        <div style="background: #3d68ff; color: white; padding: 30px 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Partner Registration Received</h1>
         </div>
-        
-        <!-- Language Toggle Buttons -->
-        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-          <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Choose your language / Wählen Sie Ihre Sprache:</p>
-          <button id="btn-english" onclick="showLanguage('english')" 
-                  style="background: #3d68ff; color: white; border: none; padding: 10px 20px; margin: 0 10px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">
-            🇬🇧 English
-          </button>
-          <button id="btn-german" onclick="showLanguage('german')" 
-                  style="background: #6c757d; color: white; border: none; padding: 10px 20px; margin: 0 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">
-            🇩🇪 Deutsch
-          </button>
-        </div>
-        
-        <script>
-          function showLanguage(lang) {
-            // Hide all language content
-            document.getElementById('english-content').style.display = 'none';
-            document.getElementById('german-content').style.display = 'none';
-            
-            // Reset button styles
-            document.getElementById('btn-english').style.background = '#6c757d';
-            document.getElementById('btn-english').style.fontWeight = 'normal';
-            document.getElementById('btn-german').style.background = '#6c757d';
-            document.getElementById('btn-german').style.fontWeight = 'normal';
-            
-            // Show selected language and highlight button
-            if (lang === 'english') {
-              document.getElementById('english-content').style.display = 'block';
-              document.getElementById('btn-english').style.background = '#3d68ff';
-              document.getElementById('btn-english').style.fontWeight = 'bold';
-            } else {
-              document.getElementById('german-content').style.display = 'block';
-              document.getElementById('btn-german').style.background = '#dc3545';
-              document.getElementById('btn-german').style.fontWeight = 'bold';
-            }
-          }
-          
-          // Show English by default
-          window.onload = function() {
-            showLanguage('english');
-          }
-        </script>
-        
-        <div style="padding: 20px;">
-          <!-- English Version -->
-          <div id="english-content" style="display: block;">
-            <p>Dear ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</p>
-            
-            <p>Thank you for registering with ${this.companyName}! We have successfully received your partner application and all your details have been recorded.</p>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3d68ff;">
-              <h3>Registration Details:</h3>
-              <p><strong>Company:</strong> ${partner.companyName}</p>
-              <p><strong>Contact Person:</strong> ${partner.contactPerson.firstName} ${partner.contactPerson.lastName}</p>
-              <p><strong>Email:</strong> ${partner.contactPerson.email}</p>
-              <p><strong>Phone:</strong> ${partner.contactPerson.phone}</p>
-              <p><strong>Services:</strong> ${services}</p>
-              <p><strong>Address:</strong> ${partner.address.street}, ${partner.address.city}${partner.address.postalCode ? ', ' + partner.address.postalCode : ''}</p>
-              <p><strong>Registration Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
-            </div>
-            
-            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>What happens next?</strong></p>
-              <p>Our admin team will review your application carefully. Once approved, you'll be able to access your dashboard and start receiving leads. Please be patient while we process your registration.</p>
-            </div>
-            
-            <p><strong>Important:</strong> Please do not attempt to login yet. You will receive another email once your registration is approved with login instructions.</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <div style="background: #d4edda; padding: 10px; border-radius: 5px;">
-                <p style="margin: 0; font-weight: bold;">✓ Registration Complete</p>
-              </div>
-            </div>
-            
-            <p>Best regards,<br>${this.companyTeam}</p>
+
+        <div style="padding: 30px 20px;">
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+            <strong>Dear ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</strong>
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+            Thank you for registering with ${this.companyName}! We have successfully received your partner application.
+          </p>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #3d68ff;">
+            <h3 style="margin: 0 0 15px 0; color: #3d68ff;">Registration Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Company:</td><td style="padding: 8px 0;">${partner.companyName}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Contact:</td><td style="padding: 8px 0;">${partner.contactPerson.firstName} ${partner.contactPerson.lastName}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Email:</td><td style="padding: 8px 0;">${partner.contactPerson.email}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Phone:</td><td style="padding: 8px 0;">${partner.contactPerson.phone}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Services:</td><td style="padding: 8px 0;">${services}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Address:</td><td style="padding: 8px 0;">${partner.address.street}, ${partner.address.city}${partner.address.postalCode ? ', ' + partner.address.postalCode : ''}${partner.address.country ? ', ' + partner.address.country : ''}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleDateString('en-GB')}</td></tr>
+            </table>
           </div>
-          
-          <!-- German Version -->
-          <div id="german-content" style="display: none;">
-            <p>Liebe/r ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</p>
-            
-            <p>Vielen Dank für Ihre Registrierung bei ${this.companyName}! Wir haben Ihre Partneranmeldung erfolgreich erhalten und alle Ihre Daten wurden erfasst.</p>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3d68ff;">
-              <h3>Registrierungsdetails:</h3>
-              <p><strong>Unternehmen:</strong> ${partner.companyName}</p>
-              <p><strong>Ansprechpartner:</strong> ${partner.contactPerson.firstName} ${partner.contactPerson.lastName}</p>
-              <p><strong>E-Mail:</strong> ${partner.contactPerson.email}</p>
-              <p><strong>Telefon:</strong> ${partner.contactPerson.phone}</p>
-              <p><strong>Dienstleistungen:</strong> ${services}</p>
-              <p><strong>Adresse:</strong> ${partner.address.street}, ${partner.address.city}${partner.address.postalCode ? ', ' + partner.address.postalCode : ''}</p>
-              <p><strong>Registrierungsdatum:</strong> ${new Date().toLocaleDateString('de-DE')}</p>
-            </div>
-            
-            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Wie geht es weiter?</strong></p>
-              <p>Unser Admin-Team wird Ihre Bewerbung sorgfältig prüfen. Nach der Genehmigung können Sie auf Ihr Dashboard zugreifen und Leads empfangen. Bitte haben Sie Geduld, während wir Ihre Registrierung bearbeiten.</p>
-            </div>
-            
-            <p><strong>Wichtig:</strong> Bitte versuchen Sie noch nicht, sich anzumelden. Sie erhalten eine weitere E-Mail, sobald Ihre Registrierung genehmigt wurde, mit Anmeldeanweisungen.</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <div style="background: #d4edda; padding: 10px; border-radius: 5px;">
-                <p style="margin: 0; font-weight: bold;">✓ Registrierung abgeschlossen</p>
-              </div>
-            </div>
-            
-            <p>Mit freundlichen Grüßen,<br>${this.companyTeam}</p>
+
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="margin: 0 0 15px 0; color: #856404;">What happens next?</h4>
+            <p style="margin: 0; line-height: 1.6;">Our admin team will review your application carefully. Once approved, you'll receive login credentials and can start receiving leads.</p>
           </div>
+
+          <div style="background: #d1ecf1; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #17a2b8;">
+            <p style="margin: 0; line-height: 1.6;"><strong>Important:</strong> Please do not attempt to login yet. You will receive another email once approved.</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+              <p style="margin: 0; font-weight: bold; color: #155724; font-size: 18px;">✓ Registration Complete</p>
+            </div>
+          </div>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 30px 0 0 0;">
+            Best regards,<br><strong>${this.companyTeam}</strong>
+          </p>
         </div>
-        
-        <div style="background: #f0f0f0; padding: 10px; text-align: center; font-size: 12px;">
-          This is an automated message. Please do not reply to this email.<br>
+
+        <div style="background: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6;">
+          This is an automated message. Please do not reply to this email.
+        </div>
+      </div>
+    `;
+  }
+
+  // German registration template
+  getGermanRegistrationTemplate(partner, services) {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
+        <div style="background: #dc3545; color: white; padding: 30px 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Partnerregistrierung erhalten</h1>
+        </div>
+
+        <div style="padding: 30px 20px;">
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+            <strong>Liebe/r ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</strong>
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+            Vielen Dank für Ihre Registrierung bei ${this.companyName}! Wir haben Ihre Partneranmeldung erfolgreich erhalten.
+          </p>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="margin: 0 0 15px 0; color: #dc3545;">Registrierungsdetails</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Unternehmen:</td><td style="padding: 8px 0;">${partner.companyName}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Ansprechpartner:</td><td style="padding: 8px 0;">${partner.contactPerson.firstName} ${partner.contactPerson.lastName}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">E-Mail:</td><td style="padding: 8px 0;">${partner.contactPerson.email}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Telefon:</td><td style="padding: 8px 0;">${partner.contactPerson.phone}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Dienstleistungen:</td><td style="padding: 8px 0;">${services}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Adresse:</td><td style="padding: 8px 0;">${partner.address.street}, ${partner.address.city}${partner.address.postalCode ? ', ' + partner.address.postalCode : ''}${partner.address.country ? ', ' + partner.address.country : ''}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Datum:</td><td style="padding: 8px 0;">${new Date().toLocaleDateString('de-DE')}</td></tr>
+            </table>
+          </div>
+
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="margin: 0 0 15px 0; color: #856404;">Wie geht es weiter?</h4>
+            <p style="margin: 0; line-height: 1.6;">Unser Admin-Team wird Ihre Bewerbung sorgfältig prüfen. Nach der Genehmigung erhalten Sie Anmeldedaten und können Leads empfangen.</p>
+          </div>
+
+          <div style="background: #d1ecf1; padding: 20px; border-radius: 8px; margin: 0 0 20px 0; border-left: 4px solid #17a2b8;">
+            <p style="margin: 0; line-height: 1.6;"><strong>Wichtig:</strong> Bitte versuchen Sie noch nicht, sich anzumelden. Sie erhalten eine weitere E-Mail nach der Genehmigung.</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+              <p style="margin: 0; font-weight: bold; color: #155724; font-size: 18px;">✓ Registrierung abgeschlossen</p>
+            </div>
+          </div>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 30px 0 0 0;">
+            Mit freundlichen Grüßen,<br><strong>${this.companyTeam}</strong>
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6;">
           Dies ist eine automatisierte Nachricht. Bitte antworten Sie nicht auf diese E-Mail.
         </div>
       </div>
@@ -475,42 +525,127 @@ class EmailService {
   async sendServiceApprovalNotification(partner, serviceType, password) {
     const email = partner.contactPerson.email;
     const isGerman = this.detectLanguagePreference(partner);
-    
-    const subject = isGerman 
+
+    const subject = isGerman
       ? `${this.companyName} - ${serviceType === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} Genehmigt`
       : `${this.companyName} - ${serviceType === 'moving' ? 'Moving Service' : 'Cleaning Service'} Approved`;
 
-    await this.transporter.sendMail({
-      from: this.fromEmail,
+    const mailOptions = {
       to: email,
       subject,
-      html: this.getServiceApprovalTemplate(partner, serviceType, password)
-    });
+      html: this.getServiceApprovalTemplate(partner, serviceType, password, isGerman)
+    };
 
-    console.log(`Service approval email sent to ${email} for ${serviceType}`);
+    return this.sendEmail(mailOptions);
   }
 
   // Send service rejection notification
   async sendServiceRejectionNotification(partner, serviceType, reason) {
     const email = partner.contactPerson.email;
     const isGerman = this.detectLanguagePreference(partner);
-    
-    const subject = isGerman 
+
+    const subject = isGerman
       ? `${this.companyName} - ${serviceType === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} Abgelehnt`
       : `${this.companyName} - ${serviceType === 'moving' ? 'Moving Service' : 'Cleaning Service'} Rejected`;
 
-    await this.transporter.sendMail({
-      from: this.fromEmail,
+    const mailOptions = {
       to: email,
       subject,
-      html: this.getServiceRejectionTemplate(partner, serviceType, reason)
-    });
+      html: this.getServiceRejectionTemplate(partner, serviceType, reason, isGerman)
+    };
 
-    console.log(`Service rejection email sent to ${email} for ${serviceType}`);
+    return this.sendEmail(mailOptions);
   }
 
-  // Service-specific approval template with password
-  getServiceApprovalTemplate(partner, serviceType, password) {
+  // Service-specific approval template with password - German only
+  getServiceApprovalTemplate(partner, serviceType, password, isGerman = false) {
+    // Always return German template as requested
+    return this.getGermanApprovalTemplate(partner, serviceType, password);
+  }
+
+  // German approval template
+  getGermanApprovalTemplate(partner, serviceType, password) {
+    const serviceDisplayNameDE = serviceType === 'moving' ? 'Umzugsdienste' : 'Reinigungsdienste';
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
+        <div style="background: #28a745; color: white; padding: 30px 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Service Genehmigt</h1>
+        </div>
+
+        <div style="padding: 30px 20px;">
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+            <strong>Liebe/r ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</strong>
+          </p>
+
+          <div style="background: #d4edda; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745; margin: 20px 0;">
+            <h3 style="color: #155724; margin: 0 0 15px 0;">🎉 Großartige Neuigkeiten!</h3>
+            <p style="margin: 0; font-size: 18px; font-weight: bold; color: #155724;">Ihr Antrag für <strong>${serviceDisplayNameDE}</strong> wurde genehmigt!</p>
+            <p style="margin: 10px 0 0 0; font-size: 16px; color: #155724;">
+              Sie können sich jetzt als <strong>${serviceDisplayNameDE}</strong>-Partner anmelden.
+            </p>
+          </div>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007bff;">
+            <h3 style="color: #333; margin: 0 0 15px 0;">Konto-Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 8px 0; font-weight: bold; width: 30%;">Unternehmen:</td><td style="padding: 8px 0;">${partner.companyName}</td></tr>
+              <tr style="background: #e7f3ff;"><td style="padding: 12px 8px; font-weight: bold; color: #0056b3;">🎯 Genehmigter Service:</td><td style="padding: 12px 8px; font-weight: bold; color: #0056b3; font-size: 16px;">${serviceDisplayNameDE}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Partner-Typ:</td><td style="padding: 8px 0;">${partner.partnerType}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">E-Mail:</td><td style="padding: 8px 0;">${partner.contactPerson.email}</td></tr>
+              <tr style="background: #fff3cd;"><td style="padding: 12px 8px; font-weight: bold; color: #856404;">🔑 Temporäres Passwort:</td><td style="padding: 12px 8px;">
+                <span style="background: #007bff; color: white; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 14px; font-weight: bold;">${password}</span>
+              </td></tr>
+            </table>
+          </div>
+
+          <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #007bff;">
+            <h3 style="color: #0056b3; margin: 0 0 15px 0;">🚀 Anmeldung für ${serviceDisplayNameDE}:</h3>
+            <div style="background: #fff; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #007bff;">
+              <p style="margin: 0; font-weight: bold; color: #0056b3;">1. Gehen Sie zum Partner-Dashboard</p>
+              <p style="margin: 5px 0 0 0; color: #333;">2. Wählen Sie "${serviceDisplayNameDE}" als Service</p>
+              <p style="margin: 5px 0 0 0; color: #333;">3. Loggen Sie sich mit obigen Daten ein</p>
+            </div>
+            <h4 style="color: #0056b3; margin: 15px 0 10px 0;">Sie können dann:</h4>
+            <ul style="padding-left: 20px; color: #333;">
+              <li style="margin-bottom: 8px;">${serviceDisplayNameDE}-Leads in Ihrem Gebiet erhalten</li>
+              <li style="margin-bottom: 8px;">Ihre Service-Präferenzen und Abdeckungsgebiete einstellen</li>
+              <li style="margin-bottom: 8px;">Ihr Passwort in den Kontoeinstellungen ändern</li>
+            </ul>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL}/auth/partner-login" style="background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+              🚀 Dashboard aufrufen
+            </a>
+          </div>
+
+          <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <p style="margin: 0; color: #856404; font-weight: bold;">
+              <strong>Wichtig:</strong> Bitte ändern Sie Ihr Passwort nach dem ersten Login aus Sicherheitsgründen.
+            </p>
+          </div>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 25px 0 0 0;">
+            Willkommen in der ${this.companyName} Familie! Bei Fragen wenden Sie sich an unser Support-Team.
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 25px 0 0 0;">
+            <strong>Mit freundlichen Grüßen,<br>${this.companyTeam}</strong>
+          </p>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #dee2e6;">
+          <p style="margin: 0; color: #6c757d; font-size: 12px;">
+            Dies ist eine automatische Nachricht. Bitte antworten Sie nicht auf diese E-Mail.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  // English approval template
+  getEnglishApprovalTemplate(partner, serviceType, password) {
     const serviceDisplayName = serviceType === 'moving' ? 'Moving Services' : 'Cleaning Services';
     const serviceDisplayNameDE = serviceType === 'moving' ? 'Umzugsdienste' : 'Reinigungsdienste';
     
@@ -637,78 +772,56 @@ class EmailService {
 
   // Service-specific rejection template
   getServiceRejectionTemplate(partner, serviceType, reason) {
-    const serviceDisplayName = serviceType === 'moving' ? 'Moving Services' : 'Cleaning Services';
     const serviceDisplayNameDE = serviceType === 'moving' ? 'Umzugsdienste' : 'Reinigungsdienste';
-    
+
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #dc3545; color: white; padding: 20px; text-align: center;">
-          <h1>Service Application Update / Service-Antrag Update</h1>
-        </div>
-        
-        <!-- Language Toggle Buttons -->
-        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-          <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Choose your language / Wählen Sie Ihre Sprache:</p>
-          <button id="btn-english" onclick="showLanguage('english')" 
-                  style="background: #3d68ff; color: white; border: none; padding: 10px 20px; margin: 0 10px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">
-            🇬🇧 English
-          </button>
-          <button id="btn-german" onclick="showLanguage('german')" 
-                  style="background: #6c757d; color: white; border: none; padding: 10px 20px; margin: 0 10px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;">
-            🇩🇪 Deutsch
-          </button>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
+        <div style="background: #dc3545; color: white; padding: 30px 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px;">Service-Antrag Update</h1>
         </div>
 
-        <!-- English Content -->
-        <div id="content-english" style="padding: 20px;">
-          <p>Dear ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</p>
-          
-          <p>Thank you for your interest in providing <strong>${serviceDisplayName}</strong> through ${this.companyName}.</p>
-          
+        <div style="padding: 30px 20px;">
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+            <strong>Liebe/r ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</strong>
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+            Vielen Dank für Ihr Interesse, <strong>${serviceDisplayNameDE}</strong> über ${this.companyName} anzubieten.
+          </p>
+
           <div style="background: #f8d7da; padding: 20px; border-radius: 8px; border-left: 4px solid #dc3545; margin: 20px 0;">
-            <p style="margin: 0;">After careful review, we are unable to approve your <strong>${serviceDisplayName}</strong> application at this time.</p>
-            ${reason ? `<p style="margin: 15px 0 0 0;"><strong>Reason:</strong> ${reason}</p>` : ''}
+            <p style="margin: 0; font-size: 16px;">Nach sorgfältiger Prüfung können wir Ihren Antrag für <strong>${serviceDisplayNameDE}</strong> derzeit nicht genehmigen.</p>
+            ${reason ? `<div style="margin: 15px 0 0 0; padding: 15px; background: #fff; border-radius: 6px; border: 1px solid #dc3545;">
+              <p style="margin: 0; font-weight: bold; color: #721c24;">Grund:</p>
+              <p style="margin: 8px 0 0 0; color: #721c24;">${reason}</p>
+            </div>` : ''}
           </div>
 
-          <p>This decision does not affect any other approved services you may have with us. You can reapply for ${serviceDisplayName.toLowerCase()} in the future when circumstances may have changed.</p>
-          
-          <p>If you have questions about this decision, please contact our support team.</p>
-          
-          <p>Thank you for your understanding.</p>
-          <p>Best regards,<br><strong>${this.companyTeam}</strong></p>
-        </div>
-
-        <!-- German Content -->
-        <div id="content-german" style="padding: 20px; display: none;">
-          <p>Liebe/r ${partner.contactPerson.firstName} ${partner.contactPerson.lastName},</p>
-          
-          <p>Vielen Dank für Ihr Interesse, <strong>${serviceDisplayNameDE}</strong> über ${this.companyName} anzubieten.</p>
-          
-          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; border-left: 4px solid #dc3545; margin: 20px 0;">
-            <p style="margin: 0;">Nach sorgfältiger Prüfung können wir Ihren Antrag für <strong>${serviceDisplayNameDE}</strong> derzeit nicht genehmigen.</p>
-            ${reason ? `<p style="margin: 15px 0 0 0;"><strong>Grund:</strong> ${reason}</p>` : ''}
+          <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; line-height: 1.6;">
+              Diese Entscheidung betrifft keine anderen genehmigten Services, die Sie möglicherweise bei uns haben.
+              Sie können sich in Zukunft erneut für ${serviceDisplayNameDE} bewerben, wenn sich die Umstände geändert haben.
+            </p>
           </div>
 
-          <p>Diese Entscheidung betrifft keine anderen genehmigten Services, die Sie möglicherweise bei uns haben. Sie können sich in Zukunft erneut für ${serviceDisplayNameDE.toLowerCase()} bewerben, wenn sich die Umstände geändert haben.</p>
-          
-          <p>Bei Fragen zu dieser Entscheidung wenden Sie sich bitte an unser Support-Team.</p>
-          
-          <p>Vielen Dank für Ihr Verständnis.</p>
-          <p>Mit freundlichen Grüßen,<br><strong>${this.companyTeam}</strong></p>
+          <p style="font-size: 16px; line-height: 1.6; margin: 25px 0;">
+            Bei Fragen zu dieser Entscheidung wenden Sie sich bitte an unser Support-Team.
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 25px 0;">
+            Vielen Dank für Ihr Verständnis.
+          </p>
+
+          <p style="font-size: 16px; line-height: 1.6; margin: 25px 0 0 0;">
+            <strong>Mit freundlichen Grüßen,<br>${this.companyTeam}</strong>
+          </p>
         </div>
 
-        <script>
-          function showLanguage(lang) {
-            document.getElementById('content-english').style.display = lang === 'english' ? 'block' : 'none';
-            document.getElementById('content-german').style.display = lang === 'german' ? 'block' : 'none';
-            
-            document.getElementById('btn-english').style.background = lang === 'english' ? '#3d68ff' : '#6c757d';
-            document.getElementById('btn-german').style.background = lang === 'german' ? '#3d68ff' : '#6c757d';
-          }
-          
-          // Show English by default
-          showLanguage('english');
-        </script>
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #dee2e6;">
+          <p style="margin: 0; color: #6c757d; font-size: 12px;">
+            Dies ist eine automatische Nachricht. Bitte antworten Sie nicht auf diese E-Mail.
+          </p>
+        </div>
       </div>
     `;
   }

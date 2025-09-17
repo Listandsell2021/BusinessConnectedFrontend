@@ -119,7 +119,7 @@ class PartnerService {
   static async findEligiblePartners(lead) {
     const query = {
       status: 'active',
-      services: lead.serviceType
+      serviceType: lead.serviceType
     };
 
     const partners = await Partner.find(query);
@@ -204,11 +204,11 @@ class PartnerService {
 
     // Location match using serviceArea structure
     const preferences = partner.preferences[lead.serviceType];
-    if (preferences && preferences.serviceArea && preferences.serviceArea.size > 0) {
+    if (preferences && preferences.serviceArea && Object.keys(preferences.serviceArea).length > 0) {
       // Check if partner has any service area configured
       let hasServiceArea = false;
-      for (const [country, countryData] of preferences.serviceArea) {
-        if (countryData.type === 'cities' && countryData.cities && countryData.cities.size > 0) {
+      for (const [country, countryData] of Object.entries(preferences.serviceArea)) {
+        if (countryData.type === 'cities' && countryData.cities && Object.keys(countryData.cities).length > 0) {
           hasServiceArea = true;
           break;
         } else if (countryData.type === 'country') {

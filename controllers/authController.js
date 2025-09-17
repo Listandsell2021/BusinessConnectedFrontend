@@ -7,7 +7,7 @@ const OTP = require('../models/OTP');
 const { logError, logActivity, ActivityLogger } = require('../middleware/logging');
 const logger = require('../utils/logger');
 const { generatePartnerDefaultPassword } = require('../utils/passwordGenerator');
-const EmailService = require('../services/emailService');
+const emailService = require('../services/emailService');
 const NotificationService = require('../services/notificationService');
 
 // Generate JWT tokens
@@ -39,15 +39,21 @@ const generateTokens = (user, role, selectedService = null) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { email, password, selectedService } = req.body;
+    let { email, password, selectedService } = req.body;
+
+    // TEMPORARY FIX: Handle the missing dot issue for this specific email
+    if (email === 'muskansetia24@gmail.com') {
+      email = 'muskan.setia24@gmail.com';
+      console.log('🔧 FIXED EMAIL: Converted muskansetia24@gmail.com to muskan.setia24@gmail.com');
+    }
 
     // Check if user exists (try Partner first, then User)
     let user = null;
     let role = 'partner';
-    
+
     if (selectedService) {
       // If service is selected, find the specific partner for that service
-      user = await Partner.findOne({ 
+      user = await Partner.findOne({
         'contactPerson.email': email,
         serviceType: selectedService
       });
@@ -55,7 +61,7 @@ const login = async (req, res) => {
       // If no service selected, find any partner with this email
       user = await Partner.findOne({ 'contactPerson.email': email });
     }
-    
+
     if (!user) {
       user = await User.findOne({ email });
       role = user?.role || 'user';
@@ -239,44 +245,13 @@ const registerPartner = async (req, res) => {
 
     // Note: Geocoding functionality removed - can be added later if needed
 
-    // Send registration confirmation email (send once for all services)
-    let emailSentSuccessfully = false;
-    let emailErrorMessage = null;
-    
-    try {
-      // Use the first partner for email template
-      const emailResult = await EmailService.sendPartnerRegistrationConfirmation(createdPartners[0]);
-      if (emailResult.success) {
-        emailSentSuccessfully = true;
-        logger.info(`Registration confirmation email sent successfully to ${createdPartners[0].contactPerson.email}`, {
-          partnerIds: createdPartners.map(p => p._id),
-          services: createdPartners.map(p => p.serviceType),
-          emailSent: true,
-          messageId: emailResult.messageId
-        });
-      } else {
-        emailErrorMessage = emailResult.error;
-        logger.error(`Failed to send registration confirmation email to ${createdPartners[0].contactPerson.email}`, {
-          partnerIds: createdPartners.map(p => p._id),
-          emailError: emailResult.error
-        });
-      }
-    } catch (emailError) {
-      emailErrorMessage = emailError.message;
-      logger.error('Registration email sending failed:', {
-        partnerIds: createdPartners.map(p => p._id),
-        email: createdPartners[0].contactPerson.email,
-        error: emailError.message
-      });
-      // Don't fail the registration if email fails
-    }
-    
     logger.info(`New partners registered: ${partnerData.contactPerson.email}`, {
       partnerIds: createdPartners.map(p => p._id),
       companyName: createdPartners[0].companyName,
       servicesCount: createdPartners.length
     });
 
+    // Return success response immediately after successful DB save
     res.status(201).json({
       success: true,
       message: `Partner registration successful for ${createdPartners.length} service(s). Awaiting admin approval.`,
@@ -291,10 +266,43 @@ const registerPartner = async (req, res) => {
         email: createdPartners[0].contactPerson.email,
         services: createdPartners.map(p => p.serviceType),
         registrationComplete: true,
-        emailSent: emailSentSuccessfully,
-        ...(emailErrorMessage && { emailError: emailErrorMessage }),
+        emailSent: 'processing', // Indicate email is being sent in background
         geocodingStatus: 'not_required',
         nextSteps: 'Admin approval required before login access is granted'
+      }
+    });
+
+    // Send registration confirmation email in background (don't block response)
+    setImmediate(async () => {
+      try {
+        // Use the first partner for email template, but include all services
+        const partnerForEmail = {
+          ...createdPartners[0].toObject(),
+          services: createdPartners.map(p => p.serviceType),
+          language: req.body.language || 'en' // Add language preference from request
+        };
+
+        const emailResult = await emailService.sendPartnerRegistrationConfirmation(partnerForEmail);
+
+        if (emailResult.success) {
+          logger.info(`Registration confirmation email sent successfully to ${createdPartners[0].contactPerson.email}`, {
+            partnerIds: createdPartners.map(p => p._id),
+            services: createdPartners.map(p => p.serviceType),
+            emailSent: true,
+            messageId: emailResult.messageId
+          });
+        } else {
+          logger.error(`Failed to send registration confirmation email to ${createdPartners[0].contactPerson.email}`, {
+            partnerIds: createdPartners.map(p => p._id),
+            emailError: emailResult.error
+          });
+        }
+      } catch (emailError) {
+        logger.error('Registration email sending failed:', {
+          partnerIds: createdPartners.map(p => p._id),
+          email: createdPartners[0].contactPerson.email,
+          error: emailError.message
+        });
       }
     });
   } catch (error) {
@@ -446,7 +454,7 @@ const forgotPassword = async (req, res) => {
 
     // Send OTP via email
     try {
-      const emailResult = await EmailService.sendPasswordResetOTP(
+      const emailResult = await emailService.sendPasswordResetOTP(
         user,
         otpCode,
         userType

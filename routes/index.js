@@ -12,6 +12,7 @@ const invoiceRoutes = require('./invoices');
 const revenueRoutes = require('./revenue');
 const settingsRoutes = require('./settings');
 const notificationRoutes = require('./notifications');
+const cancelRequestRoutes = require('./cancelRequests');
 
 // Define API routes
 router.use('/auth', authRoutes);
@@ -24,6 +25,7 @@ router.use('/invoices', invoiceRoutes);
 router.use('/revenue', revenueRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/cancel-requests', cancelRequestRoutes);
 
 // API health check
 router.get('/health', (req, res) => {

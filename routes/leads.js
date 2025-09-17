@@ -14,7 +14,11 @@ const {
   getLeadStats,
   updateLeadStatus,
   exportLeadsToExcel,
-  exportLeadsToPDF
+  exportLeadsToPDF,
+  assignMultiplePartners,
+  updatePartnerAssignmentStatus,
+  requestPartnerCancellation,
+  handlePartnerCancellation
 } = require('../controllers/leadController');
 const {
   validateLeadForm,
@@ -27,7 +31,8 @@ const {
   authenticateToken,
   requireSuperadmin,
   requirePartnerOrAdmin,
-  requireOwnershipOrAdmin
+  requireOwnershipOrAdmin,
+  optionalAuth
 } = require('../middleware/auth');
 const { createAuditLog } = require('../middleware/logging');
 
@@ -141,13 +146,14 @@ router.put('/:leadId/accept',
   acceptLead
 );
 
-// @route   PUT /api/leads/:leadId/cancel
+// @route   POST /api/leads/:leadId/cancel
 // @desc    Request lead cancellation
 // @access  Public (User) or Private (Partner)
-router.put('/:leadId/cancel', 
-  validateObjectId('leadId'), 
-  handleValidationErrors, 
-  createAuditLog('cancellation_requested'), 
+router.post('/:leadId/cancel',
+  optionalAuth,
+  validateObjectId('leadId'),
+  handleValidationErrors,
+  createAuditLog('cancellation_requested'),
   requestCancellation
 );
 
@@ -184,6 +190,59 @@ router.patch('/:leadId/status',
   handleValidationErrors, 
   createAuditLog('lead_status_updated'), 
   updateLeadStatus
+);
+
+// Multi-Partner Assignment Routes
+
+// @route   POST /api/leads/:leadId/assign-partners
+// @desc    Assign multiple partners to a lead
+// @access  Private (Superadmin)
+router.post('/:leadId/assign-partners', 
+  authenticateToken, 
+  requireSuperadmin, 
+  validateObjectId('leadId'), 
+  handleValidationErrors, 
+  createAuditLog('multiple_partners_assigned'), 
+  assignMultiplePartners
+);
+
+// @route   PUT /api/leads/:leadId/partners/:partnerId/status
+// @desc    Update partner assignment status (accept/reject/cancel)
+// @access  Private (Partner/Superadmin)
+router.put('/:leadId/partners/:partnerId/status', 
+  authenticateToken, 
+  requirePartnerOrAdmin, 
+  validateObjectId('leadId'), 
+  validateObjectId('partnerId'), 
+  handleValidationErrors, 
+  createAuditLog('partner_assignment_status_updated'), 
+  updatePartnerAssignmentStatus
+);
+
+// @route   POST /api/leads/:leadId/partners/:partnerId/cancel
+// @desc    Request cancellation for partner assignment
+// @access  Private (Partner/Superadmin)
+router.post('/:leadId/partners/:partnerId/cancel', 
+  authenticateToken, 
+  requirePartnerOrAdmin, 
+  validateObjectId('leadId'), 
+  validateObjectId('partnerId'), 
+  handleValidationErrors, 
+  createAuditLog('partner_cancellation_requested'), 
+  requestPartnerCancellation
+);
+
+// @route   PUT /api/leads/:leadId/partners/:partnerId/cancel
+// @desc    Approve/reject partner cancellation request
+// @access  Private (Superadmin)
+router.put('/:leadId/partners/:partnerId/cancel', 
+  authenticateToken, 
+  requireSuperadmin, 
+  validateObjectId('leadId'), 
+  validateObjectId('partnerId'), 
+  handleValidationErrors, 
+  createAuditLog('partner_cancellation_handled'), 
+  handlePartnerCancellation
 );
 
 module.exports = router;

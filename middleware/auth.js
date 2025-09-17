@@ -108,10 +108,70 @@ const requireOwnershipOrAdmin = (resourceKey = 'partnerId') => {
   };
 };
 
+// Optional authentication - sets req.user if token provided, otherwise continues
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // No token provided - continue without setting req.user
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Get user details based on role
+    let user;
+    if (decoded.role === 'partner') {
+      if (decoded.selectedService) {
+        user = await Partner.findOne({
+          _id: decoded.id,
+          serviceType: decoded.selectedService
+        });
+      } else {
+        user = await Partner.findById(decoded.id);
+        if (!user && decoded.email) {
+          user = await Partner.findOne({ 'contactPerson.email': decoded.email });
+        }
+      }
+    } else {
+      user = await User.findById(decoded.id);
+    }
+
+    // If user found and active, set req.user
+    if (user) {
+      if (decoded.role === 'partner') {
+        if (user.status === 'active') {
+          req.user = {
+            id: decoded.id,
+            role: decoded.role,
+            email: user.contactPerson?.email || user.email
+          };
+        }
+      } else {
+        if (user.isActive || user.status === 'active') {
+          req.user = {
+            id: decoded.id,
+            role: decoded.role,
+            email: user.contactPerson?.email || user.email
+          };
+        }
+      }
+    }
+
+    next();
+  } catch (error) {
+    // Token invalid - continue without setting req.user
+    next();
+  }
+};
+
 module.exports = {
   authenticateToken,
   authorize,
   requireSuperadmin,
   requirePartnerOrAdmin,
-  requireOwnershipOrAdmin
+  requireOwnershipOrAdmin,
+  optionalAuth
 };

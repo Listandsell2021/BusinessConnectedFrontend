@@ -57,7 +57,7 @@ class LeadService {
   static async findEligiblePartners(lead) {
     const query = {
       status: 'active',
-      services: lead.serviceType
+      serviceType: lead.serviceType
     };
 
     const partners = await Partner.find(query);
@@ -67,15 +67,32 @@ class LeadService {
       const preferences = partner.preferences[lead.serviceType];
       if (!preferences) return false;
 
-      // Check weekly lead limit first
+      // Check if partner has any service area configured at all
+      const hasServiceArea = preferences.serviceArea &&
+                            Object.keys(preferences.serviceArea).length > 0;
+
+      // If no service area configured, partner is not eligible
+      if (!hasServiceArea) {
+        console.log(`❌ Partner ${partner.companyName} excluded: No service area configured`);
+        return false;
+      }
+
+      // Check weekly lead limit
       const weeklyLimit = preferences.averageLeadsPerWeek || 10;
       if (partner.metrics.weeklyLeadsReceived >= weeklyLimit) {
+        console.log(`❌ Partner ${partner.companyName} excluded: Weekly limit reached`);
         return false;
       }
 
       // Radius-based location matching
       const isWithinServiceArea = this.checkLocationMatch(partner, lead, lead.serviceType);
-      
+
+      if (!isWithinServiceArea) {
+        console.log(`❌ Partner ${partner.companyName} excluded: Not within service area`);
+      } else {
+        console.log(`✅ Partner ${partner.companyName} eligible for lead`);
+      }
+
       return isWithinServiceArea;
     });
   }
@@ -88,7 +105,7 @@ class LeadService {
     if (!preferences) return false;
 
     // Use existing serviceArea structure with coordinates
-    if (preferences.serviceArea && preferences.serviceArea.size > 0) {
+    if (preferences.serviceArea && Object.keys(preferences.serviceArea).length > 0) {
       return this.checkServiceAreaRadiusMatch(partner, lead, serviceType);
     }
 
@@ -100,27 +117,31 @@ class LeadService {
   static checkServiceAreaRadiusMatch(partner, lead, serviceType) {
     const { isWithinServiceRadius } = require('../utils/geoUtils');
     const preferences = partner.preferences[serviceType];
-    
-    if (!preferences.serviceArea || preferences.serviceArea.size === 0) {
+
+    if (!preferences.serviceArea || Object.keys(preferences.serviceArea).length === 0) {
       return false;
     }
 
     // Get lead coordinates based on service type
     const leadLocations = this.getLeadCoordinates(lead, serviceType);
-    
+
     if (leadLocations.length === 0) {
       // No coordinates available, fallback to city name matching
       return this.checkLegacyLocationMatch(partner, lead, serviceType);
     }
 
     // Check each country in serviceArea
-    for (const [country, countryData] of preferences.serviceArea) {
-      if (countryData.type === 'cities' && countryData.cities && countryData.cities.size > 0) {
-        
-        // Check each city in the country
-        for (const [cityName, cityData] of countryData.cities) {
+    for (const [country, countryData] of Object.entries(preferences.serviceArea)) {
+      // Check if partner has cities configured for this country
+      const hasCitiesConfigured = countryData.type === 'cities' &&
+                                 countryData.cities &&
+                                 Object.keys(countryData.cities).length > 0;
+
+      if (hasCitiesConfigured) {
+        // If cities are configured, match by cities only (with radius)
+        for (const [cityName, cityData] of Object.entries(countryData.cities)) {
           if (cityData.coordinates && cityData.coordinates.lat && cityData.coordinates.lng) {
-            
+
             // Test against each lead location
             for (const leadLocation of leadLocations) {
               const result = isWithinServiceRadius(leadLocation, {
@@ -135,6 +156,14 @@ class LeadService {
               }
             }
           }
+        }
+      } else {
+        // If no cities configured (whole country mode), match by country only
+        // For whole country mode, we should check if lead is in same country
+        const leadCountry = this.extractLeadCountry(lead, serviceType);
+        if (leadCountry && country.toLowerCase().includes(leadCountry.toLowerCase())) {
+          console.log(`✅ Lead country match: ${leadCountry} matches partner country ${country} (whole country mode)`);
+          return true;
         }
       }
     }
@@ -196,25 +225,32 @@ class LeadService {
   // Legacy location matching using serviceArea structure (fallback)
   static checkLegacyLocationMatch(partner, lead, serviceType) {
     const preferences = partner.preferences[serviceType];
-    
+
     // Check serviceArea structure (without coordinates)
-    if (preferences.serviceArea && preferences.serviceArea.size > 0) {
+    if (preferences.serviceArea && Object.keys(preferences.serviceArea).length > 0) {
       const leadCity = this.extractLeadCity(lead, serviceType);
       const leadCountry = this.extractLeadCountry(lead, serviceType);
-      
-      for (const [country, countryData] of preferences.serviceArea) {
-        // Country-level matching
-        if (leadCountry && country.toLowerCase().includes(leadCountry.toLowerCase())) {
-          return true;
-        }
-        
-        // City-level matching
-        if (countryData.type === 'cities' && countryData.cities && leadCity) {
-          for (const [cityName] of countryData.cities) {
-            if (cityName.toLowerCase().includes(leadCity.toLowerCase()) ||
-                leadCity.toLowerCase().includes(cityName.toLowerCase())) {
-              return true;
+
+      for (const [country, countryData] of Object.entries(preferences.serviceArea)) {
+        // Check if partner has cities configured for this country
+        const hasCitiesConfigured = countryData.type === 'cities' &&
+                                   countryData.cities &&
+                                   Object.keys(countryData.cities).length > 0;
+
+        if (hasCitiesConfigured) {
+          // If cities are configured, match by cities only (ignore country-level match)
+          if (leadCity) {
+            for (const cityName of Object.keys(countryData.cities)) {
+              if (cityName.toLowerCase().includes(leadCity.toLowerCase()) ||
+                  leadCity.toLowerCase().includes(cityName.toLowerCase())) {
+                return true;
+              }
             }
+          }
+        } else {
+          // If no cities configured (whole country mode), match by country only
+          if (leadCountry && country.toLowerCase().includes(leadCountry.toLowerCase())) {
+            return true;
           }
         }
       }
@@ -264,7 +300,21 @@ class LeadService {
       throw new Error('Lead or partner not found');
     }
 
-    // Update lead
+    // Get current pricing settings
+    const Settings = require('../models/Settings');
+    const settings = await Settings.getSettings();
+
+    // Get the appropriate lead price based on service type and partner type
+    const leadPrice = settings.pricing[lead.serviceType][partner.partnerType].perLeadPrice;
+
+    // Use the updated assignPartner method that includes pricing
+    const assigned = lead.assignPartner(partnerId, leadPrice, partner.partnerType);
+
+    if (!assigned) {
+      throw new Error('Partner already assigned to this lead');
+    }
+
+    // Update lead legacy fields for backward compatibility
     lead.assignedPartner = partnerId;
     lead.assignedAt = new Date();
     lead.status = 'assigned';

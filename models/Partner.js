@@ -25,7 +25,7 @@ const PartnerSchema = new mongoose.Schema({
     street: { type: String, required: true },
     city: { type: String, required: true },
     postalCode: { type: String },
-    country: { type: String, default: 'Germany' }
+    country: { type: String, default: '' }
   },
   // Partner Type
   partnerType: {
@@ -52,30 +52,16 @@ const PartnerSchema = new mongoose.Schema({
   rejectedReason: String,
   // Service-specific preferences
   preferences: {
-    serviceAreas: [{
-      city: String,
-      postalCodes: [String]
-    }],
-    radius: {
-      type: Number,
-      default: 50, // km
-      min: 1,
-      max: 200
+    // Moving service preferences - pickup and destination directly under preferences
+    pickup: {
+      serviceArea: { type: mongoose.Schema.Types.Mixed, default: {} }
     },
-    maxLeadsPerWeek: {
-      type: Number,
-      default: 10,
-      min: 1,
-      max: 50
+    destination: {
+      serviceArea: { type: mongoose.Schema.Types.Mixed, default: {} }
     },
-    workingHours: {
-      monday: { start: String, end: String, available: { type: Boolean, default: true } },
-      tuesday: { start: String, end: String, available: { type: Boolean, default: true } },
-      wednesday: { start: String, end: String, available: { type: Boolean, default: true } },
-      thursday: { start: String, end: String, available: { type: Boolean, default: true } },
-      friday: { start: String, end: String, available: { type: Boolean, default: true } },
-      saturday: { start: String, end: String, available: { type: Boolean, default: false } },
-      sunday: { start: String, end: String, available: { type: Boolean, default: false } }
+    // Cleaning service preferences - same structure as moving service
+    cleaning: {
+      serviceArea: { type: mongoose.Schema.Types.Mixed, default: {} } // Same structure as pickup/destination
     }
   },
   // Performance Metrics

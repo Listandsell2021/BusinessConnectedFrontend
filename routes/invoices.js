@@ -5,6 +5,9 @@ const {
   getAllInvoices,
   getPartnerInvoices,
   generateInvoice,
+  generateBulkInvoices,
+  getBillingReadyPartners,
+  getIncomeSummary,
   updateInvoiceStatus,
   getInvoiceById,
   getRevenueSummary,
@@ -51,13 +54,41 @@ router.get('/:invoiceId', authenticateToken, requirePartnerOrAdmin,validateObjec
 // @route   GET /api/invoices/revenue/summary// @desc    Get revenue summary// @access  Private (Superadmin)
 router.get('/revenue/summary', authenticateToken, requireSuperadmin,getRevenueSummary);
 
+// @route   POST /api/invoices/generate-bulk
+// @desc    Generate invoices for all eligible partners
+// @access  Private (Superadmin)
+router.post('/generate-bulk',
+  authenticateToken,
+  requireSuperadmin,
+  createAuditLog('bulk_invoices_generated'),
+  generateBulkInvoices
+);
+
+// @route   GET /api/invoices/billing-ready
+// @desc    Get billing-ready partners for a period
+// @access  Private (Superadmin)
+router.get('/billing-ready',
+  authenticateToken,
+  requireSuperadmin,
+  getBillingReadyPartners
+);
+
+// @route   GET /api/invoices/income-summary
+// @desc    Get income summary for a period
+// @access  Private (Superadmin)
+router.get('/income-summary',
+  authenticateToken,
+  requireSuperadmin,
+  getIncomeSummary
+);
+
 // @route   GET /api/invoices/:invoiceId/download
 // @desc    Download invoice PDF
 // @access  Private (Partner/Superadmin)
-router.get('/:invoiceId/download', 
-  authenticateToken, 
-  requirePartnerOrAdmin, 
-  validateObjectId('invoiceId'), 
+router.get('/:invoiceId/download',
+  authenticateToken,
+  requirePartnerOrAdmin,
+  validateObjectId('invoiceId'),
   handleValidationErrors,
   createAuditLog('invoice_downloaded'),
   downloadInvoice

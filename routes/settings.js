@@ -90,7 +90,11 @@ router.put('/',
     body('system.basicPartnerLeadLimit')
       .optional()
       .isInt({ min: 1, max: 10 })
-      .withMessage('Basic partner lead limit must be between 1 and 10')
+      .withMessage('Basic partner lead limit must be between 1 and 10'),
+    body('system.cancellationTimeLimit')
+      .optional()
+      .isInt({ min: 1, max: 72 })
+      .withMessage('Cancellation time limit must be between 1 and 72 hours')
   ],
   async (req, res) => {
     try {

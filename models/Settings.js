@@ -116,6 +116,12 @@ const SettingsSchema = new mongoose.Schema({
       default: 3,
       min: 1,
       max: 10
+    },
+    cancellationTimeLimit: {
+      type: Number,
+      default: 2,
+      min: 1,
+      max: 72
     }
   },
 

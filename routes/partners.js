@@ -11,7 +11,12 @@ const {
   updatePartnerType,
   getPartnerMetrics,
   createPartner,
-  getPartnerLeads
+  getPartnerLeads,
+  acceptLead,
+  cancelLeadBeforeAccept,
+  cancelLeadAfterAccept,
+  migrateCleaningServiceData,
+  cleanupCleaningPreferences
 } = require('../controllers/partnerController');
 const {
   validatePartner,
@@ -143,6 +148,68 @@ router.get('/:partnerId/leads',
   requireOwnershipOrAdmin('partnerId'), 
   validatePagination,
   getPartnerLeads
+);
+
+// @route   PUT /api/partners/:partnerId/leads/:leadId/accept
+// @desc    Accept a lead assignment
+// @access  Private (Partner)
+router.put('/:partnerId/leads/:leadId/accept',
+  authenticateToken,
+  requirePartnerOrAdmin,
+  validateObjectId('partnerId'),
+  validateObjectId('leadId'),
+  handleValidationErrors,
+  requireOwnershipOrAdmin('partnerId'),
+  createAuditLog('partner_lead_accepted'),
+  acceptLead
+);
+
+// @route   PUT /api/partners/:partnerId/leads/:leadId/cancel-before-accept
+// @desc    Cancel a lead before accepting (immediate rejection)
+// @access  Private (Partner)
+router.put('/:partnerId/leads/:leadId/cancel-before-accept',
+  authenticateToken,
+  requirePartnerOrAdmin,
+  validateObjectId('partnerId'),
+  validateObjectId('leadId'),
+  handleValidationErrors,
+  requireOwnershipOrAdmin('partnerId'),
+  createAuditLog('partner_lead_rejected'),
+  cancelLeadBeforeAccept
+);
+
+// @route   PUT /api/partners/:partnerId/leads/:leadId/cancel-after-accept
+// @desc    Request cancellation of an accepted lead
+// @access  Private (Partner)
+router.put('/:partnerId/leads/:leadId/cancel-after-accept',
+  authenticateToken,
+  requirePartnerOrAdmin,
+  validateObjectId('partnerId'),
+  validateObjectId('leadId'),
+  handleValidationErrors,
+  requireOwnershipOrAdmin('partnerId'),
+  createAuditLog('partner_lead_cancel_requested'),
+  cancelLeadAfterAccept
+);
+
+// @route   POST /api/partners/migrate-cleaning-data
+// @desc    Migrate cleaning service data to new serviceArea format (Admin only)
+// @access  Private (SuperAdmin)
+router.post('/migrate-cleaning-data',
+  authenticateToken,
+  requireSuperadmin,
+  createAuditLog('migrate_cleaning_data'),
+  migrateCleaningServiceData
+);
+
+// @route   POST /api/partners/cleanup-cleaning-preferences
+// @desc    Remove legacy keys from cleaning service preferences (Admin only)
+// @access  Private (SuperAdmin)
+router.post('/cleanup-cleaning-preferences',
+  authenticateToken,
+  requireSuperadmin,
+  createAuditLog('cleanup_cleaning_preferences'),
+  cleanupCleaningPreferences
 );
 
 module.exports = router;

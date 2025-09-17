@@ -1,6 +1,7 @@
 const Invoice = require('../models/Invoice');
 const Lead = require('../models/Lead');
 const Partner = require('../models/Partner');
+const BillingService = require('../services/billingService');
 
 // @desc    Get all invoices (Superadmin)
 // @route   GET /api/invoices
@@ -114,70 +115,42 @@ const generateInvoice = async (req, res) => {
   try {
     const { partnerId, serviceType, billingPeriod } = req.body;
 
-    const partner = await Partner.findById(partnerId);
-    if (!partner) {
-      return res.status(404).json({ 
+    if (!partnerId || !serviceType || !billingPeriod) {
+      return res.status(400).json({
         success: false,
-        message: 'Partner not found' 
+        message: 'Partner ID, service type, and billing period are required'
       });
     }
 
-    // Get accepted leads for billing period
-    const leads = await Lead.find({
-      assignedPartner: partnerId,
-      serviceType,
-      status: 'accepted',
-      acceptedAt: {
-        $gte: new Date(billingPeriod.from),
-        $lte: new Date(billingPeriod.to)
-      }
-    });
-
-    if (leads.length === 0) {
-      return res.status(400).json({ 
+    if (!billingPeriod.startDate || !billingPeriod.endDate) {
+      return res.status(400).json({
         success: false,
-        message: 'No accepted leads found for billing period' 
+        message: 'Billing period must include startDate and endDate'
       });
     }
 
-    // Calculate invoice items and totals
-    const items = leads.map(lead => ({
-      leadId: lead._id,
-      description: `Lead ${lead.leadId} - ${lead.user.firstName} ${lead.user.lastName}`,
-      amount: lead.actualValue || lead.estimatedValue || 50, // Default amount if not set
-      date: lead.acceptedAt
-    }));
-
-    const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-    const tax = subtotal * 0.19; // 19% VAT (adjust as needed)
-    const total = subtotal + tax;
-
-    // Create invoice
-    const invoice = new Invoice({
+    // Use billing service to generate invoice based on accepted partner assignments
+    const invoice = await BillingService.generatePartnerInvoice(
       partnerId,
       serviceType,
       billingPeriod,
-      items,
-      subtotal,
-      tax,
-      total,
-      status: 'draft',
-      issuedAt: new Date(),
-      dueAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-    });
+      req.user.id
+    );
 
-    await invoice.save();
+    await invoice.populate('partnerId', 'companyName contactPerson.email');
 
     res.status(201).json({
       success: true,
       message: 'Invoice generated successfully',
       invoice
     });
+
   } catch (error) {
-    res.status(500).json({ 
+    console.error('Error generating invoice:', error);
+    res.status(500).json({
       success: false,
-      message: 'Failed to generate invoice', 
-      error: error.message 
+      message: error.message || 'Failed to generate invoice',
+      error: error.message
     });
   }
 };
@@ -416,10 +389,136 @@ ${invoice.paidAt ? `PAID ON: ${invoice.paidAt.toLocaleDateString()}` : ''}
   return content;
 };
 
+// @desc    Generate invoices for all eligible partners
+// @route   POST /api/invoices/generate-bulk
+// @access  Private (Superadmin)
+const generateBulkInvoices = async (req, res) => {
+  try {
+    const { serviceType, billingPeriod } = req.body;
+
+    if (!serviceType || !billingPeriod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service type and billing period are required'
+      });
+    }
+
+    if (!billingPeriod.startDate || !billingPeriod.endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Billing period must include startDate and endDate'
+      });
+    }
+
+    // Generate invoices for all eligible partners
+    const invoices = await BillingService.generateBulkInvoices(
+      serviceType,
+      billingPeriod,
+      req.user.id
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `Generated ${invoices.length} invoices successfully`,
+      invoices: invoices.map(inv => ({
+        id: inv._id,
+        invoiceNumber: inv.invoiceNumber,
+        partnerId: inv.partnerId,
+        total: inv.total,
+        items: inv.items.length
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error generating bulk invoices:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate bulk invoices',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get billing-ready partners for a period
+// @route   GET /api/invoices/billing-ready
+// @access  Private (Superadmin)
+const getBillingReadyPartners = async (req, res) => {
+  try {
+    const { serviceType, startDate, endDate } = req.query;
+
+    if (!serviceType || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service type, start date, and end date are required'
+      });
+    }
+
+    const billingPeriod = { startDate, endDate };
+    const partners = await BillingService.getBillingReadyPartners(serviceType, billingPeriod);
+
+    res.json({
+      success: true,
+      partners,
+      summary: {
+        totalPartners: partners.length,
+        totalLeads: partners.reduce((sum, p) => sum + p.acceptedLeads, 0),
+        totalAmount: partners.reduce((sum, p) => sum + p.totalAmount, 0)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting billing-ready partners:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get billing-ready partners',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get income summary for a period
+// @route   GET /api/invoices/income-summary
+// @access  Private (Superadmin)
+const getIncomeSummary = async (req, res) => {
+  try {
+    const { startDate, endDate, serviceType, partnerId } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date and end date are required'
+      });
+    }
+
+    const period = { startDate, endDate };
+    const incomeSummary = await BillingService.calculateIncomeForPeriod(
+      period,
+      serviceType,
+      partnerId
+    );
+
+    res.json({
+      success: true,
+      incomeSummary
+    });
+
+  } catch (error) {
+    console.error('Error getting income summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get income summary',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllInvoices,
   getPartnerInvoices,
   generateInvoice,
+  generateBulkInvoices,
+  getBillingReadyPartners,
+  getIncomeSummary,
   updateInvoiceStatus,
   getInvoiceById,
   getRevenueSummary,

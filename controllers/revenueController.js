@@ -242,12 +242,21 @@ const getPartnerRevenue = async (req, res) => {
   }
 };
 
-// @desc    Create revenue entry (automatically when lead is accepted)
+// @desc    Create revenue entry manually (for old leads or corrections)
 // @route   POST /api/revenue
-// @access  Private (System/Superadmin)
+// @access  Private (Superadmin)
 const createRevenue = async (req, res) => {
   try {
     const { leadId, partnerId, customAmount } = req.body;
+
+    // Check if revenue entry already exists
+    const existingRevenue = await Revenue.findOne({ leadId, partnerId });
+    if (existingRevenue) {
+      return res.status(400).json({
+        success: false,
+        message: 'Revenue entry already exists for this lead and partner'
+      });
+    }
 
     // Get lead details
     const lead = await Lead.findById(leadId)
@@ -255,25 +264,50 @@ const createRevenue = async (req, res) => {
       .populate('assignedPartner', 'companyName');
 
     if (!lead) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Lead not found' 
+        message: 'Lead not found'
       });
     }
 
-    // Get current pricing from settings
-    const settings = await Settings.getSettings();
-    const perLeadPrice = settings.pricing[lead.serviceType]?.perLeadPrice || 
-                        (lead.serviceType === 'moving' ? 25 : 15);
+    // Find the partner assignment to get the stored leadPrice
+    const targetPartnerId = partnerId || lead.assignedPartner?._id;
+    if (!targetPartnerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Partner ID is required'
+      });
+    }
 
-    // Use custom amount or default pricing
-    const amount = customAmount || perLeadPrice;
+    const partnerAssignment = lead.partnerAssignments.find(
+      assignment => assignment.partner.toString() === targetPartnerId.toString() &&
+                   assignment.status === 'accepted'
+    );
+
+    if (!partnerAssignment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Partner has not accepted this lead'
+      });
+    }
+
+    // Use stored leadPrice from assignment, or custom amount
+    let amount = customAmount || partnerAssignment.leadPrice;
+
+    if (!amount) {
+      // Fallback to settings if no stored price available (for old data)
+      const settings = await Settings.getSettings();
+      const partnerType = partnerAssignment.partnerType || 'basic';
+      amount = settings.pricing[lead.serviceType]?.[partnerType]?.perLeadPrice ||
+               (lead.serviceType === 'moving' ? 25 : 15);
+    }
+
     const commission = amount * 0.1; // 10% commission (configurable)
 
     // Create revenue entry
     const revenue = new Revenue({
       leadId,
-      partnerId: partnerId || lead.assignedPartner,
+      partnerId: targetPartnerId,
       serviceType: lead.serviceType,
       amount,
       commission,
@@ -283,6 +317,7 @@ const createRevenue = async (req, res) => {
         city: lead.user.city || lead.city
       },
       status: 'confirmed',
+      revenueDate: partnerAssignment.acceptedAt || new Date(),
       createdBy: req.user.id
     });
 
@@ -295,10 +330,10 @@ const createRevenue = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in createRevenue:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Failed to create revenue entry', 
-      error: error.message 
+      message: 'Failed to create revenue entry',
+      error: error.message
     });
   }
 };
