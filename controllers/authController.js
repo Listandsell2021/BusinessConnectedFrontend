@@ -154,11 +154,16 @@ const registerPartner = async (req, res) => {
   try {
     const partnerData = req.body;
 
+    // Handle services - convert string to array for backward compatibility
+    const services = Array.isArray(partnerData.services)
+      ? partnerData.services
+      : [partnerData.services];
+
     // Check for existing services for this email and validate
     const duplicateServices = [];
     const validServices = [];
-    
-    for (const serviceType of partnerData.services) {
+
+    for (const serviceType of services) {
       const hasExisting = await Partner.hasExistingService(partnerData.contactPerson.email, serviceType);
       if (hasExisting) {
         duplicateServices.push(serviceType);

@@ -119,17 +119,12 @@ const validatePartner = [
     .trim()
     .withMessage('City is required'),
   body('services')
-    .isArray({ min: 1 })
-    .withMessage('At least one service must be selected')
-    .custom((services) => {
-      // Validate each service is a valid enum value
-      const validServices = ['moving', 'cleaning'];
-      const invalidServices = services.filter(service => !validServices.includes(service));
-      if (invalidServices.length > 0) {
-        throw new Error(`Invalid services: ${invalidServices.join(', ')}`);
-      }
-      return true;
-    })
+    .isString()
+    .withMessage('Service must be a string')
+    .notEmpty()
+    .withMessage('Service is required')
+    .isIn(['moving', 'cleaning'])
+    .withMessage('Invalid service type')
 ];
 
 // Login validation

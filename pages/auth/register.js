@@ -22,11 +22,13 @@ export default function PartnerRequest() {
     lastName: '',
     phone: '',
     email: '',
-    pursue: [],
+    pursue: '',
     company: '',
     address: '',
-    postcodeCity: '',
-    country: '',
+    city: '',
+    zipCode: '',
+    country: 'Germany',
+    customCountry: '',
     agreeToTerms: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,8 +111,8 @@ export default function PartnerRequest() {
       // Phone validation - removed as per request
 
       // Pursue validation
-      if (!formData.pursue || formData.pursue.length === 0) {
-        newErrors.pursue = isGerman ? 'Mindestens ein Service-Typ ist erforderlich' : 'At least one service type is required';
+      if (!formData.pursue || formData.pursue.trim() === '') {
+        newErrors.pursue = isGerman ? 'Service-Typ ist erforderlich' : 'Service type is required';
       }
 
       // Company validation
@@ -123,9 +125,23 @@ export default function PartnerRequest() {
         newErrors.address = isGerman ? 'Adresse ist erforderlich' : 'Address is required';
       }
 
-      // Postcode City validation
-      if (!formData.postcodeCity.trim()) {
-        newErrors.postcodeCity = isGerman ? 'PLZ und Stadt sind erforderlich' : 'Postcode and city are required';
+      // City validation
+      if (!formData.city.trim()) {
+        newErrors.city = isGerman ? 'Stadt ist erforderlich' : 'City is required';
+      }
+
+      // Zip Code validation
+      if (!formData.zipCode.trim()) {
+        newErrors.zipCode = isGerman ? 'PLZ ist erforderlich' : 'Zip code is required';
+      }
+
+      // Country validation
+      if (formData.country === 'Other') {
+        if (!formData.customCountry.trim()) {
+          newErrors.country = isGerman ? 'Land ist erforderlich' : 'Country is required';
+        }
+      } else if (!formData.country.trim()) {
+        newErrors.country = isGerman ? 'Land ist erforderlich' : 'Country is required';
       }
 
       // Terms agreement validation
@@ -145,7 +161,7 @@ export default function PartnerRequest() {
         setErrors(updatedErrors);
       }
     }
-  }, [isGerman, formData.firstName, formData.lastName, formData.email, formData.phone, formData.pursue, formData.company, formData.address, formData.postcodeCity, formData.agreeToTerms, errors]);
+  }, [isGerman, formData.firstName, formData.lastName, formData.email, formData.phone, formData.pursue, formData.company, formData.address, formData.city, formData.zipCode, formData.country, formData.customCountry, formData.agreeToTerms, errors]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -163,21 +179,21 @@ export default function PartnerRequest() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
-    if (name === 'pursue') {
-      // Handle multiple service selection
+
+    // Special handling for country dropdown
+    if (name === 'country' && value === 'Other') {
       setFormData(prev => ({
         ...prev,
-        pursue: checked 
-          ? [...prev.pursue, value]
-          : prev.pursue.filter(service => service !== value)
+        country: 'Other',
+        customCountry: '' // Reset custom country when "Other" is selected
       }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
+      return;
     }
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
     
     if (errors[name]) {
       setErrors(prev => ({
@@ -212,8 +228,8 @@ export default function PartnerRequest() {
     // Phone validation - removed as per request
 
     // Pursue validation
-    if (!formData.pursue || formData.pursue.length === 0) {
-      newErrors.pursue = isGerman ? 'Mindestens ein Service-Typ ist erforderlich' : 'At least one service type is required';
+    if (!formData.pursue || formData.pursue.trim() === '') {
+      newErrors.pursue = isGerman ? 'Service-Typ ist erforderlich' : 'Service type is required';
     }
 
     // Company validation
@@ -226,9 +242,23 @@ export default function PartnerRequest() {
       newErrors.address = isGerman ? 'Adresse ist erforderlich' : 'Address is required';
     }
 
-    // Postcode City validation
-    if (!formData.postcodeCity.trim()) {
-      newErrors.postcodeCity = isGerman ? 'PLZ und Stadt sind erforderlich' : 'Postcode and city are required';
+    // City validation
+    if (!formData.city.trim()) {
+      newErrors.city = isGerman ? 'Stadt ist erforderlich' : 'City is required';
+    }
+
+    // Zip Code validation
+    if (!formData.zipCode.trim()) {
+      newErrors.zipCode = isGerman ? 'PLZ ist erforderlich' : 'Zip code is required';
+    }
+
+    // Country validation
+    if (formData.country === 'Other') {
+      if (!formData.customCountry.trim()) {
+        newErrors.country = isGerman ? 'Land ist erforderlich' : 'Country is required';
+      }
+    } else if (!formData.country.trim()) {
+      newErrors.country = isGerman ? 'Land ist erforderlich' : 'Country is required';
     }
 
     // Terms agreement validation
@@ -243,7 +273,7 @@ export default function PartnerRequest() {
   // Get the first error for top display and auto-focus
   const getFirstError = () => {
     const errorKeys = [
-      'firstName', 'lastName', 'email', 'phone', 'pursue', 'company', 'address', 'postcodeCity', 'agreeToTerms'
+      'firstName', 'lastName', 'email', 'phone', 'pursue', 'company', 'address', 'city', 'zipCode', 'country', 'agreeToTerms'
     ];
     
     for (const key of errorKeys) {
@@ -297,11 +327,13 @@ export default function PartnerRequest() {
           },
           address: {
             street: formData.address,
-            city: formData.postcodeCity,
-            postalCode: formData.postcodeCity.split(' ')[0] || '',
-            country: formData.country
+            city: formData.city,
+            zipCode: formData.zipCode,
+            country: formData.country === 'Other' ? formData.customCountry : formData.country
           },
-          services: formData.pursue,
+          services: [formData.pursue && formData.pursue.length === 1
+            ? (formData.pursue === 'm' ? 'moving' : formData.pursue === 'c' ? 'cleaning' : formData.pursue)
+            : (formData.pursue || 'cleaning')],
           partnerType: 'basic',
           language: isGerman ? 'de' : 'en' // Add current language preference
         }),
@@ -333,7 +365,9 @@ export default function PartnerRequest() {
             else if (field === 'contactPerson.phone') newErrors.phone = error.msg;
             else if (field === 'companyName') newErrors.company = error.msg;
             else if (field === 'address.street') newErrors.address = error.msg;
-            else if (field === 'address.city' || field === 'address.postalCode') newErrors.postcodeCity = error.msg;
+            else if (field === 'address.city') newErrors.city = error.msg;
+            else if (field === 'address.zipCode' || field === 'address.postalCode') newErrors.zipCode = error.msg;
+            else if (field === 'address.country') newErrors.country = error.msg;
             else if (field === 'services') newErrors.pursue = error.msg;
             else newErrors.email = error.msg; // Default to email field
           });
@@ -871,120 +905,40 @@ export default function PartnerRequest() {
                         🎯 {isGerman ? 'Service-Typen' : 'Service Types'}
                       </label>
                       <div className="relative" ref={serviceDropdownRef}>
-                        {/* Dropdown Button */}
-                        <Button
-                          type="button"
-                          onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                        <select
+                          id="pursue"
+                          name="pursue"
+                          required
+                          value={formData.pursue}
+                          onChange={handleChange}
                           disabled={loadingServiceTypes}
-                          variant={errors.pursue ? "danger" : "secondary"}
-                          size="md"
-                          fullWidth
-                          className="text-left justify-between px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl backdrop-blur-sm text-sm sm:text-base focus:ring-4 focus:ring-opacity-30 focus:scale-105"
+                          className={`
+                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                            backdrop-blur-sm transition-all duration-300
+                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                            ${errors.pursue ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                          `}
+                          style={{
+                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                            borderColor: errors.pursue ? '#EF4444' : 'var(--theme-border)',
+                            color: 'var(--theme-text)',
+                            backdropFilter: 'blur(10px)'
+                          }}
                         >
-                          <span>
-                            {loadingServiceTypes ? (
-                              <div className="flex items-center">
-                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                                {isGerman ? 'Service-Typen laden...' : 'Loading service types...'}
-                              </div>
-                            ) : formData.pursue.length === 0 ? (
-                              <span style={{ color: 'var(--theme-muted)' }}>
-                                {isGerman ? 'Service-Typen auswählen' : 'Select service types'}
-                              </span>
-                            ) : (
-                              <span
-                                className="truncate block pr-8"
-                                style={{ color: 'var(--theme-text)' }}
-                                title={formData.pursue.map(serviceId => {
-                                  const service = serviceTypes.find(s => s.id === serviceId);
-                                  return service?.name;
-                                }).filter(Boolean).join(', ')}
-                              >
-                                {formData.pursue.length === 1
-                                  ? serviceTypes.find(s => s.id === formData.pursue[0])?.name
-                                  : `${formData.pursue.length} ${isGerman ? 'Services ausgewählt' : 'services selected'}`
-                                }
-                              </span>
-                            )}
-                          </span>
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${isServiceDropdownOpen ? 'rotate-180' : ''}`}
-                            style={{ color: 'var(--theme-text)' }}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </Button>
-
-                        {/* Dropdown Menu */}
-                        {isServiceDropdownOpen && !loadingServiceTypes && serviceTypes.length > 0 && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute z-20 w-full mt-2 rounded-xl border-2 shadow-2xl backdrop-blur-sm"
-                            style={{
-                              backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                              borderColor: 'var(--theme-border)',
-                              backdropFilter: 'blur(10px)',
-                              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)'
-                            }}
-                          >
-                            <div className="py-2 max-h-48 overflow-y-auto">
-                              {serviceTypes.map((serviceType) => (
-                                <motion.label 
-                                  key={serviceType.id}
-                                  whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
-                                  className="flex items-center space-x-3 px-4 py-3 cursor-pointer transition-all duration-200 hover:scale-[1.02]"
-                                  style={{
-                                    borderRadius: '8px',
-                                    margin: '2px 8px'
-                                  }}
-                                >
-                                  <input
-                                    name="pursue"
-                                    type="checkbox"
-                                    value={serviceType.id}
-                                    checked={formData.pursue.includes(serviceType.id)}
-                                    onChange={handleChange}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2"
-                                  />
-                                  <span 
-                                    className="text-sm font-medium flex-1" 
-                                    style={{ color: 'var(--theme-text)' }}
-                                  >
-                                    {serviceType.name}
-                                  </span>
-                                  {formData.pursue.includes(serviceType.id) && (
-                                    <motion.span
-                                      initial={{ opacity: 0, scale: 0 }}
-                                      animate={{ opacity: 1, scale: 1 }}
-                                      className="text-blue-600 text-sm"
-                                    >
-                                      ✓
-                                    </motion.span>
-                                  )}
-                                </motion.label>
-                              ))}
-                            </div>
-                            {formData.pursue.length > 0 && (
-                              <div 
-                                className="border-t px-4 py-2"
-                                style={{ 
-                                  borderColor: 'var(--theme-border)',
-                                  backgroundColor: 'rgba(59, 130, 246, 0.05)'
-                                }}
-                              >
-                                <span className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-                                  {formData.pursue.length} {isGerman ? 'Service(s) ausgewählt' : 'service(s) selected'}
-                                </span>
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
+                          <option value="" disabled style={{ color: 'var(--theme-muted)' }}>
+                            {isGerman ? 'Service-Typ auswählen' : 'Select service type'}
+                          </option>
+                          {!loadingServiceTypes && serviceTypes.map((serviceType) => (
+                            <option key={serviceType.id} value={serviceType.id}>
+                              {serviceType.name}
+                            </option>
+                          ))}
+                          {loadingServiceTypes && (
+                            <option value="" disabled>
+                              {isGerman ? 'Service-Typen laden...' : 'Loading service types...'}
+                            </option>
+                          )}
+                        </select>
                       </div>
                       {errors.pursue && (
                         <motion.p 
@@ -1055,20 +1009,20 @@ export default function PartnerRequest() {
                     </motion.div>
                   </div>
 
-                  {/* Address and Postcode City - Two Columns */}
+                  {/* Address Row 1: Street and Zip Code */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Address */}
+                    {/* Street Address */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 1.3 }}
                     >
-                      <label 
-                        htmlFor="address" 
+                      <label
+                        htmlFor="address"
                         className="block text-sm font-semibold mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
-                        📍 {isGerman ? 'Adresse' : 'Address'}
+                        📍 {isGerman ? 'Straße und Hausnummer' : 'Street and House Number'}
                       </label>
                       <div className="relative">
                         <input
@@ -1080,8 +1034,8 @@ export default function PartnerRequest() {
                           onChange={handleChange}
                           onInvalid={(e) => {
                             e.target.setCustomValidity(
-                              isGerman 
-                                ? 'Bitte füllen Sie dieses Feld aus.' 
+                              isGerman
+                                ? 'Bitte füllen Sie dieses Feld aus.'
                                 : 'Please fill in this field.'
                             );
                           }}
@@ -1098,11 +1052,11 @@ export default function PartnerRequest() {
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
-                          placeholder={isGerman ? 'Straße und Hausnummer' : 'Street and house number'}
+                          placeholder={isGerman ? 'Musterstraße 123' : 'Musterstraße 123'}
                         />
                       </div>
                       {errors.address && (
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-2 text-sm text-red-400 flex items-center"
@@ -1113,31 +1067,31 @@ export default function PartnerRequest() {
                       )}
                     </motion.div>
 
-                    {/* Postcode City */}
+                    {/* Zip Code */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 1.4 }}
                     >
-                      <label 
-                        htmlFor="postcodeCity" 
+                      <label
+                        htmlFor="zipCode"
                         className="block text-sm font-semibold mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
-                        🏙️ {isGerman ? 'PLZ und Stadt' : 'Postcode and City'}
+                        📮 {isGerman ? 'PLZ' : 'Zip Code'}
                       </label>
                       <div className="relative">
                         <input
-                          id="postcodeCity"
-                          name="postcodeCity"
+                          id="zipCode"
+                          name="zipCode"
                           type="text"
                           required
-                          value={formData.postcodeCity}
+                          value={formData.zipCode}
                           onChange={handleChange}
                           onInvalid={(e) => {
                             e.target.setCustomValidity(
-                              isGerman 
-                                ? 'Bitte füllen Sie dieses Feld aus.' 
+                              isGerman
+                                ? 'Bitte füllen Sie dieses Feld aus.'
                                 : 'Please fill in this field.'
                             );
                           }}
@@ -1146,25 +1100,176 @@ export default function PartnerRequest() {
                             appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
                             backdrop-blur-sm transition-all duration-300
                             focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.postcodeCity ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                            ${errors.zipCode ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
                           `}
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.postcodeCity ? '#EF4444' : 'var(--theme-border)',
+                            borderColor: errors.zipCode ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
-                          placeholder={isGerman ? '10115 Berlin' : '10115 Berlin'}
+                          placeholder={isGerman ? '10115' : '10115'}
                         />
                       </div>
-                      {errors.postcodeCity && (
-                        <motion.p 
+                      {errors.zipCode && (
+                        <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-2 text-sm text-red-400 flex items-center"
                         >
                           <span className="mr-1">❌</span>
-                          {errors.postcodeCity}
+                          {errors.zipCode}
+                        </motion.p>
+                      )}
+                    </motion.div>
+                  </div>
+
+                  {/* Address Row 2: City and Country */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* City */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.5 }}
+                    >
+                      <label
+                        htmlFor="city"
+                        className="block text-sm font-semibold mb-3"
+                        style={{ color: 'var(--theme-text)' }}
+                      >
+                        🏙️ {isGerman ? 'Stadt' : 'City'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="city"
+                          name="city"
+                          type="text"
+                          required
+                          value={formData.city}
+                          onChange={handleChange}
+                          onInvalid={(e) => {
+                            e.target.setCustomValidity(
+                              isGerman
+                                ? 'Bitte füllen Sie dieses Feld aus.'
+                                : 'Please fill in this field.'
+                            );
+                          }}
+                          onInput={(e) => e.target.setCustomValidity('')}
+                          className={`
+                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                            backdrop-blur-sm transition-all duration-300
+                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                            ${errors.city ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                          `}
+                          style={{
+                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                            borderColor: errors.city ? '#EF4444' : 'var(--theme-border)',
+                            color: 'var(--theme-text)',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                          placeholder={isGerman ? 'Berlin' : 'Berlin'}
+                        />
+                      </div>
+                      {errors.city && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 text-sm text-red-400 flex items-center"
+                        >
+                          <span className="mr-1">❌</span>
+                          {errors.city}
+                        </motion.p>
+                      )}
+                    </motion.div>
+
+                    {/* Country */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.6 }}
+                    >
+                      <label
+                        htmlFor="country"
+                        className="block text-sm font-semibold mb-3"
+                        style={{ color: 'var(--theme-text)' }}
+                      >
+                        🌍 {isGerman ? 'Land' : 'Country'}
+                      </label>
+                      <div className="relative">
+                        {formData.country === 'Other' ? (
+                          <input
+                            id="customCountry"
+                            name="customCountry"
+                            type="text"
+                            required
+                            value={formData.customCountry}
+                            onChange={(e) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                customCountry: e.target.value
+                              }));
+                            }}
+                            onInvalid={(e) => {
+                              e.target.setCustomValidity(
+                                isGerman
+                                  ? 'Bitte füllen Sie dieses Feld aus.'
+                                  : 'Please fill in this field.'
+                              );
+                            }}
+                            onInput={(e) => e.target.setCustomValidity('')}
+                            className={`
+                              appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                              backdrop-blur-sm transition-all duration-300
+                              focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                              ${errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                            `}
+                            style={{
+                              backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                              borderColor: errors.country ? '#EF4444' : 'var(--theme-border)',
+                              color: 'var(--theme-text)',
+                              backdropFilter: 'blur(10px)'
+                            }}
+                            placeholder={isGerman ? 'Land eingeben...' : 'Enter country...'}
+                          />
+                        ) : (
+                          <select
+                            id="country"
+                            name="country"
+                            required
+                            value={formData.country}
+                            onChange={handleChange}
+                            className={`
+                              appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                              backdrop-blur-sm transition-all duration-300
+                              focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                              ${errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                            `}
+                            style={{
+                              backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                              borderColor: errors.country ? '#EF4444' : 'var(--theme-border)',
+                              color: 'var(--theme-text)',
+                              backdropFilter: 'blur(10px)'
+                            }}
+                          >
+                            <option value="Germany">🇩🇪 Deutschland</option>
+                            <option value="Austria">🇦🇹 Österreich</option>
+                            <option value="Switzerland">🇨🇭 Schweiz</option>
+                            <option value="Netherlands">🇳🇱 Nederland</option>
+                            <option value="France">🇫🇷 France</option>
+                            <option value="Italy">🇮🇹 Italia</option>
+                            <option value="Spain">🇪🇸 España</option>
+                            <option value="Other">{isGerman ? 'Andere' : 'Other'}</option>
+                          </select>
+                        )}
+                      </div>
+                      {errors.country && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 text-sm text-red-400 flex items-center"
+                        >
+                          <span className="mr-1">❌</span>
+                          {errors.country}
                         </motion.p>
                       )}
                     </motion.div>

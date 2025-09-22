@@ -3,17 +3,22 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import ThemeToggle from '../../components/ui/ThemeToggle';
-import LanguageToggle from '../../components/ui/LanguageToggle';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useTheme } from '../../src/contexts/ThemeContext';
+import ThemeToggle from '../../src/components/ui/ThemeToggle';
+import LanguageToggle from '../../src/components/ui/LanguageToggle';
 
 export default function Login() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();
   const { t, isGerman } = useLanguage();
   const { mounted } = useTheme();
+
+  // Redirect to partner login page by default
+  useEffect(() => {
+    router.replace('/auth/partner-login');
+  }, [router]);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -258,24 +263,24 @@ const handleSubmit = async (e) => {
                   >
                     <span className="text-3xl text-white">🏢</span>
                   </motion.div>
-                  <motion.h2 
+                  <motion.h2
                     className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
                   >
-                    {isGerman ? 'Partner-Bereich' : 'Business Portal'}
+                    {isGerman ? 'Partner-Anmeldung' : 'Partner Login'}
                   </motion.h2>
-                  <motion.p 
-                    className="text-lg" 
+                  <motion.p
+                    className="text-lg"
                     style={{ color: 'var(--theme-muted)' }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                   >
-                    {isGerman 
-                      ? 'Verwalten Sie Ihre Leads professionell'
-                      : 'Manage your leads professionally'
+                    {isGerman
+                      ? 'Wählen Sie Ihren Service-Typ und melden Sie sich an'
+                      : 'Select your service type and sign in'
                     }
                   </motion.p>
                 </div>
@@ -494,16 +499,35 @@ const handleSubmit = async (e) => {
                     </motion.button>
                   </motion.div>
 
-                  <motion.div 
-                    className="text-center mt-8 pt-6 border-t border-gray-200/20"
+                  {/* Admin Login Link */}
+                  <motion.div
+                    className="text-center mt-6 pt-4 border-t border-gray-200/20"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.05 }}
+                  >
+                    <p className="text-xs mb-2" style={{ color: 'var(--theme-muted)' }}>
+                      {isGerman ? 'Oder melden Sie sich als Admin an:' : 'Or sign in as admin:'}
+                    </p>
+                    <Link
+                      href="/auth/admin-login"
+                      className="text-sm font-medium transition-all duration-200 hover:underline"
+                      style={{ color: 'var(--theme-accent)' }}
+                    >
+                      👨‍💼 {isGerman ? 'Admin-Anmeldung' : 'Admin Login'}
+                    </Link>
+                  </motion.div>
+
+                  <motion.div
+                    className="text-center mt-6 pt-4 border-t border-gray-200/20"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.1 }}
                   >
                     <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                       {t('auth.noAccount')}{' '}
-                      <Link 
-                        href="/auth/register" 
+                      <Link
+                        href="/auth/register"
                         className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                       >
                         {t('auth.signUp')}

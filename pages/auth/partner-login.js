@@ -663,17 +663,17 @@ const handleSubmit = async (e) => {
                   >
                     <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                       {isGerman ? 'Noch kein Partner?' : 'Not a partner yet?'}{' '}
-                      <Link 
-                        href="/auth/register" 
+                      <Link
+                        href="/auth/register"
                         className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                       >
                         {isGerman ? 'Registrieren' : 'Sign Up'}
                       </Link>
                     </span>
                     <div className="mt-2">
-                      <Link 
-                        href="/auth/login" 
-                        className="text-sm font-medium transition-all duration-200 hover:underline" 
+                      <Link
+                        href="/auth/admin-login"
+                        className="text-sm font-medium transition-all duration-200 hover:underline"
                         style={{ color: 'var(--theme-accent)' }}
                       >
                         {isGerman ? 'Admin-Anmeldung' : 'Admin Login'}
