@@ -10,6 +10,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useService } from '../../src/contexts/ServiceContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import Button from '../../src/components/ui/Button';
 
 export default function PartnerLogin() {
   const router = useRouter();
@@ -620,39 +621,17 @@ const handleSubmit = async (e) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.1 }}
                   >
-                    <motion.button
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`
-                        group relative w-full flex justify-center py-3 px-4 sm:py-4 sm:px-6 border-0 
-                        text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4 
-                        focus:ring-blue-500/30 transition-all duration-300
-                        bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600
-                        hover:from-blue-700 hover:via-purple-700 hover:to-pink-700
-                        ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-blue-500/25 hover:scale-105'}
-                      `}
-                      style={{
-                        backgroundSize: '200% 200%',
-                        backgroundPosition: 'left center'
-                      }}
-                      whileHover={{ 
-                        backgroundPosition: 'right center',
-                        scale: isSubmitting ? 1 : 1.02
-                      }}
-                      whileTap={{ scale: 0.98 }}
+                      loading={isSubmitting}
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      className="group relative text-sm sm:text-base font-bold text-white focus:ring-4 focus:ring-blue-500/30 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300" />
-                      {isSubmitting ? (
-                        <div className="flex items-center relative z-10">
-                          <motion.div
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                          <span>{isGerman ? 'Anmelden...' : 'Signing In...'}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center relative z-10">
+                      {!isSubmitting && (
+                        <>
                           <motion.span
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -668,9 +647,12 @@ const handleSubmit = async (e) => {
                           >
                             →
                           </motion.span>
-                        </div>
+                        </>
                       )}
-                    </motion.button>
+                      {isSubmitting && (
+                        <span>{isGerman ? 'Anmelden...' : 'Signing In...'}</span>
+                      )}
+                    </Button>
                   </motion.div>
 
                   <motion.div 

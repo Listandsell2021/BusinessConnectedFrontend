@@ -235,7 +235,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         const num = value.replace('over_', '');
         return isGerman ? `Über ${num}` : `Over ${num}`;
       }
-      return value.replace(/_/g, ' ');
+      return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
     // Salutation
@@ -347,7 +347,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           (leadData.name || ''),
         email: leadData.user?.email || leadData.email || '',
         city: leadData.location?.city || leadData.city || '',
-        status: leadData.status || 'pending',
+        // Use cancel request status if viewing from cancelled tab
+        status: activeTab === 'cancelled' && lead.requestStatus ? lead.requestStatus : (leadData.status || 'pending'),
         // Preserve partner assignment information
         assignedPartner: leadData.assignedPartner,
         assignedPartners: leadData.assignedPartners,
@@ -665,13 +666,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     setLoading(true);
     try {
       // Prepare date parameters for API
+      // Note: For complex date filtering (especially single date vs date ranges),
+      // we rely more on client-side filtering to handle edge cases properly
       const dateParams = {};
+
       if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
         dateParams.startDate = dateFilter.fromDate.toISOString().split('T')[0];
         dateParams.endDate = dateFilter.toDate.toISOString().split('T')[0];
-      } else if (dateFilter.type === 'single' && dateFilter.singleDate) {
-        dateParams.startDate = dateFilter.singleDate.toISOString().split('T')[0];
-        dateParams.endDate = dateFilter.singleDate.toISOString().split('T')[0];
       } else if (dateFilter.type === 'week' && dateFilter.week) {
         const selectedWeekDate = new Date(dateFilter.week);
         const startOfWeek = new Date(selectedWeekDate);
@@ -692,6 +693,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         dateParams.startDate = `${targetYear}-01-01`;
         dateParams.endDate = `${targetYear}-12-31`;
       }
+      // For single date filtering, we skip server-side filtering and rely on client-side
+      // This allows us to properly handle cases where a single date falls within a lead's date range
 
       // Prepare partner filter parameter
       let partnerParam;
@@ -704,6 +707,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       }
 
       console.log('API call with filters:', filters, 'partnerParam:', partnerParam);
+      console.log('Date filter type:', dateFilter.type, 'dateParams:', dateParams);
       console.log('Status filter value being sent to API:', filters.status !== 'all' ? filters.status : undefined);
       console.log('User type - isPartner:', isPartner, 'isSuperAdmin:', isSuperAdmin);
 
@@ -966,15 +970,51 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               }
 
               // Apply status filter
-              if (filters.status !== 'all' && filters.status !== requestStatus) {
-                return; // Skip this request if it doesn't match the status filter
+              if (filters.status !== 'all') {
+                // Map dropdown filter values to internal status values
+                let filterValueToMatch = filters.status;
+                if (filters.status === 'cancel_request_approved') {
+                  filterValueToMatch = 'cancellation_approved';
+                } else if (filters.status === 'cancel_request_rejected') {
+                  filterValueToMatch = 'cancellation_rejected';
+                }
+
+                if (filterValueToMatch !== requestStatus) {
+                  return; // Skip this request if it doesn't match the status filter
+                }
               }
 
               // Apply city filter
               if (filters.city && filters.city !== 'all') {
-                const leadCity = lead.formData?.pickupAddress?.city || lead.serviceLocation?.city || lead.city;
-                if (leadCity !== filters.city) {
-                  return; // Skip if city doesn't match
+                // For moving leads, check both pickup and destination cities
+                if (lead.serviceType === 'moving') {
+                  const pickupCity = lead.formData?.pickupAddress?.city ||
+                                   lead.pickupLocation?.city ||
+                                   lead.formData?.pickupCity ||
+                                   lead.pickupCity;
+                  const destinationCity = lead.formData?.destinationAddress?.city ||
+                                        lead.destinationLocation?.city ||
+                                        lead.formData?.destinationCity ||
+                                        lead.destinationCity;
+
+                  // Apply case-insensitive matching and trim whitespace
+                  const filterCity = filters.city.trim().toLowerCase();
+                  const pickupCityNormalized = pickupCity ? pickupCity.trim().toLowerCase() : '';
+                  const destinationCityNormalized = destinationCity ? destinationCity.trim().toLowerCase() : '';
+
+                  // Match if either pickup or destination city matches the filter
+                  const cityMatches = pickupCityNormalized === filterCity || destinationCityNormalized === filterCity;
+                  if (!cityMatches) {
+                    return; // Skip if neither city matches
+                  }
+                } else {
+                  // For other service types, check service location
+                  const leadCity = lead.formData?.serviceAddress?.city || lead.serviceLocation?.city || lead.city;
+                  const filterCity = filters.city.trim().toLowerCase();
+                  const leadCityNormalized = leadCity ? leadCity.trim().toLowerCase() : '';
+                  if (leadCityNormalized !== filterCity) {
+                    return; // Skip if city doesn't match
+                  }
                 }
               }
 
@@ -986,9 +1026,66 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 }
               }
 
+              // Apply date filter (same logic as main leads tab)
+              if (dateFilter.type !== 'all') {
+                // Extract pickup date from lead data (similar to main leads)
+                let pickupDate = null;
+                let pickupStartDate = null;
+                let pickupEndDate = null;
+
+                if (lead.formData?.pickupDate || lead.pickupDate) {
+                  pickupDate = lead.formData?.pickupDate || lead.pickupDate;
+                } else if (lead.formData?.pickupStartDate && lead.formData?.pickupEndDate) {
+                  pickupStartDate = lead.formData.pickupStartDate;
+                  pickupEndDate = lead.formData.pickupEndDate;
+                } else if (lead.formData?.flexiblePeriod && lead.formData.flexiblePeriod.includes(' - ')) {
+                  const [start, end] = lead.formData.flexiblePeriod.split(' - ');
+                  pickupStartDate = start;
+                  pickupEndDate = end;
+                }
+
+                // Apply date filtering logic (same as main leads)
+                let dateMatches = false;
+                if (pickupDate) {
+                  dateMatches = isDateInRange(pickupDate, dateFilter.type, dateFilter);
+                } else if (pickupStartDate && pickupEndDate) {
+                  dateMatches = isDateRangeOverlapping(pickupStartDate, pickupEndDate, dateFilter.type, dateFilter);
+                } else {
+                  // Fallback to creation date
+                  dateMatches = isDateInRange(lead.createdAt, dateFilter.type, dateFilter);
+                }
+
+                if (!dateMatches) {
+                  return; // Skip if date doesn't match
+                }
+              }
+
               // Extract partner ID safely
               const partnerId = assignment.partner?._id || assignment.partner || 'unknown';
               const leadId = lead._id || lead.id;
+
+              // Extract pickup date for display (same logic as filtering)
+              let pickupDate = null;
+              let pickupStartDate = null;
+              let pickupEndDate = null;
+              let pickupDateDisplay = '';
+
+              if (lead.formData?.pickupDate || lead.pickupDate) {
+                pickupDate = lead.formData?.pickupDate || lead.pickupDate;
+                pickupDateDisplay = pickupDate;
+              } else if (lead.formData?.pickupStartDate && lead.formData?.pickupEndDate) {
+                pickupStartDate = lead.formData.pickupStartDate;
+                pickupEndDate = lead.formData.pickupEndDate;
+                pickupDateDisplay = `${pickupStartDate} - ${pickupEndDate}`;
+              } else if (lead.formData?.flexiblePeriod && lead.formData.flexiblePeriod.includes(' - ')) {
+                pickupDateDisplay = lead.formData.flexiblePeriod;
+                const [start, end] = lead.formData.flexiblePeriod.split(' - ');
+                pickupStartDate = start;
+                pickupEndDate = end;
+              } else {
+                // Fallback to creation date if no pickup date
+                pickupDateDisplay = lead.createdAt;
+              }
 
               // Create a cancellation request entry
               const cancelRequest = {
@@ -1026,6 +1123,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 status: requestStatus,
                 createdAt: assignment.cancellationRequestedAt,
                 requestedAt: assignment.cancellationRequestedAt,
+                // Add pickup date information
+                pickupDate: pickupDate,
+                pickupStartDate: pickupStartDate,
+                pickupEndDate: pickupEndDate,
+                pickupDateDisplay: pickupDateDisplay,
                 // Add status-specific dates
                 approvedAt: assignment.cancellationApprovedAt,
                 rejectedAt: assignment.cancellationRejectedAt,
@@ -1054,18 +1156,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         return dateB - dateA;
       });
 
+      // Calculate stats on filtered data (before pagination)
+      const stats = {
+        total: cancelRequests.length,
+        pending: cancelRequests.filter(r => r.status === 'pending').length,
+        approved: cancelRequests.filter(r => r.status === 'cancellation_approved').length,
+        rejected: cancelRequests.filter(r => r.status === 'cancellation_rejected').length
+      };
+
       // Apply pagination client-side
       const startIndex = (cancelledCurrentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       const paginatedRequests = cancelRequests.slice(startIndex, endIndex);
-
-      // Calculate stats
-      const stats = {
-        total: cancelRequests.length,
-        pending: cancelRequests.filter(r => r.status === 'pending').length,
-        approved: cancelRequests.filter(r => r.status === 'approved').length,
-        rejected: cancelRequests.filter(r => r.status === 'rejected').length
-      };
 
       setCancelledRequests(paginatedRequests);
       setTotalCancelRequests(cancelRequests.length);
@@ -1239,227 +1341,197 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     // Date filtering (client-side for already loaded data)
     if (dateFilter.type !== 'all') {
-      const now = new Date();
-      
+      // Check if we actually have a date selected for the filter type
+      const hasDateSelected =
+        (dateFilter.type === 'single' && dateFilter.singleDate) ||
+        (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) ||
+        (dateFilter.type === 'week' && dateFilter.week) ||
+        (dateFilter.type === 'month' && dateFilter.month) ||
+        (dateFilter.type === 'year' && dateFilter.year);
+
+      if (!hasDateSelected) {
+        console.log('Date filter type is set but no date selected - showing all leads');
+        // If no date is actually selected, don't filter by date
+        return filtered;
+      }
+
+      console.log('Client-side date filtering. Filter type:', dateFilter.type, 'Total leads before filtering:', filtered.length);
+
       filtered = filtered.filter(lead => {
-        if (currentService === 'moving' && lead.formData) {
-          // For moving leads, check if the selected date falls within the lead's date range
-          const filterDate = dateFilter.singleDate || dateFilter.fromDate;
-          const filterEndDate = dateFilter.toDate;
-          
-          // Check fixed date
-          if (lead.formData.fixedDate) {
-            const leadFixedDate = new Date(lead.formData.fixedDate);
-            
-            switch (dateFilter.type) {
-              case 'single':
-                if (dateFilter.singleDate) {
-                  return leadFixedDate.toDateString() === dateFilter.singleDate.toDateString();
-                }
-                break;
-              case 'range':
-                if (dateFilter.fromDate && dateFilter.toDate) {
-                  const fromDate = new Date(dateFilter.fromDate);
-                  const toDate = new Date(dateFilter.toDate);
-                  toDate.setHours(23, 59, 59, 999);
-                  return leadFixedDate >= fromDate && leadFixedDate <= toDate;
-                }
-                break;
-              case 'week':
-                if (dateFilter.week) {
-                  const selectedWeekDate = new Date(dateFilter.week);
-                  const startOfWeek = new Date(selectedWeekDate);
-                  startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-                  startOfWeek.setHours(0, 0, 0, 0);
-                  const endOfWeek = new Date(startOfWeek);
-                  endOfWeek.setDate(startOfWeek.getDate() + 6);
-                  endOfWeek.setHours(23, 59, 59, 999);
-                  return leadFixedDate >= startOfWeek && leadFixedDate <= endOfWeek;
-                }
-                break;
-              case 'month':
-                if (dateFilter.month) {
-                  const selectedMonthDate = new Date(dateFilter.month);
-                  const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-                  const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-                  endOfMonth.setHours(23, 59, 59, 999);
-                  return leadFixedDate >= startOfMonth && leadFixedDate <= endOfMonth;
-                }
-                break;
-              case 'year':
-                if (dateFilter.year) {
-                  const selectedYearDate = new Date(dateFilter.year);
-                  return leadFixedDate.getFullYear() === selectedYearDate.getFullYear();
-                }
-                break;
-            }
+        // Helper function to check if a date falls within the filter range
+        const isDateInRange = (leadDate, filterType, filterData) => {
+          if (!leadDate) return false;
+
+          const date = new Date(leadDate);
+          date.setHours(0, 0, 0, 0); // Normalize to start of day
+
+          switch (filterType) {
+            case 'single':
+              if (filterData.singleDate) {
+                const filterDate = new Date(filterData.singleDate);
+                filterDate.setHours(0, 0, 0, 0);
+                return date.getTime() === filterDate.getTime();
+              }
+              break;
+
+            case 'range':
+              if (filterData.fromDate && filterData.toDate) {
+                const fromDate = new Date(filterData.fromDate);
+                const toDate = new Date(filterData.toDate);
+                fromDate.setHours(0, 0, 0, 0);
+                toDate.setHours(23, 59, 59, 999);
+                return date >= fromDate && date <= toDate;
+              }
+              break;
+
+            case 'week':
+              if (filterData.week) {
+                const selectedWeekDate = new Date(filterData.week);
+                const startOfWeek = new Date(selectedWeekDate);
+                startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23, 59, 59, 999);
+                return date >= startOfWeek && date <= endOfWeek;
+              }
+              break;
+
+            case 'month':
+              if (filterData.month) {
+                const selectedMonthDate = new Date(filterData.month);
+                const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
+                const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
+                startOfMonth.setHours(0, 0, 0, 0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                return date >= startOfMonth && date <= endOfMonth;
+              }
+              break;
+
+            case 'year':
+              if (filterData.year) {
+                const selectedYearDate = new Date(filterData.year);
+                return date.getFullYear() === selectedYearDate.getFullYear();
+              }
+              break;
           }
-          
-          // Check flexible date range
-          else if (lead.formData.flexibleDateRange) {
-            const leadStartDate = new Date(lead.formData.flexibleDateRange.startDate);
-            const leadEndDate = new Date(lead.formData.flexibleDateRange.endDate);
-            
-            switch (dateFilter.type) {
-              case 'single':
-                if (dateFilter.singleDate) {
-                  const filterSingleDate = new Date(dateFilter.singleDate);
-                  // Check if filter date falls within the lead's flexible range
-                  return filterSingleDate >= leadStartDate && filterSingleDate <= leadEndDate;
-                }
-                break;
-              case 'range':
-                if (dateFilter.fromDate && dateFilter.toDate) {
-                  const fromDate = new Date(dateFilter.fromDate);
-                  const toDate = new Date(dateFilter.toDate);
-                  // Check if there's any overlap between filter range and lead range
-                  return leadStartDate <= toDate && leadEndDate >= fromDate;
-                }
-                break;
-              case 'week':
-                if (dateFilter.week) {
-                  const selectedWeekDate = new Date(dateFilter.week);
-                  const startOfWeek = new Date(selectedWeekDate);
-                  startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-                  startOfWeek.setHours(0, 0, 0, 0);
-                  const endOfWeek = new Date(startOfWeek);
-                  endOfWeek.setDate(startOfWeek.getDate() + 6);
-                  endOfWeek.setHours(23, 59, 59, 999);
-                  // Check if there's any overlap between filter week and lead range
-                  return leadStartDate <= endOfWeek && leadEndDate >= startOfWeek;
-                }
-                break;
-              case 'month':
-                if (dateFilter.month) {
-                  const selectedMonthDate = new Date(dateFilter.month);
-                  const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-                  startOfMonth.setHours(0, 0, 0, 0);
-                  const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-                  endOfMonth.setHours(23, 59, 59, 999);
-                  // Check if there's any overlap between filter month and lead range
-                  return leadStartDate <= endOfMonth && leadEndDate >= startOfMonth;
-                }
-                break;
-              case 'year':
-                if (dateFilter.year) {
-                  const selectedYearDate = new Date(dateFilter.year);
-                  const startOfYear = new Date(selectedYearDate.getFullYear(), 0, 1);
-                  startOfYear.setHours(0, 0, 0, 0);
-                  const endOfYear = new Date(selectedYearDate.getFullYear(), 11, 31);
-                  endOfYear.setHours(23, 59, 59, 999);
-                  // Check if there's any overlap between filter year and lead range
-                  return leadStartDate <= endOfYear && leadEndDate >= startOfYear;
-                }
-                break;
-            }
-          }
-          
-          // Fallback to pickup date if available
-          else if (lead.pickupDate) {
-            const leadDate = lead.pickupDate;
-            
-            switch (dateFilter.type) {
-              case 'single':
-                if (dateFilter.singleDate) {
-                  return leadDate.toDateString() === dateFilter.singleDate.toDateString();
-                }
-                break;
-              case 'range':
-                if (dateFilter.fromDate && dateFilter.toDate) {
-                  const fromDate = new Date(dateFilter.fromDate);
-                  const toDate = new Date(dateFilter.toDate);
-                  toDate.setHours(23, 59, 59, 999);
-                  return leadDate >= fromDate && leadDate <= toDate;
-                }
-                break;
-              case 'week':
-                if (dateFilter.week) {
-                  const selectedWeekDate = new Date(dateFilter.week);
-                  const startOfWeek = new Date(selectedWeekDate);
-                  startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-                  startOfWeek.setHours(0, 0, 0, 0);
-                  const endOfWeek = new Date(startOfWeek);
-                  endOfWeek.setDate(startOfWeek.getDate() + 6);
-                  endOfWeek.setHours(23, 59, 59, 999);
-                  return leadDate >= startOfWeek && leadDate <= endOfWeek;
-                }
-                break;
-              case 'month':
-                if (dateFilter.month) {
-                  const selectedMonthDate = new Date(dateFilter.month);
-                  const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-                  const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-                  endOfMonth.setHours(23, 59, 59, 999);
-                  return leadDate >= startOfMonth && leadDate <= endOfMonth;
-                }
-                break;
-              case 'year':
-                if (dateFilter.year) {
-                  const selectedYearDate = new Date(dateFilter.year);
-                  return leadDate.getFullYear() === selectedYearDate.getFullYear();
-                }
-                break;
-            }
-          }
-        }
-        
-        // Return false if no matching date found for moving leads
-        if (currentService === 'moving') {
           return false;
+        };
+
+        // Helper function to check if date range overlaps with filter range
+        const isDateRangeOverlapping = (startDate, endDate, filterType, filterData) => {
+          if (!startDate || !endDate) return false;
+
+          const leadStart = new Date(startDate);
+          const leadEnd = new Date(endDate);
+          leadStart.setHours(0, 0, 0, 0);
+          leadEnd.setHours(23, 59, 59, 999);
+
+          switch (filterType) {
+            case 'single':
+              if (filterData.singleDate) {
+                const filterDate = new Date(filterData.singleDate);
+                filterDate.setHours(0, 0, 0, 0);
+                const filterEndDate = new Date(filterDate);
+                filterEndDate.setHours(23, 59, 59, 999);
+                return leadStart <= filterEndDate && leadEnd >= filterDate;
+              }
+              break;
+
+            case 'range':
+              if (filterData.fromDate && filterData.toDate) {
+                const filterStart = new Date(filterData.fromDate);
+                const filterEnd = new Date(filterData.toDate);
+                filterStart.setHours(0, 0, 0, 0);
+                filterEnd.setHours(23, 59, 59, 999);
+                return leadStart <= filterEnd && leadEnd >= filterStart;
+              }
+              break;
+
+            case 'week':
+              if (filterData.week) {
+                const selectedWeekDate = new Date(filterData.week);
+                const startOfWeek = new Date(selectedWeekDate);
+                startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23, 59, 59, 999);
+                return leadStart <= endOfWeek && leadEnd >= startOfWeek;
+              }
+              break;
+
+            case 'month':
+              if (filterData.month) {
+                const selectedMonthDate = new Date(filterData.month);
+                const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
+                const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
+                startOfMonth.setHours(0, 0, 0, 0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                return leadStart <= endOfMonth && leadEnd >= startOfMonth;
+              }
+              break;
+
+            case 'year':
+              if (filterData.year) {
+                const selectedYearDate = new Date(filterData.year);
+                const targetYear = selectedYearDate.getFullYear();
+                const startOfYear = new Date(targetYear, 0, 1);
+                const endOfYear = new Date(targetYear, 11, 31);
+                startOfYear.setHours(0, 0, 0, 0);
+                endOfYear.setHours(23, 59, 59, 999);
+                return leadStart <= endOfYear && leadEnd >= startOfYear;
+              }
+              break;
+          }
+          return false;
+        };
+
+        // Extract pickup date from lead data
+        let pickupDate = null;
+        let pickupStartDate = null;
+        let pickupEndDate = null;
+
+        if (lead.formData) {
+          // Check for fixed date (single pickup date)
+          if (lead.formData.fixedDate) {
+            pickupDate = lead.formData.fixedDate;
+          }
+          // Check for flexible date range (pickup date range)
+          else if (lead.formData.flexibleDateRange && lead.formData.flexibleDateRange.startDate && lead.formData.flexibleDateRange.endDate) {
+            pickupStartDate = lead.formData.flexibleDateRange.startDate;
+            pickupEndDate = lead.formData.flexibleDateRange.endDate;
+          }
+          // Check for move date (alternative format)
+          else if (lead.formData.moveDateType === 'fixed' && lead.formData.moveDate) {
+            pickupDate = lead.formData.moveDate;
+          }
         }
-        
-        // For non-moving services or leads without pickup dates, use creation date
-        const leadDate = new Date(lead.createdAt);
-        
-        switch (dateFilter.type) {
-          case 'single':
-            if (dateFilter.singleDate) {
-              return leadDate.toDateString() === dateFilter.singleDate.toDateString();
-            }
-            break;
-            
-          case 'range':
-            if (dateFilter.fromDate && dateFilter.toDate) {
-              const fromDate = new Date(dateFilter.fromDate);
-              const toDate = new Date(dateFilter.toDate);
-              toDate.setHours(23, 59, 59, 999);
-              return leadDate >= fromDate && leadDate <= toDate;
-            }
-            break;
-            
-          case 'week':
-            if (dateFilter.week) {
-              const selectedWeekDate = new Date(dateFilter.week);
-              const startOfWeek = new Date(selectedWeekDate);
-              startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-              startOfWeek.setHours(0, 0, 0, 0);
-              const endOfWeek = new Date(startOfWeek);
-              endOfWeek.setDate(startOfWeek.getDate() + 6);
-              endOfWeek.setHours(23, 59, 59, 999);
-              return leadDate >= startOfWeek && leadDate <= endOfWeek;
-            }
-            break;
-            
-          case 'month':
-            if (dateFilter.month) {
-              const selectedMonthDate = new Date(dateFilter.month);
-              const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-              const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-              endOfMonth.setHours(23, 59, 59, 999);
-              return leadDate >= startOfMonth && leadDate <= endOfMonth;
-            }
-            break;
-            
-          case 'year':
-            if (dateFilter.year) {
-              const selectedYearDate = new Date(dateFilter.year);
-              return leadDate.getFullYear() === selectedYearDate.getFullYear();
-            }
-            break;
+
+        // Use the pickupDate from the processed lead data if available
+        if (!pickupDate && !pickupStartDate && lead.pickupDate) {
+          pickupDate = lead.pickupDate;
         }
-        
-        return true;
+
+        // Apply date filtering logic
+        let result = false;
+        if (pickupDate) {
+          // Single pickup date - check if it matches the filter
+          result = isDateInRange(pickupDate, dateFilter.type, dateFilter);
+          console.log(`Lead ${lead.id}: Single pickup date ${pickupDate} -> ${result}`);
+        } else if (pickupStartDate && pickupEndDate) {
+          // Pickup date range - check if filter overlaps with the range
+          result = isDateRangeOverlapping(pickupStartDate, pickupEndDate, dateFilter.type, dateFilter);
+          console.log(`Lead ${lead.id}: Pickup range ${pickupStartDate} to ${pickupEndDate} -> ${result}`);
+        } else {
+          // Fallback to creation date for leads without pickup dates
+          result = isDateInRange(lead.createdAt, dateFilter.type, dateFilter);
+          console.log(`Lead ${lead.id}: Using creation date ${lead.createdAt} -> ${result}`);
+        }
+        return result;
       });
+
+      console.log('Client-side date filtering complete. Leads after filtering:', filtered.length);
     }
 
     return filtered;
@@ -1708,11 +1780,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Apply filters to leads using useMemo for performance
   const currentLeads = useMemo(() => {
-    // Since API handles all filtering, return leads directly without client-side filtering
-    // For partners, the backend now returns unwound assignments, so partnerAssignments is a single object
-    // Backend now provides partner-specific status directly for partners
-    return leads;
-  }, [leads]);
+    // Apply client-side filtering (especially important for single date filtering)
+    // Server-side filtering is used for performance, but client-side handles complex date logic
+    console.log('useMemo currentLeads - applying filters to', leads.length, 'leads');
+    const filtered = applyFilters();
+    console.log('useMemo currentLeads - after filtering:', filtered.length, 'leads');
+    return filtered;
+  }, [leads, filters, dateFilter]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -1721,25 +1795,45 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   const exportLeads = async (format) => {
     try {
-      const exportParams = {
-        serviceType: currentService,
-        status: filters.status !== 'all' ? filters.status : undefined,
-        city: filters.city || undefined,
-        assignedPartner: filters.partner === 'multiple' 
-          ? selectedPartnerFilters.map(p => p._id) 
-          : filters.partner !== 'all' ? filters.partner : undefined,
-        search: filters.searchTerm || undefined
-      };
-      
-      // Remove undefined values
-      const cleanParams = Object.entries(exportParams)
-        .filter(([_, value]) => value !== undefined)
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
-      
-      console.log('Export params:', cleanParams); // Debug log
-      
-      // Use the configured API service instead of direct fetch
-      const response = await leadsAPI.export(format, cleanParams);
+      let exportParams;
+      let response;
+
+      if (activeTab === 'cancelled') {
+        // Export cancelled requests
+        exportParams = {
+          serviceType: currentService,
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          search: filters.searchTerm || undefined
+        };
+
+        // Remove undefined values
+        const cleanParams = Object.entries(exportParams)
+          .filter(([_, value]) => value !== undefined)
+          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+        console.log('Export cancel requests params:', cleanParams); // Debug log
+        response = await leadsAPI.exportCancelRequests(format, cleanParams);
+      } else {
+        // Export leads (original functionality)
+        exportParams = {
+          serviceType: currentService,
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          assignedPartner: filters.partner === 'multiple'
+            ? selectedPartnerFilters.map(p => p._id)
+            : filters.partner !== 'all' ? filters.partner : undefined,
+          search: filters.searchTerm || undefined
+        };
+
+        // Remove undefined values
+        const cleanParams = Object.entries(exportParams)
+          .filter(([_, value]) => value !== undefined)
+          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+        console.log('Export leads params:', cleanParams); // Debug log
+        response = await leadsAPI.export(format, cleanParams);
+      }
       
       console.log('Export response:', response); // Debug log
       
@@ -1748,9 +1842,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const link = document.createElement('a');
       link.href = downloadUrl;
       
-      // Set filename based on format
+      // Set filename based on format and active tab
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `leads_export_${timestamp}.${format}`;
+      const dataType = activeTab === 'cancelled' ? 'cancel_requests' : 'leads';
+      const filename = `${dataType}_export_${timestamp}.${format}`;
       link.download = filename;
       
       // Trigger download
@@ -2081,26 +2176,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               {activeTab === 'leads' ? (
                 <>
                   <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
-                  <option value="accepted">{isGerman ? 'Angenommen' : 'Accepted'}</option>
-                  <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
-                  {isPartner && (
-                    <>
-                      <option value="cancel_requested">{isGerman ? 'Stornierung angefragt' : 'Cancel Request'}</option>
-                      <option value="cancelled">{isGerman ? 'Storniert' : 'Cancelled'}</option>
-                    </>
-                  )}
-                  {isSuperAdmin && (
-                    <>
-                      <option value="partial_assigned">{isGerman ? 'Teilweise zugewiesen' : 'Partial Assigned'}</option>
-                      <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
-                    </>
-                  )}
+                  <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
+                  <option value="partial_assigned">{isGerman ? 'Teilweise zugewiesen' : 'Partial Assigned'}</option>
                 </>
               ) : (
                 <>
                   <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
-                  <option value="approved">{isGerman ? 'Genehmigt' : 'Approved'}</option>
-                  <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
+                  <option value="cancel_request_approved">{isGerman ? 'Stornierung genehmigt' : 'Cancel Request Approved'}</option>
+                  <option value="cancel_request_rejected">{isGerman ? 'Stornierung abgelehnt' : 'Cancel Request Rejected'}</option>
                 </>
               )}
             </select>
@@ -2747,7 +2830,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {new Date(request.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                        {request.pickupDateDisplay ? new Date(request.pickupDateDisplay).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB') : new Date(request.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
@@ -3007,342 +3090,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         </motion.div>
       )}
 
-      {/* Lead Details Modal */}
-      <AnimatePresence>
-        {showLeadDetails && leadForDetails && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-start justify-center z-[9999] p-4 pt-8 overflow-y-auto"
-            style={{ paddingLeft: '10rem' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleCloseLeadDetails}
-          >
-            <motion.div
-              className="w-full max-w-6xl min-h-[80vh] max-h-none rounded-lg border my-8"
-              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header with Back Button */}
-              <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--theme-border)' }}>
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={handleCloseLeadDetails}
-                    className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    style={{ color: 'var(--theme-text)' }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <div>
-                    <h2 className="text-xl font-semibold" style={{ color: 'var(--theme-text)' }}>
-                      {t('leads.leadDetails')}
-                    </h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                        {leadForDetails.leadId}
-                      </span>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        leadForDetails.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        leadForDetails.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                        leadForDetails.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {leadForDetails.status === 'pending' ? (isGerman ? 'Ausstehend' : 'Pending') :
-                         leadForDetails.status === 'accepted' ? (isGerman ? 'Akzeptiert' : 'Accepted') :
-                         leadForDetails.status === 'rejected' ? (isGerman ? 'Abgelehnt' : 'Rejected') :
-                         leadForDetails.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lead Details - 2 Column Layout */}
-              <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--theme-border)' }}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Left Column - Customer Information */}
-                  <div>
-                    <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                      {t('leads.customerInfo')}
-                    </h4>
-                    <div>
-                      <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
-                        <tbody>
-                          <TableRow
-                            label={t('leads.leadId')}
-                            value={leadForDetails.leadId}
-                          />
-                          <TableRow
-                            label={t('common.name')}
-                            value={leadForDetails.name}
-                          />
-                          <TableRow
-                            label={t('common.email')}
-                            value={leadForDetails.email}
-                            isContactInfo={true}
-                          />
-                          {leadForDetails.user?.phone && (
-                            <TableRow
-                              label={t('common.phone')}
-                              value={leadForDetails.user.phone}
-                              isContactInfo={true}
-                            />
-                          )}
-                          <TableRow
-                            label={t('common.city')}
-                            value={leadForDetails.city}
-                          />
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Right Column - Service & Additional Information */}
-                  <div>
-                    <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                      {isGerman ? 'Service & Details' : 'Service & Details'}
-                    </h4>
-                    <div>
-                      <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
-                        <tbody>
-                          <TableRow
-                            label={t('leads.service')}
-                            value={
-                              `${leadForDetails.serviceType === 'moving' ? '🚛' : '🧽'} ${t(`services.${leadForDetails.serviceType}`)}${leadForDetails.moveType ? ` - ${leadForDetails.moveType.replace('_', ' ')}` : ''}`
-                            }
-                          />
-                          {leadForDetails.sourceDomain && (
-                            <TableRow
-                              label={t('leads.sourceDomain')}
-                              value={leadForDetails.sourceDomain}
-                            />
-                          )}
-                          {/* Partner Assignment Information */}
-                          {(leadForDetails.assignedPartner || leadForDetails.assignedPartners || leadForDetails.acceptedPartner || leadForDetails.partnerAssignments) && (
-                            <tr>
-                              <td className="px-3 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)', width: '140px', minWidth: '140px' }}>
-                                {t('leads.assignedPartner')}:
-                              </td>
-                              <td className="px-3 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                                <div className="space-y-1">
-                                  {/* Show accepted partner first if available */}
-                                  {leadForDetails.status === 'accepted' && leadForDetails.acceptedPartner ? (
-                                    <div>
-                                      {leadForDetails.acceptedPartner.companyName || leadForDetails.acceptedPartner}
-                                    </div>
-                                  ) : leadForDetails.assignedPartners && Array.isArray(leadForDetails.assignedPartners) && leadForDetails.assignedPartners.length > 0 ? (
-                                    /* Show multiple assigned partners */
-                                    <div className="space-y-1">
-                                      {leadForDetails.assignedPartners.map((partner, index) => (
-                                        <div key={partner._id || index}>
-                                          {partner.companyName}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : leadForDetails.partnerAssignments && Array.isArray(leadForDetails.partnerAssignments) && leadForDetails.partnerAssignments.length > 0 ? (
-                                    /* Show partner assignments from new schema */
-                                    <div className="space-y-1">
-                                      {leadForDetails.partnerAssignments.map((assignment, index) => (
-                                        <div key={assignment.partner._id || index}>
-                                          {assignment.partner.companyName || assignment.partner}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : leadForDetails.assignedPartner ? (
-                                    /* Show single assigned partner (legacy support) */
-                                    <div>
-                                      {leadForDetails.assignedPartner.companyName || leadForDetails.assignedPartner}
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-500 italic">
-                                      {isGerman ? 'Nicht zugewiesen' : 'Unassigned'}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assignment Information - Admin Only */}
-              {isSuperAdmin && leadForDetails.assignmentInfo && (
-                <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--theme-border)' }}>
-                  <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Zuweisungsinformationen' : 'Assignment Information'}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                          {isGerman ? 'Aktive Zuweisungen:' : 'Active Assignments:'}
-                        </span>
-                        <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                          {leadForDetails.assignmentInfo.activeAssignments} / {leadForDetails.assignmentInfo.maxAllowed}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                          {isGerman ? 'Gesamt zugewiesen:' : 'Total Assigned:'}
-                        </span>
-                        <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                          {leadForDetails.assignmentInfo.totalAssigned}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {leadForDetails.assignmentInfo.hasExclusivePartner && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          👑 {isGerman ? 'Exklusiver Partner' : 'Exclusive Partner'}
-                        </span>
-                      )}
-                      {leadForDetails.assignmentInfo.canAssignMore && !leadForDetails.assignmentInfo.hasExclusivePartner && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✅ {isGerman ? 'Kann weitere zuweisen' : 'Can assign more'}
-                        </span>
-                      )}
-                      {leadForDetails.assignmentInfo.isDatePassed && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          ⏰ {isGerman ? 'Datum abgelaufen' : 'Date passed'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Form Data and User Details - 2 Column Layout */}
-              {((leadForDetails.formData && Object.keys(leadForDetails.formData).length > 0) || leadForDetails.user) && (
-                <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--theme-border)' }}>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-                    {/* Form Data */}
-                    {leadForDetails.formData && Object.keys(leadForDetails.formData).length > 0 && (
-                      <div>
-                        <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                          {isGerman ? 'Formulardetails' : 'Form Details'}
-                        </h4>
-                        <div>
-                          <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
-                            <tbody>
-                              {Object.entries(leadForDetails.formData).map(([key, value]) => {
-                                // Skip empty values and internal fields
-                                if (value === null || value === undefined || value === '' || key.startsWith('_')) {
-                                  return null;
-                                }
-
-                                // Format the label
-                                const label = key.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase());
-
-                                return (
-                                  <TableRow
-                                    key={key}
-                                    label={label}
-                                    value={formatFormValue(key, value)}
-                                  />
-                                );
-                              }).filter(Boolean)}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* User Details & Timestamps */}
-                    <div>
-                      {leadForDetails.user && (
-                        <>
-                          <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                            {isGerman ? 'Zusätzliche Benutzerdetails' : 'Additional User Details'}
-                          </h4>
-                          <div className="mb-6">
-                            <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
-                              <tbody>
-                                {leadForDetails.user.salutation && (
-                                  <TableRow
-                                    label={isGerman ? 'Anrede' : 'Salutation'}
-                                    value={leadForDetails.user.salutation}
-                                    isContactInfo={true}
-                                  />
-                                )}
-                                {leadForDetails.user.firstName && (
-                                  <TableRow
-                                    label={isGerman ? 'Vorname' : 'First Name'}
-                                    value={leadForDetails.user.firstName}
-                                    isContactInfo={true}
-                                  />
-                                )}
-                                {leadForDetails.user.lastName && (
-                                  <TableRow
-                                    label={isGerman ? 'Nachname' : 'Last Name'}
-                                    value={leadForDetails.user.lastName}
-                                    isContactInfo={true}
-                                  />
-                                )}
-                                {leadForDetails.user.preferredContactTime && (
-                                  <TableRow
-                                    label={isGerman ? 'Bevorzugte Kontaktzeit' : 'Preferred Contact Time'}
-                                    value={leadForDetails.user.preferredContactTime}
-                                    isContactInfo={true}
-                                  />
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Timestamps */}
-                      <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                        {isGerman ? 'Zeitstempel' : 'Timestamps'}
-                      </h4>
-                      <div>
-                        <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
-                          <tbody>
-                            <TableRow
-                              label={t('leads.createdAt')}
-                              value={new Date(leadForDetails.createdAt).toLocaleString()}
-                            />
-                            {leadForDetails.assignedAt && (
-                              <TableRow
-                                label={isGerman ? 'Zugewiesen am' : 'Assigned At'}
-                                value={new Date(leadForDetails.assignedAt).toLocaleString()}
-                              />
-                            )}
-                            {leadForDetails.acceptedAt && (
-                              <TableRow
-                                label={isGerman ? 'Akzeptiert am' : 'Accepted At'}
-                                value={new Date(leadForDetails.acceptedAt).toLocaleString()}
-                              />
-                            )}
-                            {leadForDetails.updatedAt && leadForDetails.updatedAt !== leadForDetails.createdAt && (
-                              <TableRow
-                                label={isGerman ? 'Zuletzt aktualisiert' : 'Last Updated'}
-                                value={new Date(leadForDetails.updatedAt).toLocaleString()}
-                              />
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {currentView === 'table' && activeTab === 'leads' && (
         <Pagination
@@ -3467,17 +3214,19 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto border"
-              style={{ 
-                backgroundColor: 'var(--theme-bg-secondary)', 
+              className="rounded-xl shadow-2xl w-full max-w-4xl min-h-0 overflow-hidden border flex flex-col"
+              style={{
+                backgroundColor: 'var(--theme-bg-secondary)',
                 color: 'var(--theme-text)',
-                borderColor: 'var(--theme-border)'
+                borderColor: 'var(--theme-border)',
+                height: '700px',
+                boxSizing: 'border-box'
               }}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <div className="flex justify-between items-center mb-6 pb-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="flex justify-between items-center mb-6 pb-4 px-6 pt-6 border-b" style={{ borderColor: 'var(--theme-border)' }}>
                 <div>
                   <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--theme-text)' }}>
                     {t('leads.assignLead')}
@@ -3500,6 +3249,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 </button>
               </div>
 
+              {/* Scrollable Content */}
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 pr-10">
               {/* Lead Information */}
               {selectedLead && (
                 <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -3623,18 +3374,21 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                     {filteredPartners.map((partner) => {
                       const isSelected = selectedPartners.includes(partner._id);
                       const isExclusive = partner.partnerType === 'exclusive';
+                      const isAtCapacity = !partner.hasWeeklyCapacity;
                       
                       return (
                         <div
                           key={partner._id}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                            isSelected 
-                              ? 'border-blue-500 shadow-md' 
-                              : 'hover:border-gray-400 hover:shadow-sm'
+                          className={`p-4 rounded-lg border transition-all duration-200 ${
+                            isAtCapacity
+                              ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                              : isSelected
+                                ? 'border-blue-500 shadow-md cursor-pointer'
+                                : 'hover:border-gray-400 hover:shadow-sm cursor-pointer'
                           } ${isExclusive ? 'ring-2 ring-yellow-400' : ''}`}
                           style={{ 
                             backgroundColor: isSelected 
@@ -3644,7 +3398,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               ? '#3b82f6' 
                               : 'var(--theme-border)'
                           }}
-                          onClick={() => handlePartnerSelect(partner)}
+                          onClick={() => !isAtCapacity && handlePartnerSelect(partner)}
                         >
                           {/* Company Header */}
                           <div className="flex items-center justify-between mb-3">
@@ -3652,9 +3406,23 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               <h4 className="text-lg font-bold" style={{ color: 'var(--theme-text)' }}>
                                 {partner.companyName || 'Unknown Company'}
                               </h4>
+                              {partnerFilter === 'search' && (
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  partner.partnerType === 'exclusive'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {partner.partnerType === 'exclusive' ? 'Exclusive' : 'Basic'}
+                                </span>
+                              )}
                               {partner.locationMatch && (
                                 <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-medium">
                                   📍 Match
+                                </span>
+                              )}
+                              {isAtCapacity && (
+                                <span className="px-2 py-1 bg-red-500 text-white rounded-full text-xs font-medium">
+                                  FULL
                                 </span>
                               )}
                             </div>
@@ -3684,7 +3452,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             <div className="flex justify-between items-center pt-2 border-t" style={{ borderColor: 'var(--theme-border)' }}>
                               <div className="text-center">
                                 <div className="font-bold text-sm" style={{ color: 'var(--theme-text)' }}>
-                                  {partner.currentWeekLeads || 0}/{partner.weeklyLimit || 'N/A'}
+                                  {partner.currentWeekLeads || 0}/{partner.weeklyLimit || 0}
                                 </div>
                                 <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Weekly</div>
                               </div>
@@ -3718,8 +3486,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </span>
                   </div>
                 </div>
-                
-                <div className="flex space-x-3">
+              </div>
+
+              {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 pr-6 pb-6">
                   <button
                     onClick={handleCloseAssignModal}
                     className="px-4 py-2 border rounded-lg font-medium hover:opacity-80"

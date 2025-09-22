@@ -43,9 +43,9 @@ app.use(helmet());
 app.use(cors({
   origin: [
     process.env.CLIENT_URL,
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3003'
+    process.env.NODE_ENV === 'development' && 'http://localhost:3000',
+    process.env.NODE_ENV === 'development' && 'http://localhost:3001',
+    process.env.NODE_ENV === 'development' && 'http://localhost:3003'
   ].filter(Boolean),
   credentials: true
 }));

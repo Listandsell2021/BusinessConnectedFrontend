@@ -4,6 +4,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import RadioStep from './steps/RadioStep';
 import CheckboxStep from './steps/CheckboxStep';
 import FormFieldsStep from './steps/FormFieldsStep';
+import Button from '../ui/Button';
 
 const FormStep = ({ 
   step, 
@@ -142,49 +143,24 @@ const FormStep = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <button
+        <Button
           onClick={handlePrevious}
           disabled={isFirstStep}
-          className={`
-            px-6 py-3 rounded-lg font-medium transition-all duration-200
-            ${isFirstStep 
-              ? 'opacity-50 cursor-not-allowed' 
-              : 'hover:opacity-80 hover:scale-105'
-            }
-          `}
-          style={{
-            backgroundColor: 'var(--theme-bg-secondary)',
-            color: 'var(--theme-text)',
-            border: '2px solid var(--theme-border)'
-          }}
+          variant="secondary"
+          size="md"
         >
           ← Zurück
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleNext}
           disabled={isSubmitting}
-          className={`
-            px-8 py-3 rounded-lg font-medium transition-all duration-200
-            ${isSubmitting 
-              ? 'opacity-50 cursor-not-allowed' 
-              : 'hover:opacity-90 hover:scale-105'
-            }
-          `}
-          style={{
-            backgroundColor: 'var(--theme-button-bg)',
-            color: 'var(--theme-button-text)'
-          }}
+          loading={isSubmitting}
+          variant="primary"
+          size="md"
         >
-          {isSubmitting ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-              Wird gesendet...
-            </div>
-          ) : (
-            isLastStep ? 'Angebot anfordern' : 'Weiter →'
-          )}
-        </button>
+          {isSubmitting ? 'Wird gesendet...' : (isLastStep ? 'Angebot anfordern' : 'Weiter →')}
+        </Button>
       </motion.div>
     </motion.div>
   );

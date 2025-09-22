@@ -293,6 +293,8 @@ export const translations = {
       allStatus: 'Alle Status',
       active: 'Aktiv',
       pending: 'Ausstehend',
+      rejected: 'Abgelehnt',
+      suspended: 'Gesperrt',
       exclusive: 'Exklusiv',
       basic: 'Standard',
       cityPlaceholder: 'Stadt...'
@@ -794,6 +796,8 @@ export const translations = {
       allStatus: 'All Status',
       active: 'Active',
       pending: 'Pending',
+      rejected: 'Rejected',
+      suspended: 'Suspended',
       exclusive: 'Exclusive',
       basic: 'Basic',
       cityPlaceholder: 'City...'

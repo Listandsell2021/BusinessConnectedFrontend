@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const API_BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:5000/api';
 const TEST_RESULTS_FILE = path.join(__dirname, 'test-results.json');
 
 // Test data

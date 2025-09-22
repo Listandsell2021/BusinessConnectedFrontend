@@ -161,7 +161,11 @@ export const leadsAPI = {
   createCancelRequest: (leadId, data) => api.post(`/leads/${leadId}/cancel-request`, data),
   approveCancelRequest: (leadId, partnerId, data = {}) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'approve', ...data }),
   cancelLead: (leadId, data) => api.post(`/leads/${leadId}/cancel`, data),
-  rejectCancelRequest: (leadId, partnerId, reason) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'reject', reason })
+  rejectCancelRequest: (leadId, partnerId, reason) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'reject', reason }),
+  exportCancelRequests: (format, filters) => api.get(`/cancel-requests/export/${format}`, {
+    params: filters,
+    responseType: 'blob'
+  })
 };
 
 export const partnersAPI = {
@@ -176,9 +180,12 @@ export const partnersAPI = {
   updateServiceStatus: (id, serviceType, status, reason) => api.put(`/partners/${id}/services/${serviceType}/status`, { status, reason }),
   approveService: (id, serviceType) => api.put(`/partners/${id}/services/${serviceType}/status`, { status: 'active' }),
   rejectService: (id, serviceType, reason) => api.put(`/partners/${id}/services/${serviceType}/status`, { status: 'rejected', reason }),
-  getStats: () => api.get('/partners/stats'),
+  getStats: (params = {}) => api.get('/partners/stats', { params }),
   getLeads: (id, params) => api.get(`/partners/${id}/leads`, { params }),
-  export: (format) => api.get(`/partners/export/${format}`, { responseType: 'blob' })
+  export: (format, filters) => api.get(`/partners/export/${format}`, {
+    params: filters,
+    responseType: 'blob'
+  })
 };
 
 export const dashboardAPI = {

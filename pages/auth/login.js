@@ -3,12 +3,11 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { toast } from 'react-hot-toast';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemeToggle from '../../components/ui/ThemeToggle';
+import LanguageToggle from '../../components/ui/LanguageToggle';
 
 export default function Login() {
   const router = useRouter();
@@ -22,9 +21,7 @@ export default function Login() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
   const redirectAfterLogin = useRef(false);
-  const hasShownSuccessToast = useRef(false);
 
 useEffect(() => {
   if (!loading && isAuthenticated()) {
@@ -32,63 +29,6 @@ useEffect(() => {
   }
 }, [loading, isAuthenticated, router]);
 
-// Handle success message from registration
-useEffect(() => {
-  if (router.query.message === 'partner-request-sent' && router.isReady && !hasShownSuccessToast.current) {
-    hasShownSuccessToast.current = true;
-    
-    toast.success(
-      isGerman 
-        ? 'Partner-Anfrage erfolgreich gesendet! Wir melden uns bald bei Ihnen.' 
-        : 'Partner request sent successfully! We will contact you soon.',
-      {
-        duration: 5000,
-        position: 'top-center',
-        style: {
-          background: 'var(--theme-bg-secondary)',
-          color: 'var(--theme-text)',
-          border: '1px solid var(--theme-border)'
-        }
-      }
-    );
-
-    // Clean URL without triggering navigation
-    router.replace('/auth/login', undefined, { shallow: true });
-  }
-}, [router.query.message, router.isReady, isGerman, router]);
-
-// Update error messages when language changes
-useEffect(() => {
-  if (Object.keys(errors).length > 0) {
-    // Re-validate to update error messages in current language
-    const newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = t('auth.emailRequired');
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = t('auth.emailInvalid');
-    }
-
-    if (!formData.password) {
-      newErrors.password = t('auth.passwordRequired');
-    }
-
-    // Update errors only if there were existing errors for those fields
-    const updatedErrors = {};
-    Object.keys(errors).forEach(key => {
-      if (key === 'general') {
-        // Always translate general error messages
-        updatedErrors[key] = t('auth.loginFailed');
-      } else if (newErrors[key]) {
-        updatedErrors[key] = newErrors[key];
-      }
-    });
-
-    if (Object.keys(updatedErrors).length > 0) {
-      setErrors(updatedErrors);
-    }
-  }
-}, [isGerman, formData.email, formData.password, errors, t]);
 
   // // Additional useEffect to handle post-login redirect
   // useEffect(() => {
@@ -141,9 +81,6 @@ const handleSubmit = async (e) => {
     const result = await login(formData.email, formData.password);
 
     if (result && result.success) {
-      // Show success message
-      toast.success(t('auth.loginSuccess'));
-      
       // ✅ Save immediately
       if (result.token) {
         localStorage.setItem("token", result.token);
@@ -152,7 +89,7 @@ const handleSubmit = async (e) => {
         localStorage.setItem("user", JSON.stringify(result.user));
       }
 
-      // ✅ update global auth state (if your login doesn't already do this)
+      // ✅ update global auth state (if your login doesn’t already do this)
       // example: dispatch or context update
       // setAuthState({ user: result.user, token: result.token });
 
@@ -160,21 +97,10 @@ const handleSubmit = async (e) => {
       router.reload()
       router.replace("/dashboard");
     } else {
-      // Use backend error message if available, otherwise use translation
-      let errorMessage = result?.error || result?.message;
-      
-      // If it's a generic login failure or no specific message, use translation
-      if (!errorMessage || errorMessage === 'Login failed' || errorMessage === 'Authentication failed') {
-        errorMessage = t('auth.loginFailed');
-      }
-      
-      setErrors({ general: errorMessage });
-      toast.error(errorMessage);
+      setErrors({ general: result?.error || 'Login failed. Please try again.' });
     }
   } catch (error) {
-    const errorMessage = t('auth.loginFailed');
-    setErrors({ general: errorMessage });
-    toast.error(errorMessage);
+    setErrors({ general: 'An unexpected error occurred. Please try again.' });
   } finally {
     setIsSubmitting(false);
   }
@@ -265,33 +191,33 @@ const handleSubmit = async (e) => {
         </div>
 
         {/* Left Side - Form */}
-        <div className="flex-1 flex flex-col justify-center py-6 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
-          <div className="mx-auto w-full max-w-sm sm:max-w-md lg:w-[420px]">
+        <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
+          <div className="mx-auto w-full max-w-md lg:w-[420px]">
             {/* Header Controls */}
             <motion.div 
-              className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-12"
+              className="flex items-center justify-between mb-12"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-75 transition-opacity">
+              <Link href="/" className="flex items-center space-x-3 hover:opacity-75 transition-opacity">
                 <motion.div
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
+                  className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
                   whileHover={{ scale: 1.1, rotate: 10 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <span className="text-white text-sm sm:text-xl">📋</span>
+                  <span className="text-white text-xl">📋</span>
                 </motion.div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
+                  <h1 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
                     Leadform CRM
                   </h1>
-                  <p className="text-xs hidden sm:block" style={{ color: 'var(--theme-muted)' }}>
+                  <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
                     Professional Edition
                   </p>
                 </div>
               </Link>
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="flex items-center space-x-3">
                 <LanguageToggle />
                 <ThemeToggle />
               </div>
@@ -299,7 +225,7 @@ const handleSubmit = async (e) => {
 
             {/* Login Card */}
             <motion.div
-              className="backdrop-blur-xl rounded-2xl p-6 sm:p-8 border shadow-2xl relative"
+              className="backdrop-blur-xl rounded-2xl p-8 border shadow-2xl relative"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 borderColor: 'var(--theme-border)',
@@ -313,9 +239,9 @@ const handleSubmit = async (e) => {
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl pointer-events-none" />
               
               <div className="relative z-10">
-                <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+                <div className="text-center mb-10">
                   <motion.div
-                    className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg"
+                    className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg"
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ 
@@ -330,31 +256,31 @@ const handleSubmit = async (e) => {
                       boxShadow: "0 10px 25px rgba(99, 102, 241, 0.4)"
                     }}
                   >
-                    <span className="text-2xl sm:text-3xl text-white">🏢</span>
+                    <span className="text-3xl text-white">🏢</span>
                   </motion.div>
                   <motion.h2 
-                    className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                    className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
                   >
-                    {isGerman ? 'Admin-Bereich' : 'Admin Portal'}
+                    {isGerman ? 'Partner-Bereich' : 'Business Portal'}
                   </motion.h2>
                   <motion.p 
-                    className="text-base sm:text-lg" 
+                    className="text-lg" 
                     style={{ color: 'var(--theme-muted)' }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                   >
                     {isGerman 
-                      ? 'Verwalten Sie das CRM-System'
-                      : 'Manage the CRM system'
+                      ? 'Verwalten Sie Ihre Leads professionell'
+                      : 'Manage your leads professionally'
                     }
                   </motion.p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {/* General Error Message */}
                   {errors.general && (
                     <motion.div
@@ -398,28 +324,28 @@ const handleSubmit = async (e) => {
                         required
                         value={formData.email}
                         onChange={handleChange}
-                        onInvalid={(e) => {
-                          e.target.setCustomValidity(
-                            isGerman 
-                              ? 'Bitte füllen Sie dieses Feld aus.' 
-                              : 'Please fill in this field.'
-                          );
-                        }}
-                        onInput={(e) => e.target.setCustomValidity('')}
                         className={`
-                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                          appearance-none relative block w-full px-4 py-4 pl-12 border-2 rounded-xl
                           backdrop-blur-sm transition-all duration-300
-                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                          ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105
+                          ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
                         `}
                         style={{
-                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                          borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderColor: errors.email ? '#EF4444' : 'rgba(255, 255, 255, 0.2)',
                           color: 'var(--theme-text)',
                           backdropFilter: 'blur(10px)'
                         }}
                         placeholder={t('auth.enterEmail')}
                       />
+                      <div className="absolute left-4 top-4 text-gray-400">
+                        <motion.span
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          📧
+                        </motion.span>
+                      </div>
                     </div>
                     {errors.email && (
                       <motion.p 
@@ -449,60 +375,33 @@ const handleSubmit = async (e) => {
                       <input
                         id="password"
                         name="password"
-                        type={showPassword ? "text" : "password"}
+                        type="password"
                         autoComplete="current-password"
                         required
                         value={formData.password}
                         onChange={handleChange}
-                        onInvalid={(e) => {
-                          e.target.setCustomValidity(
-                            isGerman 
-                              ? 'Bitte füllen Sie dieses Feld aus.' 
-                              : 'Please fill in this field.'
-                          );
-                        }}
-                        onInput={(e) => e.target.setCustomValidity('')}
                         className={`
-                          appearance-none relative block w-full px-3 py-3 pr-10 sm:px-4 sm:py-4 sm:pr-12 border-2 rounded-xl
+                          appearance-none relative block w-full px-4 py-4 pl-12 border-2 rounded-xl
                           backdrop-blur-sm transition-all duration-300
-                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                          ${errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105
+                          ${errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
                         `}
                         style={{
-                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                          borderColor: errors.password ? '#EF4444' : 'var(--theme-border)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderColor: errors.password ? '#EF4444' : 'rgba(255, 255, 255, 0.2)',
                           color: 'var(--theme-text)',
                           backdropFilter: 'blur(10px)'
                         }}
                         placeholder={t('auth.enterPassword')}
                       />
-                      {/* Password Toggle Button */}
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setShowPassword(!showPassword)}
-                        tabIndex={-1}
-                      >
-                        <motion.div
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-                          style={{ color: 'var(--theme-muted)' }}
+                      <div className="absolute left-4 top-4 text-gray-400">
+                        <motion.span
+                          animate={{ rotate: [0, 5, -5, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         >
-                          {showPassword ? (
-                            // Eye Slash (Hide password)
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                            </svg>
-                          ) : (
-                            // Eye (Show password)
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </motion.div>
-                      </button>
+                          🔐
+                        </motion.span>
+                      </div>
                     </div>
                     {errors.password && (
                       <motion.p 
@@ -517,7 +416,7 @@ const handleSubmit = async (e) => {
                   </motion.div>
 
                   <motion.div 
-                    className="flex items-center justify-between mb-4 sm:mb-6"
+                    className="flex items-center justify-between mb-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.9 }}
@@ -546,8 +445,8 @@ const handleSubmit = async (e) => {
                       type="submit"
                       disabled={isSubmitting}
                       className={`
-                        group relative w-full flex justify-center py-3 px-4 sm:py-4 sm:px-6 border-0 
-                        text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4 
+                        group relative w-full flex justify-center py-4 px-6 border-0 
+                        text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4 
                         focus:ring-blue-500/30 transition-all duration-300
                         bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600
                         hover:from-blue-700 hover:via-purple-700 hover:to-pink-700
@@ -595,21 +494,21 @@ const handleSubmit = async (e) => {
                     </motion.button>
                   </motion.div>
 
-                  {/* Partner Login Link */}
                   <motion.div 
-                    className="text-center mt-6 pt-4 sm:mt-8 sm:pt-6 border-t border-gray-200/20"
+                    className="text-center mt-8 pt-6 border-t border-gray-200/20"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.1 }}
                   >
-                    <Link 
-                      href="/auth/partner-login" 
-                      className="inline-flex items-center space-x-2 text-sm font-medium transition-all duration-200 hover:underline px-4 py-2 rounded-lg hover:bg-gray-100/10" 
-                      style={{ color: 'var(--theme-accent)' }}
-                    >
-                      <span>🤝</span>
-                      <span>{isGerman ? 'Partner-Anmeldung' : 'Partner Login'}</span>
-                    </Link>
+                    <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                      {t('auth.noAccount')}{' '}
+                      <Link 
+                        href="/auth/register" 
+                        className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                      >
+                        {t('auth.signUp')}
+                      </Link>
+                    </span>
                   </motion.div>
                 </form>
               </div>
@@ -618,7 +517,7 @@ const handleSubmit = async (e) => {
         </div>
 
         {/* Right Side - Business Benefits */}
-        <div className="hidden md:block relative w-0 flex-1">
+        <div className="hidden lg:block relative w-0 flex-1">
           <motion.div 
             className="absolute inset-0 h-full w-full flex items-center justify-center backdrop-blur-xl"
             style={{ 
@@ -641,7 +540,7 @@ const handleSubmit = async (e) => {
               </svg>
             </div>
 
-            <div className="text-center p-6 sm:p-8 max-w-lg relative z-10">
+            <div className="text-center p-8 max-w-lg relative z-10">
               {/* Floating Icons */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
@@ -668,7 +567,7 @@ const handleSubmit = async (e) => {
               </div>
 
               <motion.div 
-                className="text-6xl sm:text-8xl mb-6 sm:mb-8 relative"
+                className="text-8xl mb-8 relative"
                 animate={{ 
                   rotate: [0, 5, -5, 0],
                   scale: [1, 1.05, 1]
@@ -697,7 +596,7 @@ const handleSubmit = async (e) => {
               </motion.div>
               
               <motion.h3 
-                className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
+                className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -706,7 +605,7 @@ const handleSubmit = async (e) => {
               </motion.h3>
               
               <motion.p 
-                className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" 
+                className="text-xl mb-10 leading-relaxed" 
                 style={{ color: 'var(--theme-muted)' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -719,7 +618,7 @@ const handleSubmit = async (e) => {
               </motion.p>
 
               {/* Business Features */}
-              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-10">
+              <div className="space-y-4 mb-10">
                 {[
                   {
                     icon: '📊',
@@ -739,14 +638,14 @@ const handleSubmit = async (e) => {
                 ].map((feature, index) => (
                   <motion.div
                     key={index}
-                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl backdrop-blur-sm border border-white/10 bg-white/5"
+                    className="flex items-center space-x-4 p-4 rounded-xl backdrop-blur-sm border border-white/10 bg-white/5"
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 0.7 + index * 0.15 }}
                     whileHover={{ x: 5, scale: 1.02 }}
                   >
                     <motion.div 
-                      className="text-2xl sm:text-3xl p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20"
+                      className="text-3xl p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20"
                       animate={{ 
                         rotate: [0, 10, -10, 0],
                         scale: [1, 1.1, 1]
@@ -761,10 +660,10 @@ const handleSubmit = async (e) => {
                       {feature.icon}
                     </motion.div>
                     <div className="text-left">
-                      <div className="font-bold text-base sm:text-lg" style={{ color: 'var(--theme-text)' }}>
+                      <div className="font-bold text-lg" style={{ color: 'var(--theme-text)' }}>
                         {feature.title}
                       </div>
-                      <div className="text-xs sm:text-sm" style={{ color: 'var(--theme-muted)' }}>
+                      <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                         {feature.desc}
                       </div>
                     </div>
@@ -773,7 +672,7 @@ const handleSubmit = async (e) => {
               </div>
               
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <div className="grid grid-cols-3 gap-6">
                 {[
                   { value: '2.5K+', label: isGerman ? 'Partner' : 'Partners', delay: 0.8 },
                   { value: '150K+', label: isGerman ? 'Leads' : 'Leads', delay: 0.9 },
@@ -781,7 +680,7 @@ const handleSubmit = async (e) => {
                 ].map((stat, index) => (
                   <motion.div
                     key={stat.label}
-                    className="p-3 sm:p-4 rounded-xl backdrop-blur-sm bg-gradient-to-br from-white/10 to-white/5 border border-white/20"
+                    className="p-4 rounded-xl backdrop-blur-sm bg-gradient-to-br from-white/10 to-white/5 border border-white/20"
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ 
@@ -795,7 +694,7 @@ const handleSubmit = async (e) => {
                     }}
                   >
                     <motion.div 
-                      className="font-bold text-lg sm:text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+                      className="font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ 
                         duration: 2, 
@@ -815,7 +714,7 @@ const handleSubmit = async (e) => {
 
               {/* Trust Badge */}
               <motion.div
-                className="mt-6 sm:mt-8 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20"
+                className="mt-8 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1.2 }}

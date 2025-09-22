@@ -1,7 +1,7 @@
 // Simple Partner Password Reset Test
 const axios = require('axios');
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:5000/api';
 
 async function testPasswordResetWithExistingPartner() {
   console.log('🔐 Testing Partner Password Reset with Known Partner...');

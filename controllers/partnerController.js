@@ -25,6 +25,8 @@ const getAllPartners = async (req, res) => {
       partnerType,
       serviceType,
       city,
+      startDate,
+      endDate,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
@@ -47,19 +49,91 @@ const getAllPartners = async (req, res) => {
       filter.serviceType = serviceType;
     }
 
-    // City filter (search in service preferences)
+    // City filter (search in service preferences and address)
     if (city) {
       filter['$and'] = filter['$and'] || [];
-      
-      // Search in service areas and address
+
+      const cityRegex = new RegExp(city, 'i');
+
+      // Create city search conditions
       const citySearchConditions = [
-        { 'preferences.serviceAreas.city': new RegExp(city, 'i') },
-        { 'address.city': new RegExp(city, 'i') }
+        // Search in partner's business address
+        { 'address.city': cityRegex },
+        { 'businessDetails.address.city': cityRegex },
+        // Search in legacy cities arrays
+        { 'preferences.moving.cities': { $in: [cityRegex] } },
+        { 'preferences.cleaning.cities': { $in: [cityRegex] } },
+        // Search for city names as keys in serviceArea objects using objectToArray
+        {
+          $expr: {
+            $anyElementTrue: {
+              $map: {
+                input: { $objectToArray: { $ifNull: ['$preferences.moving.serviceArea', {}] } },
+                as: 'country',
+                in: {
+                  $anyElementTrue: {
+                    $map: {
+                      input: { $objectToArray: { $ifNull: ['$$country.v.cities', {}] } },
+                      as: 'city',
+                      in: { $regexMatch: { input: '$$city.k', regex: city, options: 'i' } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          $expr: {
+            $anyElementTrue: {
+              $map: {
+                input: { $objectToArray: { $ifNull: ['$preferences.cleaning.serviceArea', {}] } },
+                as: 'country',
+                in: {
+                  $anyElementTrue: {
+                    $map: {
+                      input: { $objectToArray: { $ifNull: ['$$country.v.cities', {}] } },
+                      as: 'city',
+                      in: { $regexMatch: { input: '$$city.k', regex: city, options: 'i' } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       ];
-      
+
       filter['$and'].push({
         $or: citySearchConditions
       });
+    }
+
+    // Date filter (for registered date)
+    if (startDate || endDate) {
+      console.log('Date filter received - startDate:', startDate, 'endDate:', endDate);
+
+      filter['$and'] = filter['$and'] || [];
+
+      const dateFilter = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        dateFilter.$gte = start;
+        console.log('Start date filter:', start);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.$lte = end;
+        console.log('End date filter:', end);
+      }
+
+      filter['$and'].push({
+        registeredAt: dateFilter
+      });
+
+      console.log('Applied date filter to registeredAt:', dateFilter);
     }
 
     // Search functionality
@@ -754,7 +828,17 @@ const getPartnerLeads = async (req, res) => {
         { fromLocation: new RegExp(search, 'i') },
         { toLocation: new RegExp(search, 'i') },
         { pickupLocation: new RegExp(search, 'i') },
-        { dropoffLocation: new RegExp(search, 'i') }
+        { dropoffLocation: new RegExp(search, 'i') },
+        // Full name search: firstName + " " + lastName
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ['$customerDetails.firstName', ' ', '$customerDetails.lastName'] },
+              regex: search,
+              options: 'i'
+            }
+          }
+        }
       ];
     }
 

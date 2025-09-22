@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import Button from './Button';
 
 const Pagination = ({
   currentPage,
@@ -34,39 +35,32 @@ const Pagination = ({
       </div>
       
       <div className="flex items-center space-x-2">
-        <button
+        <Button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
-          className={`px-3 py-1 rounded text-sm ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-75'}`}
-          style={{ backgroundColor: 'var(--theme-button-bg)', color: 'var(--theme-button-text)' }}
+          variant="secondary"
+          size="sm"
         >
           {isGerman ? 'Zurück' : 'Previous'}
-        </button>
-        
+        </Button>
+
         {/* Show page numbers */}
         {[...Array(totalPages)].map((_, i) => i + 1).map((page) => {
           // Show first page, last page, current page and pages around current page
           if (
-            page === 1 || 
-            page === totalPages || 
+            page === 1 ||
+            page === totalPages ||
             (page >= currentPage - 1 && page <= currentPage + 1)
           ) {
             return (
-              <button
+              <Button
                 key={page}
                 onClick={() => goToPage(page)}
-                className={`px-3 py-1 rounded text-sm ${
-                  currentPage === page 
-                    ? 'font-bold' 
-                    : 'hover:opacity-75'
-                }`}
-                style={{ 
-                  backgroundColor: currentPage === page ? 'var(--theme-button-bg)' : 'var(--theme-bg-secondary)',
-                  color: currentPage === page ? 'var(--theme-button-text)' : 'var(--theme-text)'
-                }}
+                variant={currentPage === page ? 'primary' : 'ghost'}
+                size="sm"
               >
                 {page}
-              </button>
+              </Button>
             );
           }
           // Show ellipsis for gaps
@@ -75,15 +69,15 @@ const Pagination = ({
           }
           return null;
         })}
-        
-        <button
+
+        <Button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className={`px-3 py-1 rounded text-sm ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-75'}`}
-          style={{ backgroundColor: 'var(--theme-button-bg)', color: 'var(--theme-button-text)' }}
+          variant="secondary"
+          size="sm"
         >
           {isGerman ? 'Weiter' : 'Next'}
-        </button>
+        </Button>
       </div>
     </div>
   );

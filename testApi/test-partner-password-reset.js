@@ -1,7 +1,7 @@
 // Test Partner Password Reset from Settings Portal
 const axios = require('axios');
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:5000/api';
 
 // Test data for partner registration and password reset
 const testPartnerData = {

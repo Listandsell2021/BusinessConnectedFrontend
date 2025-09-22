@@ -12,15 +12,15 @@ export const useLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('de');
+  const [language, setLanguage] = useState('en');
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language');
     if (savedLanguage && ['en', 'de'].includes(savedLanguage)) {
       setLanguage(savedLanguage);
     } else {
-      // Default to German for all users
-      setLanguage('de');
+      // Default to English for all users
+      setLanguage('en');
     }
   }, []);
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
+import Button from '../ui/Button';
 
 const ActivityFeed = ({ className = "" }) => {
   const { isGerman } = useLanguage();
@@ -310,12 +311,13 @@ const ActivityFeed = ({ className = "" }) => {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:shadow-lg"
-          style={{ backgroundColor: 'var(--theme-button-bg)', color: 'var(--theme-button-text)' }}
+        <Button
+          variant="primary"
+          size="sm"
+          className="text-sm font-medium"
         >
           {isGerman ? 'Alle Aktivitäten anzeigen' : 'View All Activities'}
-        </button>
+        </Button>
       </motion.div>
     </motion.div>
   );

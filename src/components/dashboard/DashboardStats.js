@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
+import Button from '../ui/Button';
 
 const DashboardStats = ({ className = "" }) => {
   const { isGerman } = useLanguage();
@@ -97,12 +98,14 @@ const DashboardStats = ({ className = "" }) => {
           <div className="text-gray-600">
             {isGerman ? 'Dashboard-Statistiken konnten nicht geladen werden' : 'Unable to load dashboard statistics'}
           </div>
-          <button
+          <Button
             onClick={fetchDashboardStats}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            variant="info"
+            size="md"
+            className="mt-4"
           >
             {isGerman ? 'Erneut versuchen' : 'Retry'}
-          </button>
+          </Button>
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 // Theme Toggle Component - Modern Switch
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import Button from './Button';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme, mounted } = useTheme();
@@ -13,11 +14,13 @@ export default function ThemeToggle() {
   const isDark = theme === 'dark';
 
   return (
-    <button
+    <Button
       onClick={toggleTheme}
+      variant="ghost"
+      size="sm"
       className={`relative inline-flex h-6 w-12 items-center rounded-full border transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-        isDark 
-          ? 'bg-gray-700 border-gray-600' 
+        isDark
+          ? 'bg-gray-700 border-gray-600'
           : 'bg-yellow-100 border-yellow-300'
       }`}
       aria-label={t('common.toggleTheme')}
@@ -52,6 +55,6 @@ export default function ThemeToggle() {
           </svg>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }

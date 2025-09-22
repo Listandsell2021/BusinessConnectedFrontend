@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -19,8 +21,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [partnerStats, setPartnerStats] = useState({
     total: 0,
     active: 0,
+    basic: 0,
     exclusive: 0,
-    pending: 0
+    pending: 0,
+    rejectSuspended: 0
   });
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,9 +46,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     searchTerm: ''
   });
 
+  // Date filter state (for registered date)
+  const [dateFilter, setDateFilter] = useState({
+    type: 'all', // 'all', 'single', 'range', 'week', 'month', 'year'
+    singleDate: null,
+    fromDate: null,
+    toDate: null,
+    week: null,
+    month: null,
+    year: null
+  });
+
   // Sorting state
   const [sortConfig, setSortConfig] = useState({
-    key: 'createdAt',
+    key: 'registeredAt',
     direction: 'desc'
   });
 
@@ -105,7 +120,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     serviceType: '',
     reason: ''
   });
-  
+
+  // Export functionality
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
   // Date filter state for partner leads
   const [partnerLeadsDateFilter, setPartnerLeadsDateFilter] = useState('current_week'); // 'all', 'current_week', 'last_week', 'current_month', 'last_month'
   const [partnerLeadsStats, setPartnerLeadsStats] = useState({
@@ -130,21 +148,39 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   // Status translation function
   const translateStatus = (status) => {
-    const statusMap = {
-      'pending': 'Ausstehend',
-      'partial_assigned': 'Teilweise zugewiesen',
-      'assigned': 'Zugewiesen',
-      'accepted': 'Akzeptiert',
-      'approved': 'Stornierung genehmigt',
-      'cancel_requested': 'Stornierung angefragt',
-      'cancellationRequested': 'Stornierung angefragt',
-      'cancelled': 'Storniert',
-      'rejected': 'Abgelehnt',
-      'cancellation_rejected': 'Stornierung abgelehnt',
-      'cancellation_approved': 'Stornierung genehmigt',
-      'completed': 'Abgeschlossen'
+    const statusMaps = {
+      de: {
+        'pending': 'Ausstehend',
+        'partial_assigned': 'Teilweise zugewiesen',
+        'assigned': 'Zugewiesen',
+        'accepted': 'Akzeptiert',
+        'approved': 'Stornierung genehmigt',
+        'cancel_requested': 'Stornierung angefragt',
+        'cancellationRequested': 'Stornierung angefragt',
+        'cancelled': 'Storniert',
+        'rejected': 'Abgelehnt',
+        'cancellation_rejected': 'Stornierung abgelehnt',
+        'cancellation_approved': 'Stornierung genehmigt',
+        'completed': 'Abgeschlossen'
+      },
+      en: {
+        'pending': 'Pending',
+        'partial_assigned': 'Partially Assigned',
+        'assigned': 'Assigned',
+        'accepted': 'Accepted',
+        'approved': 'Cancellation Approved',
+        'cancel_requested': 'Cancellation Requested',
+        'cancellationRequested': 'Cancellation Requested',
+        'cancelled': 'Cancelled',
+        'rejected': 'Rejected',
+        'cancellation_rejected': 'Cancellation Rejected',
+        'cancellation_approved': 'Cancellation Approved',
+        'completed': 'Completed'
+      }
     };
-    return statusMap[status] || 'Ausstehend';
+
+    const currentLanguage = isGerman ? 'de' : 'en';
+    return statusMaps[currentLanguage][status] || (isGerman ? 'Ausstehend' : 'Pending');
   };
 
   // Sortable header component
@@ -217,12 +253,75 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     setPartnerLeadsSortConfig({ key, direction });
   };
 
+  // Load partner stats from API (independent of pagination)
+  const loadPartnerStats = async () => {
+    if (!currentService) return;
+
+    try {
+      const response = await partnersAPI.getStats({ serviceType: currentService });
+      const stats = response.data.data || response.data;
+
+      setPartnerStats({
+        total: stats.total || 0,
+        active: stats.active || 0,
+        basic: stats.basic || 0,
+        exclusive: stats.exclusive || 0,
+        pending: stats.pending || 0,
+        rejectSuspended: stats.rejectSuspended || 0
+      });
+    } catch (error) {
+      console.error('Error loading partner stats:', error);
+      setPartnerStats({
+        total: 0,
+        active: 0,
+        basic: 0,
+        exclusive: 0,
+        pending: 0,
+        rejectSuspended: 0
+      });
+    }
+  };
+
   // Load partners from API
   const loadPartners = async () => {
     if (!currentService) return;
     
     setLoading(true);
     try {
+      // Prepare date parameters for API
+      const dateParams = {};
+      if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
+        dateParams.startDate = dateFilter.fromDate.toISOString().split('T')[0];
+        dateParams.endDate = dateFilter.toDate.toISOString().split('T')[0];
+      } else if (dateFilter.type === 'week' && dateFilter.week) {
+        const selectedWeekDate = new Date(dateFilter.week);
+        const startOfWeek = new Date(selectedWeekDate);
+        startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        dateParams.startDate = startOfWeek.toISOString().split('T')[0];
+        dateParams.endDate = endOfWeek.toISOString().split('T')[0];
+      } else if (dateFilter.type === 'month' && dateFilter.month) {
+        const selectedMonthDate = new Date(dateFilter.month);
+        const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
+        const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
+        dateParams.startDate = startOfMonth.toISOString().split('T')[0];
+        dateParams.endDate = endOfMonth.toISOString().split('T')[0];
+      } else if (dateFilter.type === 'year' && dateFilter.year) {
+        const selectedYearDate = new Date(dateFilter.year);
+        const targetYear = selectedYearDate.getFullYear();
+        dateParams.startDate = `${targetYear}-01-01`;
+        dateParams.endDate = `${targetYear}-12-31`;
+      } else if (dateFilter.type === 'single' && dateFilter.singleDate) {
+        const singleDate = dateFilter.singleDate.toISOString().split('T')[0];
+        dateParams.startDate = singleDate;
+        dateParams.endDate = singleDate;
+      }
+
+      // Debug logging
+      console.log('Date filter params being sent to API:', dateParams);
+      console.log('Date filter state:', dateFilter);
+
       const response = await partnersAPI.getAll({
         serviceType: currentService,
         page: currentPage,
@@ -232,6 +331,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         status: filters.status !== 'all' ? filters.status : undefined,
         city: filters.city || undefined,
         search: filters.searchTerm || undefined,
+        // Add date filter parameters
+        ...dateParams,
         // Add sorting parameters
         sortBy: sortConfig.key,
         sortOrder: sortConfig.direction
@@ -291,26 +392,18 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           cities: cities,
           // Show service-specific status instead of overall status
           status: partner.services?.find(s => s.serviceType === currentService)?.status || partner.status || 'pending',
-          leadsCount: partner.metrics?.[`${currentService}LeadsReceived`] || 0,
-          joinedAt: new Date(partner.createdAt || partner.registeredAt || partner.joinedAt)
+          leadsCount: partner.metrics?.totalLeadsAccepted || 0,
+          registeredAt: new Date(partner.registeredAt || partner.createdAt || partner.joinedAt),
+          createdAt: new Date(partner.createdAt)
         };
       });
       
       setPartners(transformedPartners);
       setTotalPartners(totalCount);
-      
-      // Update statistics from API response or calculate from data
-      const stats = response.data.stats || {};
-      setPartnerStats({
-        total: totalCount,
-        active: stats.active || transformedPartners.filter(p => p.status === 'active').length,
-        exclusive: stats.exclusive || transformedPartners.filter(p => p.type === 'exclusive').length,
-        pending: stats.pending || transformedPartners.filter(p => p.status === 'pending').length
-      });
+
     } catch (error) {
       console.error('Error loading partners:', error);
       setPartners([]);
-      setPartnerStats({ total: 0, active: 0, exclusive: 0, pending: 0 });
     } finally {
       setLoading(false);
     }
@@ -319,7 +412,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   // Load services from API
   const loadServices = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/services');
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_BASE_URL}/services`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.services) {
@@ -351,6 +445,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     } else {
       loadPartners();
     }
+    // Load stats independently
+    loadPartnerStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentService, initialPartners]);
 
@@ -360,7 +456,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       loadPartners();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentService, currentPage, filters.type, filters.status, filters.city, filters.searchTerm, sortConfig.key, sortConfig.direction]);
+  }, [currentService, currentPage, filters.type, filters.status, filters.city, filters.searchTerm, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year]);
 
   // Load services on component mount
   useEffect(() => {
@@ -397,8 +493,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     showConfirmation({
       title: partnerName,
       message: confirmMessage,
-      confirmText: 'Genehmigen',
-      cancelText: 'Abbrechen',
+      confirmText: isGerman ? 'Genehmigen' : 'Approve',
+      cancelText: isGerman ? 'Abbrechen' : 'Cancel',
       type: 'success',
       onConfirm: async () => {
         try {
@@ -426,9 +522,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           }
         } catch (error) {
           console.error('Error approving partner service:', error);
-          toast.error('Fehler beim Genehmigen des Dienstes');
+          toast.error(isGerman ? 'Fehler beim Genehmigen des Dienstes' : 'Error approving service');
           // Reload partners to ensure data consistency on error
-          await loadPartners();
+          await Promise.all([loadPartners(), loadPartnerStats()]);
         }
       }
     });
@@ -492,14 +588,14 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       }
     } catch (error) {
       console.error('Error rejecting partner service:', error);
-      toast.error('Fehler beim Ablehnen des Dienstes');
+      toast.error(isGerman ? 'Fehler beim Ablehnen des Dienstes' : 'Error rejecting service');
       // Reload partners to ensure data consistency on error
-      await loadPartners();
+      await Promise.all([loadPartners(), loadPartnerStats()]);
     }
   };
 
   const handleSuspendPartner = async (partnerId, partnerName) => {
-    const confirmMessage = isGerman 
+    const confirmMessage = isGerman
       ? 'Sind Sie sicher, dass Sie diesen Partner sperren möchten? Der Partner wird keine neuen Leads mehr erhalten.'
       : 'Are you sure you want to suspend this partner? They will no longer receive new leads.';
 
@@ -511,19 +607,29 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await partnersAPI.updateStatus(partnerId, 'suspended');
-          await loadPartners(); // Reload to get fresh data
+          console.log('Suspending partner:', partnerId);
+          setLoading(true);
+
+          const response = await partnersAPI.updateStatus(partnerId, 'suspended');
+          console.log('Suspend response:', response);
+
+          // Force reload both partners and stats
+          await Promise.all([loadPartners(), loadPartnerStats()]);
+
           toast.success(isGerman ? 'Partner erfolgreich gesperrt' : 'Partner suspended successfully');
+
         } catch (error) {
           console.error('Error suspending partner:', error);
           toast.error(isGerman ? 'Fehler beim Sperren des Partners' : 'Failed to suspend partner');
+        } finally {
+          setLoading(false);
         }
       }
     });
   };
 
   const handleRevertSuspension = async (partnerId, partnerName) => {
-    const confirmMessage = isGerman 
+    const confirmMessage = isGerman
       ? 'Sind Sie sicher, dass Sie die Sperrung dieses Partners aufheben möchten? Der Partner wird wieder Leads erhalten können.'
       : 'Are you sure you want to remove the suspension for this partner? They will be able to receive leads again.';
 
@@ -535,12 +641,22 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await partnersAPI.updateStatus(partnerId, 'active');
-          await loadPartners(); // Reload to get fresh data
+          console.log('Removing suspension for partner:', partnerId);
+          setLoading(true);
+
+          const response = await partnersAPI.updateStatus(partnerId, 'active');
+          console.log('Remove suspension response:', response);
+
+          // Force reload both partners and stats
+          await Promise.all([loadPartners(), loadPartnerStats()]);
+
           toast.success(isGerman ? 'Sperrung erfolgreich aufgehoben' : 'Suspension removed successfully');
+
         } catch (error) {
           console.error('Error removing suspension:', error);
           toast.error(isGerman ? 'Fehler beim Aufheben der Sperrung' : 'Failed to remove suspension');
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -560,7 +676,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       onConfirm: async () => {
         try {
           await partnersAPI.updateType(partnerId, newType);
-          await loadPartners(); // Reload to get fresh data
+          await Promise.all([loadPartners(), loadPartnerStats()]); // Reload to get fresh data
           toast.success(isGerman ? 'Partner-Typ erfolgreich aktualisiert' : 'Partner type updated successfully');
         } catch (error) {
           console.error('Error updating partner type:', error);
@@ -601,6 +717,64 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const handleBackToTable = () => {
     setCurrentView('table');
     setPartnerForDetails(null);
+  };
+
+  // Export partners function
+  const exportPartners = async (format) => {
+    try {
+      const exportParams = {
+        partnerType: filters.type !== 'all' ? filters.type : undefined,
+        status: filters.status !== 'all' ? filters.status : undefined,
+        city: filters.city || undefined,
+        search: filters.searchTerm || undefined,
+        serviceType: currentService || undefined
+      };
+
+      // Remove undefined values
+      const cleanParams = Object.entries(exportParams)
+        .filter(([_, value]) => value !== undefined)
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+      console.log('Export partners params:', cleanParams);
+
+      const response = await partnersAPI.export(format, cleanParams);
+
+      console.log('Export response:', response);
+
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      // Set filename based on format
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `partners_export_${timestamp}.${format}`;
+      link.download = filename;
+
+      // Trigger download
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      window.URL.revokeObjectURL(downloadUrl);
+
+      const formatName = format === 'xlsx' ? 'Excel' : 'PDF';
+      toast.success(`${t('common.success')}: Partners Export (${formatName})`);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Error exporting partners:', error);
+      console.error('Error details:', error.response);
+
+      if (error.response?.status === 401) {
+        toast.error('Authentication required. Please log in again.');
+      } else if (error.response?.status === 403) {
+        toast.error('Access denied. You need superadmin privileges to export.');
+      } else {
+        toast.error(`Failed to export to ${format.toUpperCase()}: ${error.response?.data?.message || error.message}`);
+      }
+    }
   };
 
   // Show confirmation dialog helper
@@ -795,8 +969,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         });
         setPartnerFormErrors({});
         
-        // Reload partners
-        await loadPartners();
+        // Reload partners and stats
+        await Promise.all([loadPartners(), loadPartnerStats()]);
       }
     } catch (error) {
       console.error('Error creating partner:', error);
@@ -1124,6 +1298,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     }
   }, [partnerForDetails, currentService, partnerDetailsTab]);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportMenu && !event.target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1148,18 +1336,88 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
             {isGerman ? 'Partner-Verwaltung' : 'Partner Management'}
           </h2>
-          <motion.button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{ 
-              backgroundColor: 'var(--theme-button-bg)', 
-              color: 'var(--theme-button-text)' 
-            }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            ➕ {isGerman ? 'Partner hinzufügen' : 'Add Partner'}
-          </motion.button>
+          {isSuperAdmin && (
+            <div className="flex items-center space-x-3">
+              {/* Export Dropdown */}
+              <div className="relative export-menu-container">
+                <motion.button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  style={{
+                    backgroundColor: 'var(--theme-button-bg)',
+                    color: 'var(--theme-button-text)'
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  📊 {t('common.export')}
+                  <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </motion.button>
+
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg shadow-lg z-50" style={{ backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)' }}>
+                    <div className="py-2">
+                      <button
+                        onClick={() => exportPartners('xlsx')}
+                        className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
+                        style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <span className="text-green-600">📊</span>
+                        <div>
+                          <div className="font-medium">Export to Excel</div>
+                          <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .xlsx file</div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => exportPartners('pdf')}
+                        className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
+                        style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <span className="text-red-600">📄</span>
+                        <div>
+                          <div className="font-medium">Export to PDF</div>
+                          <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .pdf file</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <motion.button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: 'var(--theme-button-bg)',
+                  color: 'var(--theme-button-text)'
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                ➕ {isGerman ? 'Partner hinzufügen' : 'Add Partner'}
+              </motion.button>
+            </div>
+          )}
+          {!isSuperAdmin && (
+            <motion.button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--theme-button-bg)',
+                color: 'var(--theme-button-text)'
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              ➕ {isGerman ? 'Partner hinzufügen' : 'Add Partner'}
+            </motion.button>
+          )}
         </div>
       ) : (
         <div className="flex items-center space-x-4">
@@ -1242,7 +1500,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <option value="active">{t('partners.active')}</option>
             <option value="pending">{t('partners.pending')}</option>
             <option value="suspended">{t('partners.suspended')}</option>
-            <option value="rejected">Abgelehnt</option>
+            <option value="rejected">{t('partners.rejected')}</option>
           </select>
         </div>
 
@@ -1262,41 +1520,201 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           />
         </div>
 
+        {/* Date Filter */}
+        <div className="flex-1">
+          <div className="space-y-2">
+            <select
+              value={dateFilter.type}
+              onChange={(e) => setDateFilter(prev => ({ ...prev, type: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                backgroundColor: 'var(--theme-input-bg)',
+                borderColor: 'var(--theme-border)',
+                color: 'var(--theme-text)'
+              }}
+            >
+              <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
+              <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
+              <option value="range">{isGerman ? 'Datumsbereich' : 'Date Range'}</option>
+              <option value="week">{isGerman ? 'Woche' : 'Week'}</option>
+              <option value="month">{isGerman ? 'Monat' : 'Month'}</option>
+              <option value="year">{isGerman ? 'Jahr' : 'Year'}</option>
+            </select>
+
+            {/* Single Date */}
+            {dateFilter.type === 'single' && (
+              <div className="mt-2">
+                <DatePicker
+                  selected={dateFilter.singleDate}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, singleDate: date }))}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText={isGerman ? 'Datum auswählen' : 'Select date'}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Date Range */}
+            {dateFilter.type === 'range' && (
+              <div className="mt-2 space-y-2">
+                <DatePicker
+                  selected={dateFilter.fromDate}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, fromDate: date }))}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText={isGerman ? 'Von' : 'From'}
+                  maxDate={dateFilter.toDate}
+                  className="w-full px-3 py-1.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+                <DatePicker
+                  selected={dateFilter.toDate}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, toDate: date }))}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText={isGerman ? 'Bis' : 'To'}
+                  minDate={dateFilter.fromDate}
+                  className="w-full px-3 py-1.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Week */}
+            {dateFilter.type === 'week' && (
+              <div className="mt-2">
+                <DatePicker
+                  selected={dateFilter.week}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, week: date }))}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText={isGerman ? 'Woche auswählen' : 'Select week'}
+                  showWeekNumbers
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Month */}
+            {dateFilter.type === 'month' && (
+              <div className="mt-2">
+                <DatePicker
+                  selected={dateFilter.month}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, month: date }))}
+                  dateFormat="MM/yyyy"
+                  placeholderText={isGerman ? 'Monat auswählen' : 'Select month'}
+                  showMonthYearPicker
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Year */}
+            {dateFilter.type === 'year' && (
+              <div className="mt-2">
+                <DatePicker
+                  selected={dateFilter.year}
+                  onChange={(date) => setDateFilter(prev => ({ ...prev, year: date }))}
+                  dateFormat="yyyy"
+                  placeholderText={isGerman ? 'Jahr auswählen' : 'Select year'}
+                  showYearPicker
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  popperPlacement="bottom-start"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
       </motion.div>
       )}
 
       {/* Statistics - only show when currentView is 'table' */}
       {currentView === 'table' && (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="flex flex-row gap-4 mb-6">
         {[
-          { 
-            label: isGerman ? 'Gesamt Partner' : 'Total Partners', 
-            value: partnerStats.total, 
-            icon: '🏢', 
-            color: 'blue' 
+          {
+            label: isGerman ? 'Gesamt Partner' : 'Total Partners',
+            value: partnerStats.total,
+            icon: '🏢',
+            color: 'blue'
           },
-          { 
-            label: isGerman ? 'Aktive Partner' : 'Active Partners', 
-            value: partnerStats.active, 
-            icon: '✅', 
-            color: 'green' 
+          {
+            label: isGerman ? 'Aktive Partner' : 'Active Partners',
+            value: partnerStats.active,
+            icon: '✅',
+            color: 'green'
           },
-          { 
-            label: isGerman ? 'Exklusive Partner' : 'Exclusive Partners', 
-            value: partnerStats.exclusive, 
-            icon: '🔥', 
-            color: 'purple' 
+          {
+            label: isGerman ? 'Basic Partner' : 'Basic Partners',
+            value: partnerStats.basic,
+            icon: '🟢',
+            color: 'emerald'
           },
-          { 
-            label: isGerman ? 'Ausstehende Anfragen' : 'Pending Requests', 
-            value: partnerStats.pending, 
-            icon: '⏳', 
-            color: 'yellow' 
+          {
+            label: isGerman ? 'Exklusive Partner' : 'Exclusive Partners',
+            value: partnerStats.exclusive,
+            icon: '🔥',
+            color: 'purple'
+          },
+          {
+            label: isGerman ? 'Ausstehende Anfragen' : 'Pending Requests',
+            value: partnerStats.pending,
+            icon: '⏳',
+            color: 'yellow'
+          },
+          {
+            label: isGerman ? 'Abgelehnt/Gesperrt' : 'Rejected/Suspended',
+            value: partnerStats.rejectSuspended,
+            icon: '🚫',
+            color: 'red'
           }
         ].map((stat, index) => (
           <motion.div
             key={index}
-            className="p-4 rounded-lg border"
+            className="flex-1 p-4 rounded-lg border"
             style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1342,11 +1760,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <SortableHeader sortKey="status">
                   {isGerman ? 'Status' : 'Status'}
                 </SortableHeader>
-                <SortableHeader sortKey="metrics.totalLeadsReceived">
+                <SortableHeader sortKey="metrics.totalLeadsAccepted">
                   {isGerman ? 'Leads' : 'Leads'}
                 </SortableHeader>
-                <SortableHeader sortKey="createdAt">
-                  {isGerman ? 'Erstellt am' : 'Created Date'}
+                <SortableHeader sortKey="registeredAt">
+                  {isGerman ? 'Registriert am' : 'Registered Date'}
                 </SortableHeader>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {isGerman ? 'Aktionen' : 'Actions'}
@@ -1410,7 +1828,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       {partner.leadsCount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      {partner.joinedAt.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                      {partner.registeredAt.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
@@ -1450,9 +1868,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               onMouseLeave={(e) => {
                                 if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                               }}
-                              title="Service genehmigen"
+                              title={isGerman ? "Service genehmigen" : "Approve service"}
                             >
-                              ✅ Genehmigen
+                              ✅ {isGerman ? 'Genehmigen' : 'Approve'}
                             </button>
                             <button
                               onClick={() => handleRejectPartner(partner.id, partner.name)}
@@ -1469,9 +1887,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               onMouseLeave={(e) => {
                                 if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                               }}
-                              title="Service ablehnen"
+                              title={isGerman ? "Service ablehnen" : "Reject service"}
                             >
-                              ❌ Ablehnen
+                              ❌ {isGerman ? 'Ablehnen' : 'Reject'}
                             </button>
                           </>
                         )}
@@ -1807,7 +2225,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                     {Object.keys(config.cities || {}).length > 0 && (
                                       <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
                                         {Object.entries(config.cities).map(([city, cityConfig]) => (
-                                          <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1 mb-1">
+                                          <span
+                                            key={city}
+                                            className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs"
+                                            style={{
+                                              backgroundColor: 'var(--theme-bg-secondary)',
+                                              color: 'var(--theme-text)',
+                                              border: '1px solid var(--theme-border)'
+                                            }}
+                                          >
                                             {city} ({cityConfig.radius || 0}km)
                                           </span>
                                         ))}
@@ -1853,7 +2279,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                     {Object.keys(config.cities || {}).length > 0 && (
                                       <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
                                         {Object.entries(config.cities).map(([city, cityConfig]) => (
-                                          <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1 mb-1">
+                                          <span
+                                            key={city}
+                                            className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs"
+                                            style={{
+                                              backgroundColor: 'var(--theme-bg-secondary)',
+                                              color: 'var(--theme-text)',
+                                              border: '1px solid var(--theme-border)'
+                                            }}
+                                          >
                                             {city} ({cityConfig.radius || 0}km)
                                           </span>
                                         ))}
@@ -1986,8 +2420,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     <option value="pending">{translateStatus('pending')}</option>
                     <option value="accepted">{translateStatus('accepted')}</option>
                     <option value="rejected">{translateStatus('rejected')}</option>
-                    <option value="cancelled">{translateStatus('cancelled')}</option>
                     <option value="cancel_requested">{translateStatus('cancel_requested')}</option>
+                    <option value="cancelled">{translateStatus('cancelled')}</option>
                   </select>
                 </div>
                 {/* City Filter */}
@@ -2396,7 +2830,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   }}
                   disabled={!rejectionDialog.reason.trim()}
                 >
-                  ❌ Ablehnen
+                  ❌ {isGerman ? 'Ablehnen' : 'Reject'}
                 </button>
               </div>
             </motion.div>

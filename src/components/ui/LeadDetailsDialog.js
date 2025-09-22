@@ -235,16 +235,23 @@ const LeadDetailsDialog = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-start justify-center z-[9999] p-4 pt-8 overflow-y-auto"
-        style={{ paddingLeft: '10rem' }}
+        className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+        style={{ paddingLeft: '10rem', paddingTop: '2rem' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       >
         <motion.div
-          className="w-full max-w-6xl h-[70vh] rounded-lg border my-8 flex flex-col"
-          style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}
+          className="rounded-lg border flex flex-col overflow-hidden"
+          style={{
+            borderColor: 'var(--theme-border)',
+            backgroundColor: 'var(--theme-bg-secondary)',
+            width: '1126px',
+            height: '80vh',
+            maxHeight: '800px',
+            marginTop: '50px'
+          }}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}

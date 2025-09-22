@@ -8,6 +8,7 @@ import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import Button from '../../src/components/ui/Button';
 
 
 export default function PartnerRequest() {
@@ -47,7 +48,8 @@ export default function PartnerRequest() {
   useEffect(() => {
     const fetchServiceTypes = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/services');
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_BASE_URL}/services`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.services) {
@@ -279,7 +281,8 @@ export default function PartnerRequest() {
     
     try {
       // Send partner registration request to backend
-      const response = await fetch('http://localhost:5000/api/auth/register-partner', {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_BASE_URL}/auth/register-partner`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -869,63 +872,51 @@ export default function PartnerRequest() {
                       </label>
                       <div className="relative" ref={serviceDropdownRef}>
                         {/* Dropdown Button */}
-                        <button
+                        <Button
                           type="button"
                           onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
                           disabled={loadingServiceTypes}
-                          className={`
-                            relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300 text-sm sm:text-base
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105
-                            ${errors.pursue ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                            ${loadingServiceTypes ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-400'}
-                            text-left
-                          `}
-                          style={{
-                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.pursue ? '#EF4444' : 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
-                          }}
+                          variant={errors.pursue ? "danger" : "secondary"}
+                          size="md"
+                          fullWidth
+                          className="text-left justify-between px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl backdrop-blur-sm text-sm sm:text-base focus:ring-4 focus:ring-opacity-30 focus:scale-105"
                         >
-                          <div className="flex items-center justify-between">
-                            <span>
-                              {loadingServiceTypes ? (
-                                <div className="flex items-center">
-                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                                  {isGerman ? 'Service-Typen laden...' : 'Loading service types...'}
-                                </div>
-                              ) : formData.pursue.length === 0 ? (
-                                <span style={{ color: 'var(--theme-muted)' }}>
-                                  {isGerman ? 'Service-Typen auswählen' : 'Select service types'}
-                                </span>
-                              ) : (
-                                <span 
-                                  className="truncate block pr-8"
-                                  style={{ color: 'var(--theme-text)' }}
-                                  title={formData.pursue.map(serviceId => {
-                                    const service = serviceTypes.find(s => s.id === serviceId);
-                                    return service?.name;
-                                  }).filter(Boolean).join(', ')}
-                                >
-                                  {formData.pursue.length === 1 
-                                    ? serviceTypes.find(s => s.id === formData.pursue[0])?.name
-                                    : `${formData.pursue.length} ${isGerman ? 'Services ausgewählt' : 'services selected'}`
-                                  }
-                                </span>
-                              )}
-                            </span>
-                            <svg 
-                              className={`w-4 h-4 transition-transform duration-200 ${isServiceDropdownOpen ? 'rotate-180' : ''}`}
-                              style={{ color: 'var(--theme-text)' }} 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </button>
+                          <span>
+                            {loadingServiceTypes ? (
+                              <div className="flex items-center">
+                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                {isGerman ? 'Service-Typen laden...' : 'Loading service types...'}
+                              </div>
+                            ) : formData.pursue.length === 0 ? (
+                              <span style={{ color: 'var(--theme-muted)' }}>
+                                {isGerman ? 'Service-Typen auswählen' : 'Select service types'}
+                              </span>
+                            ) : (
+                              <span
+                                className="truncate block pr-8"
+                                style={{ color: 'var(--theme-text)' }}
+                                title={formData.pursue.map(serviceId => {
+                                  const service = serviceTypes.find(s => s.id === serviceId);
+                                  return service?.name;
+                                }).filter(Boolean).join(', ')}
+                              >
+                                {formData.pursue.length === 1
+                                  ? serviceTypes.find(s => s.id === formData.pursue[0])?.name
+                                  : `${formData.pursue.length} ${isGerman ? 'Services ausgewählt' : 'services selected'}`
+                                }
+                              </span>
+                            )}
+                          </span>
+                          <svg
+                            className={`w-4 h-4 transition-transform duration-200 ${isServiceDropdownOpen ? 'rotate-180' : ''}`}
+                            style={{ color: 'var(--theme-text)' }}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </Button>
 
                         {/* Dropdown Menu */}
                         {isServiceDropdownOpen && !loadingServiceTypes && serviceTypes.length > 0 && (
@@ -1236,39 +1227,17 @@ export default function PartnerRequest() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.6 }}
                   >
-                    <motion.button
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`
-                        group relative w-full flex justify-center py-3 px-4 sm:py-4 sm:px-6 border-0 
-                        text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4 
-                        focus:ring-blue-500/30 transition-all duration-300
-                        bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600
-                        hover:from-blue-700 hover:via-purple-700 hover:to-pink-700
-                        ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-blue-500/25 hover:scale-105'}
-                      `}
-                      style={{
-                        backgroundSize: '200% 200%',
-                        backgroundPosition: 'left center'
-                      }}
-                      whileHover={{ 
-                        backgroundPosition: 'right center',
-                        scale: isSubmitting ? 1 : 1.02
-                      }}
-                      whileTap={{ scale: 0.98 }}
+                      loading={isSubmitting}
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      className="group relative text-sm sm:text-base font-bold text-white focus:ring-4 focus:ring-blue-500/30 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300" />
-                      {isSubmitting ? (
-                        <div className="flex items-center relative z-10">
-                          <motion.div
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                          <span>{isGerman ? 'Partner-Registrierung läuft...' : 'Registering partner...'}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center relative z-10">
+                      {!isSubmitting && (
+                        <>
                           <motion.span
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -1284,9 +1253,12 @@ export default function PartnerRequest() {
                           >
                             →
                           </motion.span>
-                        </div>
+                        </>
                       )}
-                    </motion.button>
+                      {isSubmitting && (
+                        <span>{isGerman ? 'Partner-Registrierung läuft...' : 'Registering partner...'}</span>
+                      )}
+                    </Button>
                   </motion.div>
 
                   {/* Back to Login Link */}
