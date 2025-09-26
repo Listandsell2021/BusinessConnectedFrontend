@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../../../../src/lib/config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Use dynamic API base URL from config
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

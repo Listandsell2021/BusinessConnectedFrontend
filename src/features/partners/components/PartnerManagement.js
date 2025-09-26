@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import Pagination from '../../../components/ui/Pagination';
 import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
+import { API_BASE_URL } from '../../../lib/config';
 
 const PartnerManagement = ({ initialPartners = [] }) => {
   const { currentService, setHideServiceFilter } = useService();
@@ -434,7 +435,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   // Load services from API
   const loadServices = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      // Use imported API_BASE_URL from config
       const response = await fetch(`${API_BASE_URL}/services`);
       if (response.ok) {
         const data = await response.json();

@@ -9,6 +9,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
 import Button from '../../src/components/ui/Button';
+import { API_BASE_URL } from '../../src/lib/config';
 
 
 export default function PartnerRequest() {
@@ -50,7 +51,7 @@ export default function PartnerRequest() {
   useEffect(() => {
     const fetchServiceTypes = async () => {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        // Use imported API_BASE_URL from config
         const response = await fetch(`${API_BASE_URL}/services`);
         if (response.ok) {
           const data = await response.json();
@@ -311,7 +312,7 @@ export default function PartnerRequest() {
     
     try {
       // Send partner registration request to backend
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      // Use imported API_BASE_URL from config
       const response = await fetch(`${API_BASE_URL}/auth/register-partner`, {
         method: 'POST',
         headers: {
