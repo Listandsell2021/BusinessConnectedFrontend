@@ -51,14 +51,7 @@ const AdminSettings = () => {
       taxRate: 19,
       leadAssignmentMethod: 'round_robin',
       autoAcceptTimeout: 5,
-      leadAcceptTimeout: 24,
       basicPartnerLeadLimit: 3
-    },
-    email: {
-      leadNotificationEnabled: true,
-      partnerNotificationEnabled: true,
-      adminNotificationEnabled: true,
-      incomeInvoiceNotificationEnabled: true
     }
   });
   
@@ -338,7 +331,6 @@ const AdminSettings = () => {
     { id: 'pricing', label: isGerman ? 'Pricing' : 'Pricing' },
     { id: 'leads', label: isGerman ? 'Lead-Verteilung' : 'Lead Distribution' },
     { id: 'system', label: isGerman ? 'System' : 'System' },
-    { id: 'notifications', label: isGerman ? 'Notifications' : 'Notifications' },
     { id: 'security', label: isGerman ? 'Sicherheit' : 'Security' }
   ];
 
@@ -897,30 +889,6 @@ const AdminSettings = () => {
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Lead-Annahmefrist (Stunden)' : 'Lead Accept Time Limit (hours)'}
-              </label>
-              <input
-                type="number"
-                value={settings.system.leadAcceptTimeout}
-                onChange={(e) => updateNestedSetting('system.leadAcceptTimeout', parseInt(e.target.value))}
-                min="1"
-                max="168"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman 
-                  ? 'Wenn Lead nicht vor dieser Zeit angenommen wird, wird es vom Partner entfernt'
-                  : 'If lead is not accepted before this time, it will be removed from the partner'
-                }
-              </p>
-            </div>
 
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
@@ -951,77 +919,6 @@ const AdminSettings = () => {
     </motion.div>
   );
 
-  const renderNotificationsTab = () => (
-    <motion.div
-      key="notifications"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
-    >
-      <motion.div
-        className="p-6 rounded-xl border space-y-4"
-        style={{ 
-          backgroundColor: 'var(--theme-card-bg)', 
-          borderColor: 'var(--theme-border)' 
-        }}
-      >
-        <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-          📧 {isGerman ? 'E-Mail-Benachrichtigungen' : 'Email Notifications'}
-        </h3>
-        
-        <div className="space-y-3">
-          <label className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={settings.email.leadNotificationEnabled}
-              onChange={(e) => updateNestedSetting('email.leadNotificationEnabled', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Lead-Benachrichtigungen aktiviert' : 'Lead notifications enabled'}
-            </span>
-          </label>
-
-          <label className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={settings.email.partnerNotificationEnabled}
-              onChange={(e) => updateNestedSetting('email.partnerNotificationEnabled', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Partner-Benachrichtigungen aktiviert' : 'Partner notifications enabled'}
-            </span>
-          </label>
-
-          <label className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={settings.email.adminNotificationEnabled}
-              onChange={(e) => updateNestedSetting('email.adminNotificationEnabled', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Admin-Benachrichtigungen aktiviert' : 'Admin notifications enabled'}
-            </span>
-          </label>
-
-          <label className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              checked={settings.email.incomeInvoiceNotificationEnabled}
-              onChange={(e) => updateNestedSetting('email.incomeInvoiceNotificationEnabled', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Einkommen und Rechnungsbenachrichtigungen aktiviert' : 'Income and Invoices notifications enabled'}
-            </span>
-          </label>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
 
   const renderSecurityTab = () => (
     <motion.div
@@ -1251,8 +1148,6 @@ const AdminSettings = () => {
         return renderLeadDistributionTab();
       case 'system':
         return renderSystemTab();
-      case 'notifications':
-        return renderNotificationsTab();
       case 'security':
         return renderSecurityTab();
       default:

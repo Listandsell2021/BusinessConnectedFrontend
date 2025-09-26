@@ -17,6 +17,7 @@ import { PartnerManagement } from '../src/features/partners';
 import { LogsModule } from '../src/features/logs';
 import { IncomeInvoices } from '../src/features/income';
 import { PartnerSettings, AdminSettings } from '../src/features/settings';
+import PartnerInvoices from '../src/components/partner/PartnerInvoices';
 import EnhancedDashboard from '../src/components/dashboard/EnhancedDashboard';
 
 export default function Dashboard({ initialData = {} }) {
@@ -121,7 +122,7 @@ export default function Dashboard({ initialData = {} }) {
     if (isPartner) {
       menuItems.push(
         { id: 'leads', label: isGerman ? 'Meine Leads' : 'My Leads', icon: '🎯', roles: ['partner'], description: isGerman ? 'Ihre zugewiesenen Leads' : 'Your assigned leads' },
-        { id: 'income', label: isGerman ? 'Rechnungen' : 'Invoices', icon: '💎', roles: ['partner'], description: isGerman ? 'Rechnungen & Abrechnungen' : 'Invoices & billing' },
+        { id: 'invoices', label: isGerman ? 'Meine Rechnungen' : 'My Invoices', icon: '🧾', roles: ['partner'], description: isGerman ? 'Ihre Rechnungen verwalten' : 'Manage your invoices' },
         { id: 'notifications', label: isGerman ? 'Benachrichtigungen' : 'Notifications', icon: '🔔', roles: ['partner'], description: isGerman ? 'Ihre Benachrichtigungen' : 'Your notifications' },
         { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: '⚙️', roles: ['partner'], description: isGerman ? 'Konto-Einstellungen' : 'Account settings' }
       );
@@ -672,6 +673,8 @@ export default function Dashboard({ initialData = {} }) {
         );
       case 'leads':
         return <LeadManagement initialLeads={initialData.leads || []} initialStats={initialData.leadStats || {}} />;
+      case 'invoices':
+        return <PartnerInvoices />;
       case 'notifications':
         return (
           <motion.div

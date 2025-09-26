@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useService } from '../../../contexts/ServiceContext';
-import { partnersAPI } from '../../../lib/api/api';
+import { partnersAPI, authAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 
 const PartnerSettingsNew = () => {
@@ -128,8 +128,11 @@ const PartnerSettingsNew = () => {
           // Format: { 'DE-Berlin': { radius: 50, country: 'DE' }, 'AT-Vienna': { radius: 30, country: 'AT' } }
         }
       },
-      cleaning: {
-        serviceArea: {} // Same structure as pickup/destination
+      serviceArea: {
+        countries: [],
+        citySettings: {
+          // Format: { 'DE-Berlin': { radius: 50, country: 'DE' }, 'AT-Vienna': { radius: 30, country: 'AT' } }
+        }
       }
     },
     
@@ -156,6 +159,7 @@ const PartnerSettingsNew = () => {
       console.log('Loading partner data for user ID:', user.id);
       const response = await partnersAPI.getById(user.id);
       console.log('Partner API response:', response.data);
+      console.log('Partner preferences from API:', JSON.stringify(response.data.partner?.preferences, null, 2));
       
       const partner = response.data.partner || response.data;
       
@@ -269,19 +273,19 @@ const PartnerSettingsNew = () => {
             countries: destinationCountries,
             citySettings: destinationCitySettings
           },
-          cleaning: (() => {
-            const cleaningPrefs = partner.preferences?.cleaning || {
-              serviceArea: {}
-            };
+          serviceArea: (() => {
+            let serviceAreaCountries = [];
+            let serviceAreaCitySettings = {};
 
-            // Ensure serviceArea exists
-            if (!cleaningPrefs.serviceArea) {
-              cleaningPrefs.serviceArea = {};
+            if (partner.preferences?.cleaning?.serviceArea) {
+              const cleaningData = processAddressType(partner.preferences.cleaning, 'cleaning');
+              serviceAreaCountries = cleaningData.countries;
+              serviceAreaCitySettings = cleaningData.citySettings;
             }
 
-            // Return only the clean structure (only serviceArea needed)
             return {
-              serviceArea: cleaningPrefs.serviceArea || {}
+              countries: serviceAreaCountries,
+              citySettings: serviceAreaCitySettings
             };
           })()
         },
@@ -291,26 +295,69 @@ const PartnerSettingsNew = () => {
         }
       });
       
-      // Initialize country service types based on loaded data for both pickup and destination
+      // Initialize country service types based on loaded data for pickup, destination, and serviceArea
       const initialPickupServiceTypes = {};
       const initialDestinationServiceTypes = {};
-      
+      const initialServiceAreaServiceTypes = {};
+
+      // For pickup - check both citySettings and serviceArea structure
       pickupCountries.forEach(countryName => {
-        const hasCountryCities = Object.keys(pickupCitySettings).some(cityKey => 
+        const hasCountryCities = Object.keys(pickupCitySettings).some(cityKey =>
           cityKey.startsWith(`${countryName}-`)
         );
-        initialPickupServiceTypes[countryName] = hasCountryCities ? 'cities' : 'country';
+
+        // Also check serviceArea structure
+        const serviceAreaData = partner.preferences?.pickup?.serviceArea?.[countryName];
+        const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
+          Object.keys(serviceAreaData.cities || {}).length > 0;
+
+        const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
+        initialPickupServiceTypes[countryName] = serviceType;
+
+        console.log(`Pickup ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
       });
-      
+
+      // For destination - check both citySettings and serviceArea structure
       destinationCountries.forEach(countryName => {
-        const hasCountryCities = Object.keys(destinationCitySettings).some(cityKey => 
+        const hasCountryCities = Object.keys(destinationCitySettings).some(cityKey =>
           cityKey.startsWith(`${countryName}-`)
         );
-        initialDestinationServiceTypes[countryName] = hasCountryCities ? 'cities' : 'country';
+
+        // Also check serviceArea structure
+        const serviceAreaData = partner.preferences?.destination?.serviceArea?.[countryName];
+        const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
+          Object.keys(serviceAreaData.cities || {}).length > 0;
+
+        const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
+        initialDestinationServiceTypes[countryName] = serviceType;
+
+        console.log(`Destination ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
       });
-      
+
+      // For serviceArea - check both citySettings and serviceArea structure
+      settings.preferences.serviceArea.countries.forEach(countryName => {
+        const hasCountryCities = Object.keys(settings.preferences.serviceArea.citySettings).some(cityKey =>
+          cityKey.startsWith(`${countryName}-`)
+        );
+
+        // Also check serviceArea structure for cleaning service
+        const serviceAreaData = partner.preferences?.cleaning?.serviceArea?.[countryName];
+        const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
+          Object.keys(serviceAreaData.cities || {}).length > 0;
+
+        const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
+        initialServiceAreaServiceTypes[countryName] = serviceType;
+
+        console.log(`ServiceArea ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
+      });
+
+      console.log('Initial pickup service types:', initialPickupServiceTypes);
+      console.log('Initial destination service types:', initialDestinationServiceTypes);
+      console.log('Initial serviceArea service types:', initialServiceAreaServiceTypes);
+
       setPickupCountryServiceTypes(initialPickupServiceTypes);
       setDestinationCountryServiceTypes(initialDestinationServiceTypes);
+      setServiceAreaCountryServiceTypes(initialServiceAreaServiceTypes);
       
       console.log('Settings loaded successfully');
     } catch (error) {
@@ -323,79 +370,177 @@ const PartnerSettingsNew = () => {
 
   const handleSave = async () => {
     setSaving(true);
+
+    // Small delay to ensure all state updates are complete
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     try {
       // Convert structure for saving with pickup and destination
-      const buildServiceArea = (countries, citySettings) => {
+      const buildServiceArea = (countries, citySettings, serviceTypes, addressType) => {
         const serviceArea = {};
-        
+
         countries.forEach(countryName => {
-          const countryCities = {};
-          let hasCountryCities = false;
-          
-          // Find all cities for this country
-          Object.entries(citySettings).forEach(([cityKey, cityConfig]) => {
-            if (cityKey.startsWith(`${countryName}-`)) {
-              const cityName = cityKey.split('-')[1];
-              countryCities[cityName] = {
-                radius: cityConfig.radius || 0
-              };
-              hasCountryCities = true;
-            }
-          });
-          
-          // Set service area for this country
-          if (hasCountryCities) {
-            serviceArea[countryName] = {
-              type: 'cities',
-              cities: countryCities
-            };
-          } else {
+          // Check if user explicitly selected service type - use current state values
+          const explicitServiceType = serviceTypes[countryName];
+
+          if (explicitServiceType === 'country') {
+            // User explicitly selected "Whole Country"
             serviceArea[countryName] = {
               type: 'country',
               cities: {}
             };
+            console.log(`${addressType} ${countryName}: Using WHOLE COUNTRY (explicit choice)`);
+          } else if (explicitServiceType === 'cities') {
+            // User explicitly selected "Specific Cities Only"
+            const countryCities = {};
+            Object.entries(citySettings).forEach(([cityKey, cityConfig]) => {
+              if (cityKey.startsWith(`${countryName}-`)) {
+                const cityName = cityKey.split('-')[1];
+                countryCities[cityName] = {
+                  radius: cityConfig.radius || 0
+                };
+              }
+            });
+
+            serviceArea[countryName] = {
+              type: 'cities',
+              cities: countryCities
+            };
+            console.log(`${addressType} ${countryName}: Using SPECIFIC CITIES (explicit choice) - cities:`, Object.keys(countryCities));
+          } else {
+            // Fallback to old logic if no explicit choice
+            const countryCities = {};
+            let hasCountryCities = false;
+
+            Object.entries(citySettings).forEach(([cityKey, cityConfig]) => {
+              if (cityKey.startsWith(`${countryName}-`)) {
+                const cityName = cityKey.split('-')[1];
+                countryCities[cityName] = {
+                  radius: cityConfig.radius || 0
+                };
+                hasCountryCities = true;
+              }
+            });
+
+            serviceArea[countryName] = {
+              type: hasCountryCities ? 'cities' : 'country',
+              cities: countryCities
+            };
+            console.log(`${addressType} ${countryName}: Using FALLBACK logic - type: ${hasCountryCities ? 'cities' : 'country'}`);
           }
         });
-        
+
         return serviceArea;
       };
-      
+
+      // Log current state values to debug
+      console.log('Current pickupCountryServiceTypes at save time:', pickupCountryServiceTypes);
+      console.log('Current destinationCountryServiceTypes at save time:', destinationCountryServiceTypes);
+      console.log('Current settings at save time:', settings);
+
       const pickupServiceArea = buildServiceArea(
         settings.preferences.pickup.countries || [],
-        settings.preferences.pickup.citySettings || {}
+        settings.preferences.pickup.citySettings || {},
+        pickupCountryServiceTypes,
+        'pickup'
       );
 
       const destinationServiceArea = buildServiceArea(
         settings.preferences.destination.countries || [],
-        settings.preferences.destination.citySettings || {}
+        settings.preferences.destination.citySettings || {},
+        destinationCountryServiceTypes,
+        'destination'
       );
 
-      const updateData = {
-        companyName: settings.companyName,
-        contactPerson: settings.contactPerson,
-        address: settings.address,
-        preferences: {
+      const cleaningServiceArea = buildServiceArea(
+        settings.preferences.serviceArea.countries || [],
+        settings.preferences.serviceArea.citySettings || {},
+        serviceAreaCountryServiceTypes,
+        'serviceArea'
+      );
+
+      // Build preferences based on service type
+      let preferences = {};
+
+      if (currentService === 'cleaning') {
+        // For cleaning service, use cleaning key with serviceArea structure
+        const cleaningServiceArea = buildServiceArea(
+          settings.preferences.serviceArea.countries || [],
+          settings.preferences.serviceArea.citySettings || {},
+          serviceAreaCountryServiceTypes,
+          'serviceArea'
+        );
+        preferences = {
+          cleaning: {
+            serviceArea: cleaningServiceArea
+          }
+        };
+      } else if (currentService === 'moving') {
+        // For moving service, include pickup and destination with their serviceArea structures
+        preferences = {
           pickup: {
             serviceArea: pickupServiceArea
           },
           destination: {
             serviceArea: destinationServiceArea
+          }
+        };
+      } else {
+        // Fallback: include all (for backward compatibility)
+        preferences = {
+          pickup: {
+            countries: settings.preferences.pickup.countries,
+            citySettings: settings.preferences.pickup.citySettings,
+            serviceArea: pickupServiceArea
           },
-          cleaning: settings.preferences.cleaning
-        },
+          destination: {
+            countries: settings.preferences.destination.countries,
+            citySettings: settings.preferences.destination.citySettings,
+            serviceArea: destinationServiceArea
+          },
+          serviceArea: {
+            countries: settings.preferences.serviceArea.countries,
+            citySettings: settings.preferences.serviceArea.citySettings,
+            serviceArea: cleaningServiceArea
+          }
+        };
+      }
+
+      const updateData = {
+        companyName: settings.companyName,
+        contactPerson: settings.contactPerson,
+        address: settings.address,
+        preferences: preferences,
         notifications: settings.notifications
       };
 
       console.log('Saving partner settings:', updateData);
+      console.log('Pickup serviceArea:', pickupServiceArea);
+      console.log('Destination serviceArea:', destinationServiceArea);
+      console.log('Original settings.preferences:', settings.preferences);
+
       const response = await partnersAPI.update(user.id, updateData);
       console.log('Save response:', response.data);
-      
+
+      // Don't update settings state manually - just reload from server
+      console.log('Reloading partner data after save...');
+      await loadPartnerData();
+      console.log('Partner data reloaded successfully');
+
+      // Force a small delay to ensure state updates are complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Also reload service type states to ensure they match the reloaded data
+      console.log('Current settings after reload:', settings);
+      console.log('Current pickup service types:', pickupCountryServiceTypes);
+      console.log('Current destination service types:', destinationCountryServiceTypes);
+
       // Update user context with saved data
       updateUser({
         ...user,
         ...response.data.partner
       });
-      
+
       toast.success(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -410,32 +555,56 @@ const PartnerSettingsNew = () => {
     }
   };
 
+  const handlePasswordResetRequest = async () => {
+    try {
+      console.log('Requesting password reset for email:', user.email);
+
+      const response = await authAPI.forgotPassword(user.email);
+      console.log('Password reset response:', response.data);
+
+      if (response.data.success) {
+        toast.success(isGerman
+          ? 'Eine E-Mail zum Zurücksetzen des Passworts wurde gesendet!'
+          : 'Password reset email has been sent!'
+        );
+      } else {
+        console.error('Password reset failed:', response.data);
+        toast.error(response.data.message || (isGerman
+          ? 'Fehler beim Senden der E-Mail'
+          : 'Error sending email'
+        ));
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(isGerman
+        ? `Fehler beim Senden der Passwort-Reset-E-Mail: ${errorMessage}`
+        : `Error sending password reset email: ${errorMessage}`
+      );
+    }
+  };
 
   const handleCityToggle = (service, city, checked, country = null, addressType = null) => {
-    if ((service === 'moving' && addressType) || (service === 'cleaning' && addressType === 'cleaning')) {
-      // For moving service and cleaning service, use serviceArea structure
+    if (service === 'cleaning' && addressType === 'serviceArea') {
+      // For cleaning service, use flattened structure - only update citySettings
       setSettings(prev => {
         const currentPrefs = prev.preferences[addressType];
-        const currentServiceArea = currentPrefs.serviceArea || {};
-        const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+        const currentCitySettings = currentPrefs.citySettings || {};
+
+        // Create city key for citySettings
+        const cityKey = `${country}-${city}`;
+        let newCitySettings = { ...currentCitySettings };
 
         if (checked) {
-          // Add city to serviceArea
-          countryData.cities = {
-            ...countryData.cities,
-            [city]: { radius: 0 }
-          };
+          // Add to citySettings
+          newCitySettings[cityKey] = { radius: 0 };
         } else {
-          // Remove city from serviceArea
-          const newCities = { ...countryData.cities };
-          delete newCities[city];
-          countryData.cities = newCities;
+          // Remove from citySettings
+          delete newCitySettings[cityKey];
         }
 
-        const newServiceArea = {
-          ...currentServiceArea,
-          [country]: countryData
-        };
+        console.log(`Updated ${addressType} for ${country}-${city}: checked=${checked}`);
+        console.log('New citySettings:', newCitySettings);
 
         return {
           ...prev,
@@ -443,7 +612,57 @@ const PartnerSettingsNew = () => {
             ...prev.preferences,
             [addressType]: {
               ...currentPrefs,
-              serviceArea: newServiceArea
+              citySettings: newCitySettings
+            }
+          }
+        };
+      });
+    } else if (service === 'moving' && addressType) {
+      // For moving service, update both serviceArea AND citySettings (nested structure)
+      setSettings(prev => {
+        const currentPrefs = prev.preferences[addressType];
+        const currentServiceArea = currentPrefs.serviceArea || {};
+        const currentCitySettings = currentPrefs.citySettings || {};
+        const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+
+        // Create city key for citySettings
+        const cityKey = `${country}-${city}`;
+
+        let newServiceArea = { ...currentServiceArea };
+        let newCitySettings = { ...currentCitySettings };
+
+        if (checked) {
+          // Add city to serviceArea
+          countryData.cities = {
+            ...countryData.cities,
+            [city]: { radius: 0 }
+          };
+          newServiceArea[country] = countryData;
+
+          // Also add to citySettings for save function compatibility
+          newCitySettings[cityKey] = { radius: 0 };
+        } else {
+          // Remove city from serviceArea
+          const newCities = { ...countryData.cities };
+          delete newCities[city];
+          countryData.cities = newCities;
+          newServiceArea[country] = countryData;
+
+          // Also remove from citySettings
+          delete newCitySettings[cityKey];
+        }
+
+        console.log(`Updated ${addressType} for ${country}-${city}: checked=${checked}`);
+        console.log('New citySettings:', newCitySettings);
+
+        return {
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            [addressType]: {
+              ...currentPrefs,
+              serviceArea: newServiceArea,
+              citySettings: newCitySettings
             }
           }
         };
@@ -471,14 +690,22 @@ const PartnerSettingsNew = () => {
     setSettings(prev => {
       const currentPrefs = prev.preferences[addressType];
       const currentServiceArea = currentPrefs.serviceArea || {};
+      const currentCitySettings = currentPrefs.citySettings || {};
       const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
 
+      // Update serviceArea
       countryData.cities = {
         ...countryData.cities,
         [city]: {
           ...countryData.cities[city],
           radius: parseInt(value)
         }
+      };
+
+      // Also update citySettings for save function compatibility
+      const newCitySettings = {
+        ...currentCitySettings,
+        [cityKey]: { radius: parseInt(value) }
       };
 
       return {
@@ -490,7 +717,8 @@ const PartnerSettingsNew = () => {
             serviceArea: {
               ...currentServiceArea,
               [country]: countryData
-            }
+            },
+            citySettings: newCitySettings
           }
         }
       };
@@ -501,58 +729,100 @@ const PartnerSettingsNew = () => {
     const [country, city] = cityKey.split('-');
     const newRadius = type === 'city' ? 0 : 50; // 0 for city only, 50km default for radius
 
-    setSettings(prev => {
-      const currentPrefs = prev.preferences[addressType];
-      const currentServiceArea = currentPrefs.serviceArea || {};
-      const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+    if (addressType === 'serviceArea') {
+      // For cleaning service, only update citySettings (flattened structure)
+      setSettings(prev => {
+        const currentPrefs = prev.preferences[addressType];
+        const currentCitySettings = currentPrefs.citySettings || {};
 
-      countryData.cities = {
-        ...countryData.cities,
-        [city]: {
-          ...countryData.cities[city],
-          radius: newRadius
-        }
-      };
+        const newCitySettings = {
+          ...currentCitySettings,
+          [cityKey]: { radius: newRadius }
+        };
 
-      return {
-        ...prev,
-        preferences: {
-          ...prev.preferences,
-          [addressType]: {
-            ...currentPrefs,
-            serviceArea: {
-              ...currentServiceArea,
-              [country]: countryData
+        return {
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            [addressType]: {
+              ...currentPrefs,
+              citySettings: newCitySettings
             }
           }
-        }
-      };
-    });
+        };
+      });
+    } else {
+      // For moving service, update both serviceArea and citySettings (nested structure)
+      setSettings(prev => {
+        const currentPrefs = prev.preferences[addressType];
+        const currentServiceArea = currentPrefs.serviceArea || {};
+        const currentCitySettings = currentPrefs.citySettings || {};
+        const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+
+        // Update serviceArea
+        countryData.cities = {
+          ...countryData.cities,
+          [city]: {
+            ...countryData.cities[city],
+            radius: newRadius
+          }
+        };
+
+        // Also update citySettings for save function compatibility
+        const newCitySettings = {
+          ...currentCitySettings,
+          [cityKey]: { radius: newRadius }
+        };
+
+        return {
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            [addressType]: {
+              ...currentPrefs,
+              serviceArea: {
+                ...currentServiceArea,
+                [country]: countryData
+              },
+              citySettings: newCitySettings
+            }
+          }
+        };
+      });
+    }
   };
 
-  // State to track service type choice for each country (separate for pickup and destination)
+  // State to track service type choice for each country (separate for pickup, destination, and serviceArea)
   const [pickupCountryServiceTypes, setPickupCountryServiceTypes] = useState({});
   const [destinationCountryServiceTypes, setDestinationCountryServiceTypes] = useState({});
-  const [cleaningCountryServiceTypes, setCleaningCountryServiceTypes] = useState({});
+  const [serviceAreaCountryServiceTypes, setServiceAreaCountryServiceTypes] = useState({});
 
   // Helper function to get configured countries for specific address type
   const getConfiguredCountries = (addressType) => {
     const addressData = settings.preferences[addressType];
     if (!addressData) return [];
 
-    // For all services (including cleaning), use serviceArea structure
+    // For serviceArea (cleaning service), use countries array like pickup/destination
+    if (addressType === 'serviceArea') {
+      return addressData.countries || [];
+    }
+
+    // For pickup and destination, prioritize countries array
+    if (addressData.countries && Array.isArray(addressData.countries)) {
+      console.log(`getConfiguredCountries(${addressType}) - using countries array:`, addressData.countries);
+      return addressData.countries;
+    }
+
+    // Fallback to serviceArea if countries array doesn't exist
     if (addressData.serviceArea && typeof addressData.serviceArea === 'object') {
       const serviceAreaObj = addressData.serviceArea instanceof Map
         ? Object.fromEntries(addressData.serviceArea)
         : addressData.serviceArea;
+      console.log(`getConfiguredCountries(${addressType}) - using serviceArea fallback:`, Object.keys(serviceAreaObj));
       return Object.keys(serviceAreaObj);
     }
 
-    // Legacy fallback only for moving services
-    if (addressType !== 'cleaning') {
-      return addressData.countries || [];
-    }
-
+    console.log(`getConfiguredCountries(${addressType}) - no data found, returning empty array`);
     return [];
   };
 
@@ -561,8 +831,16 @@ const PartnerSettingsNew = () => {
     const addressData = settings.preferences[addressType];
     if (!addressData) return [];
 
-    // Use serviceArea structure for all services (cleaning uses same format as pickup/destination)
-    if (addressData.serviceArea) {
+    // For cleaning service (serviceArea), use citySettings format since we flattened the structure
+    if (addressType === 'serviceArea' && addressData.citySettings) {
+      const cityKeys = Object.keys(addressData.citySettings).filter(key =>
+        key.startsWith(`${countryName}-`)
+      );
+      return cityKeys.map(key => key.split('-')[1]);
+    }
+
+    // For moving services (pickup/destination), use serviceArea structure
+    if ((addressType === 'pickup' || addressType === 'destination') && addressData.serviceArea) {
       const serviceAreaObj = addressData.serviceArea instanceof Map
         ? Object.fromEntries(addressData.serviceArea)
         : addressData.serviceArea;
@@ -575,8 +853,8 @@ const PartnerSettingsNew = () => {
       }
     }
 
-    // Legacy fallback only for moving service citySettings
-    if (addressType !== 'cleaning' && addressData.citySettings) {
+    // Legacy fallback for moving service citySettings
+    if (addressType !== 'serviceArea' && addressData.citySettings) {
       const cityKeys = Object.keys(addressData.citySettings).filter(key =>
         key.startsWith(`${countryName}-`)
       );
@@ -593,8 +871,8 @@ const PartnerSettingsNew = () => {
       serviceTypes = pickupCountryServiceTypes;
     } else if (addressType === 'destination') {
       serviceTypes = destinationCountryServiceTypes;
-    } else if (addressType === 'cleaning') {
-      serviceTypes = cleaningCountryServiceTypes;
+    } else if (addressType === 'serviceArea') {
+      serviceTypes = serviceAreaCountryServiceTypes;
     }
 
     // If we have an explicit choice stored, use that
@@ -634,8 +912,8 @@ const PartnerSettingsNew = () => {
       setServiceTypes = setPickupCountryServiceTypes;
     } else if (addressType === 'destination') {
       setServiceTypes = setDestinationCountryServiceTypes;
-    } else if (addressType === 'cleaning') {
-      setServiceTypes = setCleaningCountryServiceTypes;
+    } else if (addressType === 'serviceArea') {
+      setServiceTypes = setServiceAreaCountryServiceTypes;
     }
 
     if (setServiceTypes) {
@@ -649,6 +927,7 @@ const PartnerSettingsNew = () => {
     setSettings(prev => {
       const currentPrefs = prev.preferences[addressType];
       const currentServiceArea = currentPrefs.serviceArea || {};
+      const currentCitySettings = currentPrefs.citySettings || {};
 
       if (serviceType === 'country') {
         // Set country to "whole country" mode - remove cities data
@@ -657,12 +936,23 @@ const PartnerSettingsNew = () => {
           [countryName]: { type: 'country' }
         };
 
+        // Clean citySettings by removing cities for this country
+        const newCitySettings = { ...currentCitySettings };
+        Object.keys(newCitySettings).forEach(cityKey => {
+          if (cityKey.startsWith(`${countryName}-`)) {
+            delete newCitySettings[cityKey];
+          }
+        });
+
+        console.log(`Changed ${countryName} to WHOLE COUNTRY for ${addressType}`);
+
         return {
           ...prev,
           preferences: {
             ...prev.preferences,
             [addressType]: {
               ...currentPrefs,
+              citySettings: newCitySettings,
               serviceArea: newServiceArea
             }
           }
@@ -673,6 +963,8 @@ const PartnerSettingsNew = () => {
           ...currentServiceArea,
           [countryName]: { type: 'cities', cities: {} }
         };
+
+        console.log(`Changed ${countryName} to SPECIFIC CITIES for ${addressType}`);
 
         return {
           ...prev,
@@ -695,8 +987,8 @@ const PartnerSettingsNew = () => {
       setServiceTypes = setPickupCountryServiceTypes;
     } else if (addressType === 'destination') {
       setServiceTypes = setDestinationCountryServiceTypes;
-    } else if (addressType === 'cleaning') {
-      setServiceTypes = setCleaningCountryServiceTypes;
+    } else if (addressType === 'serviceArea') {
+      setServiceTypes = setServiceAreaCountryServiceTypes;
     }
 
     if (setServiceTypes) {
@@ -717,12 +1009,19 @@ const PartnerSettingsNew = () => {
     }
 
     setSettings(prev => {
-      if (addressType === 'cleaning') {
-        // For cleaning service, only manage serviceArea (no countries array)
+      if (addressType === 'serviceArea') {
+        // For cleaning service, manage both countries array AND serviceArea
+        const currentCountries = prev.preferences[addressType].countries || [];
         const currentServiceArea = prev.preferences[addressType].serviceArea || {};
+
+        let newCountries = [...currentCountries];
         const newServiceArea = { ...currentServiceArea };
 
         if (checked) {
+          // Add country to countries array if not already in list
+          if (!newCountries.includes(countryName)) {
+            newCountries.push(countryName);
+          }
           // Add country to serviceArea if not already exists
           if (!newServiceArea[countryName]) {
             newServiceArea[countryName] = {
@@ -731,6 +1030,8 @@ const PartnerSettingsNew = () => {
             };
           }
         } else {
+          // Remove country from countries array
+          newCountries = newCountries.filter(c => c !== countryName);
           // Remove country from serviceArea
           delete newServiceArea[countryName];
         }
@@ -741,6 +1042,7 @@ const PartnerSettingsNew = () => {
             ...prev.preferences,
             [addressType]: {
               ...prev.preferences[addressType],
+              countries: newCountries,
               serviceArea: newServiceArea
             }
           }
@@ -809,7 +1111,7 @@ const PartnerSettingsNew = () => {
       const currentCitySettings = prev.preferences[addressType].citySettings || {};
       const newCitySettings = { ...currentCitySettings };
 
-      if (addressType === 'cleaning') {
+      if (addressType === 'serviceArea') {
         // For cleaning, use simple structure: { "DE": ["Berlin", "Munich"] }
         const currentCities = newCitySettings[countryCode] || [];
 
@@ -848,7 +1150,7 @@ const PartnerSettingsNew = () => {
       const currentCitySettings = prev.preferences[addressType].citySettings || {};
       const newCitySettings = { ...currentCitySettings };
 
-      if (addressType === 'cleaning') {
+      if (addressType === 'serviceArea') {
         // Store radius as countryCode_radius
         newCitySettings[`${countryCode}_radius`] = radius;
       }
@@ -1113,6 +1415,29 @@ const PartnerSettingsNew = () => {
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Password Reset Section */}
+        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+            🔒 {isGerman ? 'Passwort zurücksetzen' : 'Reset Password'}
+          </h3>
+
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--theme-text)' }}>
+              {isGerman
+                ? 'Klicken Sie hier, um eine E-Mail zum Zurücksetzen Ihres Passworts zu erhalten.'
+                : 'Click here to receive an email to reset your password.'
+              }
+            </p>
+
+            <button
+              onClick={handlePasswordResetRequest}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              {isGerman ? 'Passwort-Reset anfordern' : 'Request Password Reset'}
+            </button>
           </div>
         </div>
       </div>
@@ -1707,34 +2032,34 @@ const PartnerSettingsNew = () => {
                       color: 'var(--theme-text)'
                     }}
                     onChange={(e) => {
-                      const configuredCountries = getConfiguredCountries('cleaning');
+                      const configuredCountries = getConfiguredCountries('serviceArea');
                       if (e.target.value && !configuredCountries.includes(e.target.value)) {
-                        handleCountryToggle(e.target.value, true, 'cleaning');
+                        handleCountryToggle(e.target.value, true, 'serviceArea');
                         e.target.value = '';
                       }
                     }}
                   >
                     <option value="">{isGerman ? 'Land auswählen...' : 'Select country...'}</option>
                     {availableCountries
-                      .filter(country => !getConfiguredCountries('cleaning').includes(country.name))
+                      .filter(country => !getConfiguredCountries('serviceArea').includes(country.name))
                       .map(country => (
                         <option key={country.code} value={country.name}>
                           {country.name}
                         </option>
                       ))}
                   </select>
-                  {getConfiguredCountries('cleaning').length > 0 && (
+                  {getConfiguredCountries('serviceArea').length > 0 && (
                     <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>
-                      {getConfiguredCountries('cleaning').length}
+                      {getConfiguredCountries('serviceArea').length}
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Selected Countries for Cleaning */}
-              {getConfiguredCountries('cleaning').length > 0 && (
+              {getConfiguredCountries('serviceArea').length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getConfiguredCountries('cleaning').map((countryName) => {
+                {getConfiguredCountries('serviceArea').map((countryName) => {
                   // First, check if countryName is actually a country code
                   let country = availableCountries.find(c => c.code === countryName);
 
@@ -1762,7 +2087,7 @@ const PartnerSettingsNew = () => {
 
                   const countryCode = country?.code || countryName; // fallback to countryName if it's a valid code
                   const cities = citiesByCountry[countryCode] || [];
-                  const selectedCities = getSelectedCitiesForCountry(countryName, 'cleaning');
+                  const selectedCities = getSelectedCitiesForCountry(countryName, 'serviceArea');
 
 
                   return (
@@ -1782,7 +2107,7 @@ const PartnerSettingsNew = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleCountryToggle(countryName, false, 'cleaning')}
+                          onClick={() => handleCountryToggle(countryName, false, 'serviceArea')}
                           className="text-red-500 hover:text-red-700 text-lg font-bold"
                           title={isGerman ? 'Land entfernen' : 'Remove country'}
                         >
@@ -1800,8 +2125,8 @@ const PartnerSettingsNew = () => {
                             <input
                               type="radio"
                               name={`cleaning-${countryName}-service-type`}
-                              checked={!getCountryServiceType(countryName, 'cleaning')}
-                              onChange={() => handleServiceTypeChange(countryName, 'country', 'cleaning')}
+                              checked={!getCountryServiceType(countryName, 'serviceArea')}
+                              onChange={() => handleServiceTypeChange(countryName, 'country', 'serviceArea')}
                               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                             />
                             <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -1813,8 +2138,8 @@ const PartnerSettingsNew = () => {
                             <input
                               type="radio"
                               name={`cleaning-${countryName}-service-type`}
-                              checked={getCountryServiceType(countryName, 'cleaning')}
-                              onChange={() => handleServiceTypeChange(countryName, 'cities', 'cleaning')}
+                              checked={getCountryServiceType(countryName, 'serviceArea')}
+                              onChange={() => handleServiceTypeChange(countryName, 'cities', 'serviceArea')}
                               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                             />
                             <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -1824,7 +2149,7 @@ const PartnerSettingsNew = () => {
                         </div>
 
                         <div className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                          {!getCountryServiceType(countryName, 'cleaning')
+                          {!getCountryServiceType(countryName, 'serviceArea')
                             ? (isGerman ? 'Reinigung im gesamten Land verfügbar' : 'Cleaning available throughout the entire country')
                             : (isGerman ? 'Reinigung nur in ausgewählten Städten verfügbar' : 'Cleaning only available in selected cities')
                           }
@@ -1832,7 +2157,7 @@ const PartnerSettingsNew = () => {
                       </div>
 
                       {/* City Dropdown - Only show when "Specific Cities Only" is selected */}
-                      {getCountryServiceType(countryName, 'cleaning') && (
+                      {getCountryServiceType(countryName, 'serviceArea') && (
                         <div className="mb-4">
                           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
                             {isGerman ? 'Stadt hinzufügen:' : 'Add City:'}
@@ -1846,7 +2171,7 @@ const PartnerSettingsNew = () => {
                             }}
                             onChange={(e) => {
                               if (e.target.value && !selectedCities.includes(e.target.value)) {
-                                handleCityToggle('cleaning', e.target.value, true, countryName, 'cleaning');
+                                handleCityToggle('cleaning', e.target.value, true, countryName, 'serviceArea');
                                 e.target.value = '';
                               }
                             }}
@@ -1864,7 +2189,7 @@ const PartnerSettingsNew = () => {
                       )}
 
                       {/* Selected Cities */}
-                      {getCountryServiceType(countryName, 'cleaning') && (
+                      {getCountryServiceType(countryName, 'serviceArea') && (
                         <div>
                           <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
                             {isGerman ? 'Ausgewählte Städte:' : 'Selected Cities:'}
@@ -1872,11 +2197,9 @@ const PartnerSettingsNew = () => {
                           <div className="space-y-3">
                             {selectedCities.map(city => {
                               const cityKey = `${countryName}-${city}`;
-                              // Get radius from serviceArea structure
-                              const serviceArea = settings.preferences.cleaning.serviceArea || {};
-                              const countryData = serviceArea[countryName] || {};
-                              const cityData = countryData.cities || {};
-                              const radius = cityData[city]?.radius || 0;
+                              // Get radius from citySettings (flattened structure)
+                              const citySettings = settings.preferences.serviceArea.citySettings || {};
+                              const radius = citySettings[cityKey]?.radius || 0;
                               const isCityOnly = radius === 0;
 
                               return (
@@ -1886,7 +2209,7 @@ const PartnerSettingsNew = () => {
                                       🧽 {city}
                                     </span>
                                     <button
-                                      onClick={() => handleCityToggle('cleaning', city, false, countryName, 'cleaning')}
+                                      onClick={() => handleCityToggle('cleaning', city, false, countryName, 'serviceArea')}
                                       className="text-red-500 hover:text-red-700 font-medium"
                                     >
                                       ✕
@@ -1900,7 +2223,7 @@ const PartnerSettingsNew = () => {
                                           type="radio"
                                           name={`cleaning-${cityKey}-type`}
                                           checked={isCityOnly}
-                                          onChange={() => handleCityRadiusToggle(cityKey, 'city', 'cleaning')}
+                                          onChange={() => handleCityRadiusToggle(cityKey, 'city', 'serviceArea')}
                                           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                                         />
                                         <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -1913,7 +2236,7 @@ const PartnerSettingsNew = () => {
                                           type="radio"
                                           name={`cleaning-${cityKey}-type`}
                                           checked={!isCityOnly}
-                                          onChange={() => handleCityRadiusToggle(cityKey, 'radius', 'cleaning')}
+                                          onChange={() => handleCityRadiusToggle(cityKey, 'radius', 'serviceArea')}
                                           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
                                         />
                                         <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -1956,7 +2279,7 @@ const PartnerSettingsNew = () => {
                       )}
 
                       {/* Whole Country Info - Only show when "Whole Country" is selected */}
-                      {!getCountryServiceType(countryName, 'cleaning') && (
+                      {!getCountryServiceType(countryName, 'serviceArea') && (
                         <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
                           <div className="flex items-center">
                             <span className="text-green-600 mr-2">✓</span>
@@ -1976,7 +2299,7 @@ const PartnerSettingsNew = () => {
               )}
 
               {/* Instructions when no countries selected */}
-              {getConfiguredCountries('cleaning').length === 0 && (
+              {getConfiguredCountries('serviceArea').length === 0 && (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg" style={{ borderColor: 'var(--theme-border)' }}>
                   <div className="text-4xl mb-2">🌍</div>
                   <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
@@ -1993,12 +2316,12 @@ const PartnerSettingsNew = () => {
             </div>
 
             {/* Summary */}
-            {getConfiguredCountries('cleaning').length > 0 && (
+            {getConfiguredCountries('serviceArea').length > 0 && (
               <div className="text-sm p-4 bg-gray-50 rounded-lg" style={{ color: 'var(--theme-muted)' }}>
                 <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
-                🧽 {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('cleaning').length} {isGerman ? 'Länder' : 'countries'}, {
-                  Object.keys(settings.preferences.cleaning.serviceArea || {}).reduce((total, country) => {
-                    const countryData = settings.preferences.cleaning.serviceArea[country];
+                🧽 {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('serviceArea').length} {isGerman ? 'Länder' : 'countries'}, {
+                  Object.keys(settings.preferences.serviceArea.serviceArea || {}).reduce((total, country) => {
+                    const countryData = settings.preferences.serviceArea.serviceArea[country];
                     return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
                   }, 0)
                 } {isGerman ? 'Städte' : 'cities'}

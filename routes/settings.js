@@ -83,10 +83,6 @@ router.put('/',
       .optional()
       .isInt({ min: 1, max: 168 })
       .withMessage('Auto accept timeout must be between 1 and 168 hours'),
-    body('system.leadAcceptTimeout')
-      .optional()
-      .isInt({ min: 1, max: 168 })
-      .withMessage('Lead accept timeout must be between 1 and 168 hours'),
     body('system.basicPartnerLeadLimit')
       .optional()
       .isInt({ min: 1, max: 10 })

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
-import { logsAPI } from '../../../lib/api/api';
+import { logsAPI, adminLogsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
 
@@ -17,27 +17,40 @@ const LogsModule = () => {
   const [logStats, setLogStats] = useState({
     total: 0,
     today: 0,
-    successful: 0,
-    failed: 0,
-    pending: 0,
-    successRate: 100
+    leadActions: 0,
+    partnerActions: 0,
+    settingsActions: 0
   });
   const [selectedLog, setSelectedLog] = useState(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
-  
+
   // Tab and Filter states
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'leads', 'partners', 'settings', 'system'
+
+  // Independent Pagination for each tab
+  const [tabPagination, setTabPagination] = useState({
+    all: 1,
+    leads: 1,
+    partners: 1,
+    settings: 1
+  });
+  const itemsPerPage = 10;
+
+  // Get current page for active tab
+  const currentPage = tabPagination[activeTab] || 1;
+
+  // Set page for current active tab
+  const setCurrentPage = (page) => {
+    setTabPagination(prev => ({
+      ...prev,
+      [activeTab]: page
+    }));
+  };
   const [filters, setFilters] = useState({
     actorType: 'all',
     action: 'all',
-    dateRange: 'all',
-    searchTerm: ''
+    dateRange: 'all'
   });
 
   // Filter logs by tab category
@@ -45,36 +58,21 @@ const LogsModule = () => {
     switch (tab) {
       case 'leads':
         return logs.filter(log =>
-          (log.action.includes('lead_') && log.action !== 'lead_creation_failed') ||
-          ['cancellation_requested'].includes(log.action)
+          log.action.includes('lead_') ||
+          log.action.includes('cancellation_')
         );
       case 'partners':
         return logs.filter(log =>
           log.action.includes('partner_') ||
-          log.partnerName ||
-          log.partnerId
+          log.action === 'lead_assigned' ||
+          log.action === 'lead_reassigned'
         );
       case 'settings':
         return logs.filter(log =>
-          [
-            // Admin Settings Actions
-            'settings_updated',           // System settings updated via admin panel
-            'pricing_updated',            // Pricing changes for moving/cleaning services
-            'lead_distribution_updated',  // Lead per week settings changes
-            'system_settings_updated',    // Lead cancellation/timeout settings
-            'notification_settings_updated', // Email notification toggles
-            'password_reset_updated',     // Password reset settings
-
-            // Partner Settings Actions
-            'partner_contact_updated',    // Contact information changes
-            'partner_company_updated',    // Company information updates
-            'partner_address_updated',    // Address information changes
-            'partner_service_preferences_updated', // Service preferences (moving settings, locations)
-            'partner_notification_preferences_updated', // Notification preferences
-
-            // General profile updates
-            'partner_updated'             // General partner profile updates
-          ].includes(log.action)
+          log.action.includes('settings_') ||
+          log.action.includes('pricing_') ||
+          log.action.includes('system_') ||
+          log.action.includes('config_')
         );
       default:
         return logs;
@@ -117,16 +115,15 @@ const LogsModule = () => {
         // Add filters to API call
         actorType: filters.actorType !== 'all' ? filters.actorType : undefined,
         action: filters.action !== 'all' ? filters.action : undefined,
-        search: filters.searchTerm || undefined,
         ...dateParams
       };
 
       let response;
       if (isPartner) {
-        // Partners get their own logs
+        // Partners get their own logs (keep using old API for now since adminLogs is admin-only)
         response = await logsAPI.getPartnerLogs(user.id, params);
       } else {
-        // Superadmins get all logs
+        // Superadmins get all logs using the logs API (not admin-logs)
         response = await logsAPI.getAll(params);
       }
       
@@ -136,64 +133,49 @@ const LogsModule = () => {
       // Transform backend data structure to match frontend expectations
       const transformedLogs = rawLogsData.map(log => {
         // Enhanced action description for better readability
-        const getActionDescription = (action, details, actor, leadId, partnerId) => {
+        const getActionDescription = (action, message, actor, leadId, partnerInfo) => {
           const actorName = actor?.name || actor?.email || 'Unknown';
-          const partnerName = log.partnerId?.companyName || 'Unknown Partner';
-          const leadIdDisplay = log.leadId?.leadId || leadId;
+          const partnerName = partnerInfo?.companyName || 'Unknown Partner';
+          const leadIdDisplay = leadId?.leadId || leadId || 'Unknown Lead';
+
+          // Use the message directly if available, otherwise generate description
+          if (message) {
+            return message;
+          }
 
           switch (action) {
             case 'lead_created':
               return `${actorName} created lead ${leadIdDisplay}`;
             case 'lead_assigned':
-              return `Lead ${leadIdDisplay} assigned to ${partnerName}`;
+              return `${actorName} assigned lead ${leadIdDisplay} to ${partnerName}`;
+            case 'lead_reassigned':
+              return `${actorName} reassigned lead ${leadIdDisplay} to ${partnerName}`;
             case 'lead_accepted':
               return `${partnerName} accepted lead ${leadIdDisplay}`;
             case 'lead_rejected':
               return `${partnerName} rejected lead ${leadIdDisplay}`;
             case 'lead_cancelled':
-              return `${partnerName} cancelled lead ${leadIdDisplay}`;
+              return `${actorName} cancelled lead ${leadIdDisplay}`;
             case 'cancellation_requested':
-              return `${partnerName} requested cancellation for lead ${leadIdDisplay}`;
+              return `${actorName} requested cancellation for lead ${leadIdDisplay}`;
+            case 'partner_registration':
+              return `${partnerName} registered for service`;
             case 'partner_approved':
               return `${actorName} approved partner ${partnerName}`;
             case 'partner_rejected':
               return `${actorName} rejected partner ${partnerName}`;
             case 'partner_suspended':
               return `${actorName} suspended partner ${partnerName}`;
-            case 'partner_reactivated':
-              return `${actorName} reactivated partner ${partnerName}`;
-            case 'login_success':
-              return `${actorName} logged in successfully`;
-            case 'login_failed':
-              return `Failed login attempt for ${actor?.email || 'unknown'}`;
+            case 'partner_updated':
+              return `${partnerName} updated profile`;
+            case 'email_sent':
+              return `Email sent successfully`;
+            case 'email_failed':
+              return `Email delivery failed`;
             case 'settings_updated':
-              return `${actorName} updated system settings`;
-            case 'pricing_updated':
-              return `${actorName} updated pricing settings`;
-            case 'lead_distribution_updated':
-              return `${actorName} updated lead distribution settings`;
-            case 'system_settings_updated':
-              return `${actorName} updated system configuration`;
-            case 'notification_settings_updated':
-              return `${actorName} updated notification settings`;
-            case 'password_reset_updated':
-              return `${actorName} updated password reset settings`;
-            case 'partner_contact_updated':
-              return `${actorName} updated contact information`;
-            case 'partner_company_updated':
-              return `${actorName} updated company information`;
-            case 'partner_address_updated':
-              return `${actorName} updated address information`;
-            case 'partner_service_preferences_updated':
-              return `${actorName} updated service preferences`;
-            case 'partner_notification_preferences_updated':
-              return `${actorName} updated notification preferences`;
-            case 'partner_lead_viewed':
-              return `${partnerName} viewed lead ${leadIdDisplay}`;
-            case 'partner_lead_contacted':
-              return `${partnerName} contacted customer for lead ${leadIdDisplay}`;
+              return `${actorName} updated settings`;
             default:
-              return log.message || action.replace(/_/g, ' ');
+              return action.replace(/_/g, ' ').toLowerCase();
           }
         };
 
@@ -205,12 +187,12 @@ const LogsModule = () => {
           userEmail: log.actor?.email,
           userName: log.actor?.name,
           leadId: log.leadId?.leadId || log.leadId,
-          leadServiceType: log.leadId?.serviceType,
+          leadServiceType: log.serviceType,
           leadCustomer: log.leadId ? `${log.leadId.user?.firstName || ''} ${log.leadId.user?.lastName || ''}`.trim() : null,
           partnerId: log.partnerId?._id || log.partnerId,
           partnerName: log.partnerId?.companyName,
           partnerEmail: log.partnerId?.contactPerson?.email,
-          details: getActionDescription(log.action, log.details, log.actor, log.leadId, log.partnerId),
+          details: getActionDescription(log.action, log.message, log.actor, log.leadId, log.partnerId),
           originalMessage: log.message,
           fullData: log.details,
           sourceDomain: log.metadata?.domain,
@@ -230,9 +212,6 @@ const LogsModule = () => {
       const currentTabLogs = getTabFilteredLogs(transformedLogs, activeTab);
 
       const todayLogs = currentTabLogs.filter(l => new Date(l.timestamp) >= today);
-      const failedActions = currentTabLogs.filter(l => l.status === 'failed');
-      const successfulActions = currentTabLogs.filter(l => l.status === 'success');
-      const pendingActions = currentTabLogs.filter(l => l.status === 'pending');
 
       // Calculate tab-specific stats
       let tabSpecificStats = {};
@@ -263,7 +242,7 @@ const LogsModule = () => {
         const statusUpdates = currentTabLogs.filter(l => l.action === 'partner_status_updated');
         const serviceStatusUpdates = currentTabLogs.filter(l => l.action === 'partner_service_status_updated');
         const typeUpdates = currentTabLogs.filter(l => l.action === 'partner_type_updated');
-        const leadActions = currentTabLogs.filter(l => ['partner_lead_accepted', 'partner_lead_rejected', 'partner_lead_cancel_requested'].includes(l.action));
+        const leadActions = currentTabLogs.filter(l => ['lead_assigned', 'lead_reassigned', 'partner_lead_accepted', 'partner_lead_rejected', 'partner_lead_cancel_requested'].includes(l.action));
         tabSpecificStats = {
           partnerRegistrations: partnerRegistrations.length,
           partnerCreated: partnerCreated.length,
@@ -291,10 +270,9 @@ const LogsModule = () => {
       setLogStats({
         total: activeTab === 'all' ? totalCount : currentTabLogs.length,
         today: todayLogs.length,
-        successful: successfulActions.length,
-        failed: failedActions.length,
-        pending: pendingActions.length,
-        successRate: currentTabLogs.length > 0 ? Math.round((successfulActions.length / currentTabLogs.length) * 100) : 100,
+        leadActions: currentTabLogs.filter(l => l.action?.includes('lead_') || l.action?.includes('cancellation_')).length,
+        partnerActions: currentTabLogs.filter(l => l.action?.includes('partner_')).length,
+        settingsActions: currentTabLogs.filter(l => l.action?.includes('settings_') || l.action?.includes('system_')).length,
         ...tabSpecificStats
       });
     } catch (error) {
@@ -319,24 +297,14 @@ const LogsModule = () => {
     if (currentService) {
       loadLogs();
     }
-  }, [currentPage, filters.actorType, filters.action, filters.dateRange, filters.searchTerm, activeTab]);
+  }, [currentPage, filters.actorType, filters.action, filters.dateRange, activeTab]);
 
-  // Close export menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showExportMenu && !event.target.closest('.export-menu-container')) {
-        setShowExportMenu(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showExportMenu]);
+  // Export functionality removed per user request
 
-  // Reset to first page when filters or tab change
+  // Reset to first page when filters change (but NOT when tab changes)
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.actorType, filters.action, filters.dateRange, filters.searchTerm, activeTab]);
+  }, [filters.actorType, filters.action, filters.dateRange]);
 
   // Filter logs by selected tab
   const currentLogs = getTabFilteredLogs(logs, activeTab);
@@ -371,53 +339,12 @@ const LogsModule = () => {
       'email_failed': 'text-red-600',
       'partner_approved': 'text-green-600',
       'settings_updated': 'text-yellow-600',
-      'data_exported': 'text-purple-600',
-      'login_success': 'text-green-600',
-      'login_failed': 'text-red-600'
+      'data_exported': 'text-purple-600'
     };
     return colors[action] || 'text-gray-600';
   };
 
-  const exportLogs = async (format = 'json') => {
-    try {
-      const exportParams = {
-        serviceType: currentService,
-        actorType: filters.actorType !== 'all' ? filters.actorType : undefined,
-        action: filters.action !== 'all' ? filters.action : undefined,
-        search: filters.searchTerm || undefined,
-        startDate: filters.dateRange !== 'all' ? getDateRangeStart(filters.dateRange) : undefined,
-        endDate: filters.dateRange !== 'all' ? new Date().toISOString() : undefined
-      };
-      
-      // Show loading toast
-      const loadingToast = toast.loading(isGerman ? 'Exportiere Logs...' : 'Exporting logs...');
-      
-      const response = await logsAPI.export(format, exportParams);
-      
-      // Create download link
-      const downloadUrl = window.URL.createObjectURL(response.data);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `logs_export_${timestamp}.${format}`;
-      link.download = filename;
-      
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      window.URL.revokeObjectURL(downloadUrl);
-      
-      toast.dismiss(loadingToast);
-      toast.success(isGerman ? `${format.toUpperCase()} erfolgreich exportiert` : `${format.toUpperCase()} export successful`);
-      setShowExportMenu(false);
-    } catch (error) {
-      console.error('Error exporting logs:', error);
-      toast.error(isGerman ? 'Export fehlgeschlagen' : 'Export failed');
-    }
-  };
+  // Export functionality removed per user request
 
   const getDateRangeStart = (range) => {
     const now = new Date();
@@ -457,58 +384,7 @@ const LogsModule = () => {
         <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
           {isGerman ? 'System-Protokolle' : 'System Logs'}
         </h2>
-        {isSuperAdmin && (
-          <div className="relative export-menu-container">
-            <motion.button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-              style={{ 
-                backgroundColor: 'var(--theme-button-bg)', 
-                color: 'var(--theme-button-text)' 
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              📊 {isGerman ? 'Export' : 'Export'}
-              <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </motion.button>
-            
-            {showExportMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 rounded-lg shadow-lg z-50" style={{ backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)' }}>
-                <div className="py-2">
-                  <button
-                    onClick={() => exportLogs('json')}
-                    className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
-                    style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <span className="text-blue-600">📄</span>
-                    <div>
-                      <div className="font-medium">Export to JSON</div>
-                      <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .json file</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => exportLogs('csv')}
-                    className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
-                    style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <span className="text-green-600">📊</span>
-                    <div>
-                      <div className="font-medium">Export to CSV</div>
-                      <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .csv file</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Export functionality removed per user request */}
       </div>
 
       {/* Tab Navigation */}
@@ -544,21 +420,6 @@ const LogsModule = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        {/* Search */}
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder={isGerman ? 'Suche nach Aktion, E-Mail, Lead ID...' : 'Search by action, email, lead ID...'}
-            value={filters.searchTerm}
-            onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
-          />
-        </div>
 
         {/* Actor Type Filter */}
         {isSuperAdmin && (
@@ -576,8 +437,7 @@ const LogsModule = () => {
               <option value="all">{isGerman ? 'Alle Rollen' : 'All Roles'}</option>
               <option value="user">{isGerman ? 'Benutzer' : 'User'}</option>
               <option value="partner">{isGerman ? 'Partner' : 'Partner'}</option>
-              <option value="superadmin">{isGerman ? 'Super-Admin' : 'Superadmin'}</option>
-              <option value="system">{isGerman ? 'System' : 'System'}</option>
+              <option value="superadmin">{isGerman ? 'Admin' : 'Admin'}</option>
             </select>
           </div>
         )}
@@ -599,18 +459,9 @@ const LogsModule = () => {
             {activeTab === 'all' && (
               <>
                 <optgroup label={isGerman ? 'Authentifizierung' : 'Authentication'}>
-                  <option value="login_success">{isGerman ? 'Login erfolgreich' : 'Login Success'}</option>
-                  <option value="login_failed">{isGerman ? 'Login fehlgeschlagen' : 'Login Failed'}</option>
-                  <option value="logout">{isGerman ? 'Abmeldung' : 'Logout'}</option>
                   <option value="password_reset">{isGerman ? 'Passwort zurücksetzen' : 'Password Reset'}</option>
                 </optgroup>
 
-                <optgroup label={isGerman ? 'Benutzer' : 'Users'}>
-                  <option value="user_registration">{isGerman ? 'Benutzer registriert' : 'User Registration'}</option>
-                  <option value="user_created">{isGerman ? 'Benutzer erstellt' : 'User Created'}</option>
-                  <option value="user_updated">{isGerman ? 'Benutzer aktualisiert' : 'User Updated'}</option>
-                  <option value="user_role_changed">{isGerman ? 'Rolle geändert' : 'Role Changed'}</option>
-                </optgroup>
 
                 <optgroup label={isGerman ? 'Leads' : 'Leads'}>
                   <option value="lead_created">{isGerman ? 'Lead erstellt' : 'Lead Created'}</option>
@@ -622,9 +473,11 @@ const LogsModule = () => {
                 </optgroup>
 
                 <optgroup label={isGerman ? 'Partner' : 'Partners'}>
+                  <option value="partner_registration">{isGerman ? 'Partner Registrierung' : 'Partner Registration'}</option>
                   <option value="partner_created">{isGerman ? 'Partner erstellt' : 'Partner Created'}</option>
                   <option value="partner_approved">{isGerman ? 'Partner genehmigt' : 'Partner Approved'}</option>
                   <option value="partner_rejected">{isGerman ? 'Partner abgelehnt' : 'Partner Rejected'}</option>
+                  <option value="partner_type_updated">{isGerman ? 'Partner Typ geändert' : 'Partner Type Changed'}</option>
                   <option value="partner_updated">{isGerman ? 'Partner aktualisiert' : 'Partner Updated'}</option>
                   <option value="partner_dashboard_accessed">{isGerman ? 'Dashboard aufgerufen' : 'Dashboard Accessed'}</option>
                 </optgroup>
@@ -665,6 +518,8 @@ const LogsModule = () => {
                 </optgroup>
 
                 <optgroup label={isGerman ? 'Lead Aktionen' : 'Lead Actions'}>
+                  <option value="lead_assigned">{isGerman ? 'Lead zugewiesen' : 'Lead Assigned'}</option>
+                  <option value="lead_reassigned">{isGerman ? 'Lead neu zugewiesen' : 'Lead Reassigned'}</option>
                   <option value="partner_lead_accepted">{isGerman ? 'Lead akzeptiert' : 'Lead Accepted'}</option>
                   <option value="partner_lead_rejected">{isGerman ? 'Lead abgelehnt' : 'Lead Rejected'}</option>
                   <option value="partner_lead_cancel_requested">{isGerman ? 'Lead Stornierung beantragt' : 'Lead Cancel Requested'}</option>
@@ -846,25 +701,9 @@ const LogsModule = () => {
             ];
           }
 
-          const statusStats = [
-            {
-              label: isGerman ? 'Erfolgreich' : 'Successful',
-              value: logStats.successful || 0,
-              color: 'emerald'
-            },
-            {
-              label: isGerman ? 'Fehlgeschlagen' : 'Failed',
-              value: logStats.failed || 0,
-              color: 'red'
-            },
-            {
-              label: isGerman ? 'Erfolgsrate' : 'Success Rate',
-              value: `${logStats.successRate}%`,
-              color: 'emerald'
-            }
-          ];
+          // Status stats removed per user request
 
-          return [...baseStats, ...tabSpecificStats, ...statusStats];
+          return [...baseStats, ...tabSpecificStats];
         })().map((stat, index) => (
           <motion.div
             key={index}
@@ -923,23 +762,17 @@ const LogsModule = () => {
                   {isGerman ? 'Lead/Partner' : 'Lead/Partner'}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman ? 'Service' : 'Service'}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {isGerman ? 'Beschreibung' : 'Description'}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman ? 'Status' : 'Status'}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman ? 'Aktion' : 'Action'}
+                  {isGerman ? 'Details' : 'Details'}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
               {loading ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? "8" : "7"} className="px-6 py-12 text-center">
+                  <td colSpan={isSuperAdmin ? "6" : "5"} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       <span style={{ color: 'var(--theme-text)' }}>
@@ -950,7 +783,7 @@ const LogsModule = () => {
                 </tr>
               ) : currentLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? "8" : "7"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                  <td colSpan={isSuperAdmin ? "6" : "5"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
                     {isGerman ? 'Keine Logs gefunden' : 'No logs found'}
                   </td>
                 </tr>
@@ -1025,36 +858,19 @@ const LogsModule = () => {
                     </div>
                   </td>
 
-                  {/* Service Type */}
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                    {log.leadServiceType && (
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        log.leadServiceType === 'moving'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {log.leadServiceType === 'moving' ? '🚛' : '🧽'} {log.leadServiceType}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Description */}
-                  <td className="px-4 py-3 text-xs max-w-64" style={{ color: 'var(--theme-text)' }}>
-                    <div className="truncate" title={log.details}>
+                  {/* Description with fixed width and tooltip */}
+                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--theme-text)', maxWidth: '300px' }}>
+                    <div
+                      className="truncate cursor-pointer"
+                      title={log.details}
+                      style={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
                       {log.details}
                     </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      log.status === 'success' ? 'bg-green-100 text-green-800' :
-                      log.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {log.status === 'success' ? '✅' : log.status === 'failed' ? '❌' : '⏳'}
-                      {log.status}
-                    </span>
                   </td>
 
                   {/* Actions */}
@@ -1079,32 +895,44 @@ const LogsModule = () => {
         </div>
       </motion.div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalItems={totalLogs}
-        itemsPerPage={itemsPerPage}
-        onPageChange={setCurrentPage}
-      />
+      {/* Only show pagination if there are logs */}
+      {currentLogs.length > 0 && totalLogs > itemsPerPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalLogs}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
+      )}
 
       {/* Log Details Modal */}
       <AnimatePresence>
         {showLogModal && selectedLog && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50"
+            style={{ paddingLeft: '10rem', paddingTop: '2rem' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowLogModal(false)}
           >
             <motion.div
-              className="max-w-2xl w-full p-6 rounded-lg"
-              style={{ backgroundColor: 'var(--theme-bg)' }}
+              className="rounded-lg border flex flex-col overflow-hidden"
+              style={{
+                borderColor: 'var(--theme-border)',
+                backgroundColor: 'var(--theme-bg)',
+                width: '600px',
+                height: '80vh',
+                maxHeight: '700px',
+                marginTop: '50px'
+              }}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-4">
+              {/* Header */}
+              <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor: 'var(--theme-border)' }}>
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
                   {isGerman ? 'Log-Details' : 'Log Details'}
                 </h3>
@@ -1115,8 +943,10 @@ const LogsModule = () => {
                   ✕
                 </button>
               </div>
-              
-              <div className="space-y-6">
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-6">
                 {/* Header Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1127,17 +957,7 @@ const LogsModule = () => {
                       {selectedLog.id}
                     </span>
                   </div>
-                  <div>
-                    <strong style={{ color: 'var(--theme-text)' }} className="block text-sm">
-                      {isGerman ? 'Status:' : 'Status:'}
-                    </strong> 
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedLog.status)}`}>
-                      <span className="mr-2">
-                        {selectedLog.status === 'success' ? '✅' : selectedLog.status === 'failed' ? '❌' : '⚠️'}
-                      </span>
-                      {selectedLog.status}
-                    </span>
-                  </div>
+                  {/* Status section removed per user request */}
                   <div>
                     <strong style={{ color: 'var(--theme-text)' }} className="block text-sm">
                       {isGerman ? 'Zeitstempel:' : 'Timestamp:'}
@@ -1271,6 +1091,7 @@ const LogsModule = () => {
                     </pre>
                   </div>
                 )}
+                </div>
               </div>
             </motion.div>
           </motion.div>

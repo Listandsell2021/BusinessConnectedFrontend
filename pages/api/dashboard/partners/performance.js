@@ -23,7 +23,10 @@ export default async function handler(req, res) {
 
     res.status(200).json(response.data);
   } catch (error) {
-    console.error('Error fetching partner performance:', error);
+    // Only log errors that aren't authentication errors (401)
+    if (error?.response?.status !== 401) {
+      console.error('Error fetching partner performance:', error.message || error);
+    }
 
     // Return default data if backend is not available
     const defaultData = [];

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
+import { dashboardAPI } from '../../lib/api/api';
 
 const RevenueChart = ({ className = "" }) => {
   const { isGerman } = useLanguage();
@@ -17,18 +18,36 @@ const RevenueChart = ({ className = "" }) => {
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/dashboard/revenue?range=${timeRange}&service=${currentService}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await dashboardAPI.getSuperadminData(currentService, timeRange);
+
+      if (response.data && response.data.success && response.data.data.charts.leadsPerDay) {
+        setChartData(transformRevenueData(response.data.data.charts.leadsPerDay));
+      } else {
+        setChartData(getDefaultRevenueData());
       }
-      const data = await response.json();
-      setChartData(data);
     } catch (error) {
       console.error('Error fetching revenue data:', error);
       setChartData(getDefaultRevenueData());
     } finally {
       setLoading(false);
     }
+  };
+
+  const transformRevenueData = (leadsPerDay) => {
+    if (!leadsPerDay || leadsPerDay.length === 0) {
+      return getDefaultRevenueData();
+    }
+
+    // Transform the leads data to revenue-like visualization
+    // For demo purposes, we'll multiply leads by average lead values
+    const movingAverage = 280; // Average value for moving leads
+    const cleaningAverage = 150; // Average value for cleaning leads
+
+    return {
+      labels: leadsPerDay.map(day => new Date(day._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      moving: leadsPerDay.map(day => (day.moving || 0) * movingAverage),
+      cleaning: leadsPerDay.map(day => (day.cleaning || 0) * cleaningAverage)
+    };
   };
 
   const getDefaultRevenueData = () => {

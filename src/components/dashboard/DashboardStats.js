@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
+import { dashboardAPI } from '../../lib/api/api';
 import Button from '../ui/Button';
 
 const DashboardStats = ({ className = "" }) => {
@@ -17,12 +18,13 @@ const DashboardStats = ({ className = "" }) => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/dashboard/stats?service=${currentService}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await dashboardAPI.getStats(currentService);
+
+      if (response.data && response.data.success) {
+        setStats(response.data.data);
+      } else {
+        setStats(getDefaultStats());
       }
-      const data = await response.json();
-      setStats(data);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       // Use default 0 values when API is not available

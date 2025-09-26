@@ -1749,9 +1749,8 @@ const getAvailablePartners = async (req, res) => {
       // All conditions must be met for partner to be suggested:
       // 1. Not deleted (already filtered in query)
       // 2. Must be active (already filtered in query)
-      // 3. Weekly lead count < admin limit
-      // 4. Both pickup AND destination must match
-      return partner.hasWeeklyCapacity && partner.locationMatch;
+      // 3. Location must match (capacity check removed to allow selection in all cases)
+      return partner.locationMatch;
     });
 
     // Separate suggested partners by type

@@ -105,12 +105,6 @@ const SettingsSchema = new mongoose.Schema({
       min: 1,
       max: 72
     },
-    leadAcceptTimeout: {
-      type: Number,
-      default: 24,
-      min: 1,
-      max: 168
-    },
     basicPartnerLeadLimit: {
       type: Number,
       default: 3,

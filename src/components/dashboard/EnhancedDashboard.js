@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { dashboardAPI } from '../../lib/api/api';
 import DashboardStats from './DashboardStats';
 import RevenueChart from './RevenueChart';
 import LeadsPieChart from './LeadsPieChart';
@@ -28,12 +29,13 @@ const EnhancedDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/dashboard/overview');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await dashboardAPI.getOverview();
+
+      if (response.data && response.data.success) {
+        setDashboardData({ ...response.data.data, lastUpdated: new Date() });
+      } else {
+        setDashboardData({ lastUpdated: new Date() });
       }
-      const data = await response.json();
-      setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setDashboardData({ lastUpdated: new Date() });

@@ -85,11 +85,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       phone: ''
     },
     partnerType: 'basic',
-    services: [],
+    serviceType: '', // Changed from services array to single serviceType
     address: {
       street: '',
       city: '',
-      postalCode: '',
+      zipCode: '', // Changed from postalCode to zipCode to match backend
       country: 'Germany'
     },
     preferences: {
@@ -103,7 +103,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [partnerFormErrors, setPartnerFormErrors] = useState({});
 
   // Partner Details tabs and leads
-  const [partnerDetailsTab, setPartnerDetailsTab] = useState('overview'); // 'overview' or 'leads'
+  const [partnerDetailsTab, setPartnerDetailsTab] = useState('overview'); // 'overview', 'leads', or 'settings'
   const [partnerLeads, setPartnerLeads] = useState([]);
   const [partnerLeadsLoading, setPartnerLeadsLoading] = useState(false);
   const [partnerLeadsFilters, setPartnerLeadsFilters] = useState({
@@ -125,7 +125,12 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Date filter state for partner leads
-  const [partnerLeadsDateFilter, setPartnerLeadsDateFilter] = useState('current_week'); // 'all', 'current_week', 'last_week', 'current_month', 'last_month'
+  const [partnerLeadsDateFilter, setPartnerLeadsDateFilter] = useState({
+    type: 'all', // 'all', 'single', 'range', 'current_week', 'last_week', 'current_month', 'last_month'
+    singleDate: null,
+    fromDate: null,
+    toDate: null
+  });
   const [partnerLeadsStats, setPartnerLeadsStats] = useState({
     total: 0,
     pending: 0,
@@ -142,9 +147,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   // Partner leads sorting state
   const [partnerLeadsSortConfig, setPartnerLeadsSortConfig] = useState({
-    key: 'createdAt',
+    key: 'assignedAt',
     direction: 'desc'
   });
+
+  // Partner Settings State
+  const [partnerSettings, setPartnerSettings] = useState({
+    customPricing: {
+      perLeadPrice: null,
+      leadsPerWeek: null
+    }
+  });
+  const [globalSettings, setGlobalSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // Status translation function
   const translateStatus = (status) => {
@@ -283,9 +299,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   };
 
   // Load partners from API
-  const loadPartners = async () => {
-    if (!currentService) return;
-    
+  const loadPartners = async (pageOverride = null) => {
+    const serviceToUse = currentService || 'moving';
+    console.log('loadPartners called with currentService:', currentService, 'using:', serviceToUse);
+
+    if (!serviceToUse) {
+      console.warn('No service available, cannot load partners');
+      return;
+    }
+
     setLoading(true);
     try {
       // Prepare date parameters for API
@@ -324,7 +346,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
       const response = await partnersAPI.getAll({
         serviceType: currentService,
-        page: currentPage,
+        page: pageOverride !== null ? pageOverride : currentPage,
         limit: itemsPerPage,
         // Add filters to API call
         partnerType: filters.type !== 'all' ? filters.type : undefined,
@@ -450,13 +472,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentService, initialPartners]);
 
-  // Reload partners when filters, pagination, or sorting change
+  // Reload partners when pagination changes (but not when filters change)
   useEffect(() => {
-    if (currentService) {
-      loadPartners();
-    }
+    console.log('Partner pagination useEffect - currentService:', currentService, 'currentPage:', currentPage);
+    loadPartners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentService, currentPage, filters.type, filters.status, filters.city, filters.searchTerm, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year]);
+  }, [currentService, currentPage]);
+
+  // Reload partners when filters or sorting change (with pagination reset)
+  useEffect(() => {
+    console.log('Partner filters useEffect - currentService:', currentService);
+    setCurrentPage(1); // Reset pagination for UI
+    loadPartners(1); // Load with page 1 immediately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentService, filters.type, filters.status, filters.city, filters.searchTerm, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year]);
 
   // Load services on component mount
   useEffect(() => {
@@ -831,19 +860,18 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     }
   };
 
-  const handleServiceToggle = (service) => {
+  const handleServiceSelect = (service) => {
     setPartnerFormData(prev => ({
       ...prev,
-      services: prev.services.includes(service)
-        ? prev.services.filter(s => s !== service)
-        : [...prev.services, service]
+      serviceType: service
     }));
-    
+    setIsServiceDropdownOpen(false); // Close dropdown after selection
+
     // Clear service error when user selects a service
-    if (partnerFormErrors.services) {
+    if (partnerFormErrors.serviceType) {
       setPartnerFormErrors(prev => ({
         ...prev,
-        services: ''
+        serviceType: ''
       }));
     }
   };
@@ -919,16 +947,22 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       errors['contactPerson.phone'] = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
     }
 
-    if (partnerFormData.services.length === 0) {
-      errors.services = isGerman ? 'Mindestens eine Dienstleistung auswählen' : 'Please select at least one service';
+    if (!partnerFormData.serviceType) {
+      errors.serviceType = isGerman ? 'Service-Typ auswählen' : 'Please select a service type';
     }
 
     // Address validation
     if (!partnerFormData.address.street.trim()) {
-      errors['address.street'] = isGerman ? 'Adresse ist erforderlich' : 'Address is required';
+      errors['address.street'] = isGerman ? 'Straße ist erforderlich' : 'Street is required';
     }
     if (!partnerFormData.address.city.trim()) {
-      errors['address.city'] = isGerman ? 'PLZ und Stadt sind erforderlich' : 'Postcode and city are required';
+      errors['address.city'] = isGerman ? 'Stadt ist erforderlich' : 'City is required';
+    }
+    if (!partnerFormData.address.zipCode.trim()) {
+      errors['address.zipCode'] = isGerman ? 'PLZ ist erforderlich' : 'Zip code is required';
+    }
+    if (!partnerFormData.address.country.trim()) {
+      errors['address.country'] = isGerman ? 'Land ist erforderlich' : 'Country is required';
     }
 
     setPartnerFormErrors(errors);
@@ -956,11 +990,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             phone: ''
           },
           partnerType: 'basic',
-          services: [],
+          serviceType: '',
           address: {
             street: '',
             city: '',
-            postalCode: '',
+            zipCode: '',
             country: 'Germany'
           },
           preferences: {
@@ -1021,11 +1055,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         phone: ''
       },
       partnerType: 'basic',
-      services: [],
+      serviceType: '',
       address: {
         street: '',
         city: '',
-        postalCode: '',
+        zipCode: '',
         country: 'Germany'
       },
       preferences: {
@@ -1039,8 +1073,28 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   // Helper function to get date parameters for partner leads
   const getPartnerDateParams = (filter) => {
     const now = new Date();
-    
-    switch (filter) {
+
+    // Handle object structure with type property
+    const filterType = typeof filter === 'object' ? filter.type : filter;
+
+    switch (filterType) {
+      case 'single':
+        if (filter.singleDate) {
+          const singleDate = filter.singleDate.toISOString().split('T')[0];
+          return {
+            startDate: singleDate,
+            endDate: singleDate
+          };
+        }
+        return {};
+      case 'range':
+        if (filter.fromDate && filter.toDate) {
+          return {
+            startDate: filter.fromDate.toISOString().split('T')[0],
+            endDate: filter.toDate.toISOString().split('T')[0]
+          };
+        }
+        return {};
       case 'current_week':
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
@@ -1103,7 +1157,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           (leadData.name || ''),
         email: leadData.user?.email || leadData.email || '',
         city: leadData.location?.city || leadData.city || '',
-        status: leadData.status || 'pending'
+        // Use the partner-specific status from the lead object that was clicked
+        status: lead.status || leadData.status || 'pending'
       };
 
       setLeadForDetails(transformedLead);
@@ -1173,7 +1228,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           toLocation: getLocationString(lead.toLocation) || '',
           pickupLocation: getLocationString(lead.pickupLocation) || getLocationString(lead.formData?.pickupAddress) || '',
           dropoffLocation: getLocationString(lead.dropoffLocation) || '',
-          status: partnerStatus
+          status: partnerStatus,
+          assignedAt: lead.partnerAssignedAt || lead.assignedAt
         };
       });
 
@@ -1220,8 +1276,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         const partnerType = partnerForDetails.partnerType || partnerForDetails.type || 'basic';
         const serviceType = currentService;
 
-        // Get lead limit from admin settings
-        const leadLimit = settings.leadDistribution?.[serviceType]?.[partnerType]?.leadsPerWeek || 0;
+        // Load partner data to check for custom settings
+        const partnerResponse = await partnersAPI.getById(partnerForDetails.id);
+        const partner = partnerResponse.data.partner;
+
+        // Get lead limit from partner custom settings first, then fall back to admin settings
+        const leadLimit = partner.customPricing?.leadsPerWeek ||
+                         settings.leadDistribution?.[serviceType]?.[partnerType]?.leadsPerWeek || 0;
 
         // Get current week's leads for this partner and service
         const startOfWeek = new Date();
@@ -1255,12 +1316,83 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     }));
   };
 
+  // Load partner settings and global settings
+  const loadPartnerSettings = async () => {
+    if (!partnerForDetails?.id) return;
+
+    setSettingsLoading(true);
+    try {
+      // Load global settings first
+      const globalResponse = await settingsAPI.get();
+      setGlobalSettings(globalResponse.data.data);
+
+      // Load partner settings (including custom pricing if any)
+      const partnerResponse = await partnersAPI.getById(partnerForDetails.id);
+      const partner = partnerResponse.data.partner;
+
+      setPartnerSettings({
+        customPricing: {
+          perLeadPrice: partner.customPricing?.perLeadPrice || null,
+          leadsPerWeek: partner.customPricing?.leadsPerWeek || null
+        }
+      });
+    } catch (error) {
+      console.error('Error loading partner settings:', error);
+      toast.error(isGerman ? 'Fehler beim Laden der Einstellungen' : 'Error loading settings');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  // Save partner settings
+  const savePartnerSettings = async () => {
+    if (!partnerForDetails?.id) return;
+
+    setSettingsSaving(true);
+    try {
+      await partnersAPI.updatePartnerSettings(partnerForDetails.id, {
+        customPricing: {
+          perLeadPrice: partnerSettings.customPricing.perLeadPrice || null,
+          leadsPerWeek: partnerSettings.customPricing.leadsPerWeek || null
+        }
+      });
+
+      toast.success(isGerman ? 'Einstellungen erfolgreich gespeichert' : 'Settings saved successfully');
+
+      // Refresh weekly lead stats to reflect new custom limits
+      loadWeeklyLeadStats();
+    } catch (error) {
+      console.error('Error saving partner settings:', error);
+      toast.error(isGerman ? 'Fehler beim Speichern der Einstellungen' : 'Error saving settings');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  // Handle partner settings change
+  const handlePartnerSettingsChange = (field, value) => {
+    setPartnerSettings(prev => ({
+      ...prev,
+      customPricing: {
+        ...prev.customPricing,
+        [field]: value
+      }
+    }));
+  };
+
   // Load partner leads when tab changes or filters change or service changes
   useEffect(() => {
     if (partnerForDetails && (partnerDetailsTab === 'leads' || partnerDetailsTab === 'overview')) {
       loadPartnerLeads();
     }
-  }, [partnerDetailsTab, partnerLeadsFilters, partnerLeadsDateFilter, partnerForDetails, currentService]);
+  }, [partnerDetailsTab, partnerLeadsFilters, partnerLeadsDateFilter.type, partnerLeadsDateFilter.singleDate, partnerLeadsDateFilter.fromDate, partnerLeadsDateFilter.toDate, partnerForDetails, currentService]);
+
+  // Load partner settings when settings tab is selected
+  useEffect(() => {
+    if (partnerForDetails && partnerDetailsTab === 'settings') {
+      loadPartnerSettings();
+    }
+  }, [partnerDetailsTab, partnerForDetails]);
 
   // Hide service filter when viewing partner details
   useEffect(() => {
@@ -1286,10 +1418,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   // Server-side pagination: display partners directly from API
   const currentPartners = partners;
 
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [totalPartners]);
+  // Pagination reset is now handled in the filter useEffect above
 
   // Load weekly lead stats when partner details or service changes
   useEffect(() => {
@@ -1432,11 +1561,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             {isGerman ? 'Partner Details' : 'Partner Details'}
           </h2>
           {partnerForDetails && (
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(partnerForDetails.status)}`}>
-              {partnerForDetails.status === 'active' ? '✅' : 
-               partnerForDetails.status === 'pending' ? '⏳' : 
-               partnerForDetails.status === 'suspended' ? '🚫' :
-               partnerForDetails.status === 'rejected' ? '❌' : '❓'} {partnerForDetails.status}
+            <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partnerForDetails.status)}`}>
+              {partnerForDetails.status}
             </span>
           )}
         </div>
@@ -1995,6 +2121,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             >
               {isGerman ? 'Leads' : 'Leads'}
             </button>
+            <button
+              onClick={() => setPartnerDetailsTab('settings')}
+              className={`px-6 py-3 font-medium transition-colors ${
+                partnerDetailsTab === 'settings'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={{
+                color: partnerDetailsTab === 'settings' ? '#3B82F6' : 'var(--theme-text-muted)',
+                borderBottomColor: partnerDetailsTab === 'settings' ? '#3B82F6' : 'transparent'
+              }}
+            >
+              {isGerman ? 'Einstellungen' : 'Settings'}
+            </button>
           </div>
           {/* Tab Content */}
           {partnerDetailsTab === 'overview' && (
@@ -2325,50 +2465,47 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
                     <tbody>
-                      <tr>
-                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {isGerman ? 'Länder' : 'Countries'}:
-                        </td>
-                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.preferences.cleaning.countries?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {partnerForDetails.preferences.cleaning.countries.map(country => (
-                                <span key={country} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                  {country}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Keine Länder konfiguriert' : 'No countries configured'}</span>
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {isGerman ? 'Städte' : 'Cities'}:
-                        </td>
-                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.preferences.cleaning.cities?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {partnerForDetails.preferences.cleaning.cities.map(city => (
-                                <span key={city} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                  {city}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Keine Städte konfiguriert' : 'No cities configured'}</span>
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-2 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)' }}>
-                          {isGerman ? 'Radius' : 'Radius'}:
-                        </td>
-                        <td className="px-4 py-2 text-sm w-2/3" style={{ color: 'var(--theme-text)' }}>
-                          <span className="font-medium">{partnerForDetails.preferences.cleaning.radius || 50}km</span>
-                        </td>
-                      </tr>
+                      {partnerForDetails.preferences.cleaning?.serviceArea && Object.keys(partnerForDetails.preferences.cleaning.serviceArea).length > 0 ? (
+                        Object.entries(partnerForDetails.preferences.cleaning.serviceArea).map(([country, config]) => (
+                          <tr key={`cleaning-${country}`}>
+                            <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                              🌍 {country}:
+                            </td>
+                            <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                              {config.type === 'cities' ? (
+                                <div>
+                                  <span className="text-blue-500 font-medium">{isGerman ? 'Spezifische Städte' : 'Specific Cities'}</span>
+                                  {Object.keys(config.cities || {}).length > 0 && (
+                                    <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                                      {Object.entries(config.cities).map(([city, cityConfig]) => (
+                                        <span
+                                          key={city}
+                                          className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs"
+                                          style={{
+                                            backgroundColor: 'var(--theme-bg-secondary)',
+                                            color: 'var(--theme-text)',
+                                            border: '1px solid var(--theme-border)'
+                                          }}
+                                        >
+                                          {city} ({cityConfig.radius || 0}km)
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-green-500 font-medium">{isGerman ? 'Ganzes Land' : 'Whole Country'}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="2" className="px-4 py-2 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
+                            {isGerman ? 'Keine Servicegebiete konfiguriert' : 'No service areas configured'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2392,7 +2529,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <div className="flex-1">
                   <input
                     type="text"
-                    placeholder={isGerman ? 'Suchen...' : 'Search...'}
+                    placeholder={isGerman ? 'Lead ID, Name, E-Mail suchen...' : 'Search Lead ID, Name, Email...'}
                     value={partnerLeadsFilters.search || ''}
                     onChange={(e) => handlePartnerLeadsFilterChange('search', e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2428,7 +2565,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <div className="flex-1">
                   <input
                     type="text"
-                    placeholder={isGerman ? 'Stadt...' : 'City...'}
+                    placeholder={isGerman ? 'Stadt (Abholung/Ziel)...' : 'City (Pickup/Destination)...'}
                     value={partnerLeadsFilters.city || ''}
                     onChange={(e) => handlePartnerLeadsFilterChange('city', e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2442,22 +2579,85 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
                 {/* Date Filter */}
                 <div className="flex-1">
-                  <select
-                    value={partnerLeadsDateFilter}
-                    onChange={(e) => setPartnerLeadsDateFilter(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: 'var(--theme-border)',
-                      color: 'var(--theme-text)'
-                    }}
-                  >
-                    <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
-                    <option value="current_week">{isGerman ? 'Aktuelle Woche' : 'Current Week'}</option>
-                    <option value="last_week">{isGerman ? 'Letzte Woche' : 'Last Week'}</option>
-                    <option value="current_month">{isGerman ? 'Aktueller Monat' : 'Current Month'}</option>
-                    <option value="last_month">{isGerman ? 'Letzter Monat' : 'Last Month'}</option>
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      value={partnerLeadsDateFilter.type}
+                      onChange={(e) => setPartnerLeadsDateFilter(prev => ({ ...prev, type: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: 'var(--theme-border)',
+                        color: 'var(--theme-text)'
+                      }}
+                    >
+                      <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
+                      <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
+                      <option value="range">{isGerman ? 'Datumsbereich' : 'Date Range'}</option>
+                      <option value="current_week">{isGerman ? 'Aktuelle Woche' : 'Current Week'}</option>
+                      <option value="last_week">{isGerman ? 'Letzte Woche' : 'Last Week'}</option>
+                      <option value="current_month">{isGerman ? 'Aktueller Monat' : 'Current Month'}</option>
+                      <option value="last_month">{isGerman ? 'Letzter Monat' : 'Last Month'}</option>
+                    </select>
+
+                    {/* Single Date */}
+                    {partnerLeadsDateFilter.type === 'single' && (
+                      <div className="mt-2">
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.singleDate}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, singleDate: date }))}
+                          dateFormat="dd/MM/yyyy"
+                          placeholderText={isGerman ? 'Datum auswählen' : 'Select date'}
+                          className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Date Range */}
+                    {partnerLeadsDateFilter.type === 'range' && (
+                      <div className="mt-2 space-y-2">
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.fromDate}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, fromDate: date }))}
+                          dateFormat="dd/MM/yyyy"
+                          placeholderText={isGerman ? 'Von' : 'From'}
+                          maxDate={partnerLeadsDateFilter.toDate}
+                          className="w-full px-3 py-1.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.toDate}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, toDate: date }))}
+                          dateFormat="dd/MM/yyyy"
+                          placeholderText={isGerman ? 'Bis' : 'To'}
+                          minDate={partnerLeadsDateFilter.fromDate}
+                          className="w-full px-3 py-1.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
 
@@ -2540,8 +2740,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         <PartnerLeadsSortableHeader sortKey="status">
                           {isGerman ? 'Status' : 'Status'}
                         </PartnerLeadsSortableHeader>
-                        <PartnerLeadsSortableHeader sortKey="createdAt">
-                          {isGerman ? 'Datum' : 'Date'}
+                        <PartnerLeadsSortableHeader sortKey="assignedAt">
+                          {isGerman ? 'Zugewiesen am' : 'Assigned Date'}
                         </PartnerLeadsSortableHeader>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                           {isGerman ? 'Aktionen' : 'Actions'}
@@ -2612,7 +2812,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {new Date(lead.createdAt).toLocaleDateString()}
+                              {lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button
@@ -2641,6 +2841,218 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {partnerDetailsTab === 'settings' && (
+            <div className="px-6 py-4">
+              {settingsLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p style={{ color: 'var(--theme-text)' }}>
+                      {isGerman ? 'Einstellungen laden...' : 'Loading settings...'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Header */}
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+                        ⚙️ {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
+                      </h3>
+                      <p className="text-sm mt-1" style={{ color: 'var(--theme-muted)' }}>
+                        {isGerman
+                          ? 'Überschreiben Sie die globalen Einstellungen für diesen Partner'
+                          : 'Override global settings for this partner'
+                        }
+                      </p>
+                    </div>
+                    <motion.button
+                      onClick={savePartnerSettings}
+                      disabled={settingsSaving}
+                      className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        settingsSaving ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                      }`}
+                      style={{
+                        backgroundColor: 'var(--theme-button-bg)',
+                        color: 'var(--theme-button-text)'
+                      }}
+                      whileHover={!settingsSaving ? { scale: 1.02 } : {}}
+                      whileTap={!settingsSaving ? { scale: 0.98 } : {}}
+                    >
+                      {settingsSaving ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          <span>{isGerman ? 'Speichern...' : 'Saving...'}</span>
+                        </div>
+                      ) : (
+                        <>💾 {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
+                      )}
+                    </motion.button>
+                  </div>
+
+                  {/* Partner-specific Settings */}
+                  <motion.div
+                    className="p-6 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--theme-card-bg)',
+                      borderColor: 'var(--theme-border)'
+                    }}
+                    whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  >
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="text-3xl">⚙️</div>
+                      <div>
+                        <h4 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+                          {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
+                        </h4>
+                        <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman
+                            ? 'Individuelle Einstellungen für diesen Partner überschreiben'
+                            : 'Override global settings for this partner'
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Per Lead Price */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                          {isGerman ? 'Preis pro Lead (€)' : 'Price per Lead (€)'}
+                        </label>
+                        <div
+                          className="flex items-center border rounded-lg px-3"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            height: '48px'
+                          }}
+                        >
+                          <span
+                            className="text-lg font-semibold mr-3 inline-flex items-center"
+                            style={{ color: 'var(--theme-text)' }}
+                          >
+                            €
+                          </span>
+                          <input
+                            type="number"
+                            value={partnerSettings.customPricing.perLeadPrice || ''}
+                            onChange={(e) => handlePartnerSettingsChange('perLeadPrice', e.target.value ? parseFloat(e.target.value) : null)}
+                            min="1"
+                            step="0.01"
+                            placeholder={globalSettings ?
+                              `Standard: €${globalSettings.pricing?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.perLeadPrice || '25'}` :
+                              'Standard: €25'
+                            }
+                            className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
+                            style={{
+                              backgroundColor: 'transparent',
+                              color: 'var(--theme-text)',
+                              border: 'none',
+                              lineHeight: '1.1',
+                              padding: 0
+                            }}
+                          />
+                        </div>
+                        <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman
+                            ? 'Leer lassen für Standardpreis'
+                            : 'Leave empty for default price'
+                          }
+                        </p>
+                      </div>
+
+                      {/* Leads per Week */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                          {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
+                        </label>
+                        <input
+                          type="number"
+                          value={partnerSettings.customPricing.leadsPerWeek || ''}
+                          onChange={(e) => handlePartnerSettingsChange('leadsPerWeek', e.target.value ? parseInt(e.target.value) : null)}
+                          min="1"
+                          max="50"
+                          placeholder={globalSettings ?
+                            `Standard: ${globalSettings.leadDistribution?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.leadsPerWeek || '3'}` :
+                            'Standard: 3'
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)',
+                            height: '48px'
+                          }}
+                        />
+                        <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman
+                            ? 'Leer lassen für Standardverteilung'
+                            : 'Leave empty for default distribution'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Current Settings Summary */}
+                  <motion.div
+                    className="p-6 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--theme-card-bg)',
+                      borderColor: 'var(--theme-border)'
+                    }}
+                  >
+                    <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+                      📊 {isGerman ? 'Aktuelle Einstellungen' : 'Current Settings'}
+                    </h4>
+                    <div className="flex flex-row gap-4">
+                      <div className="flex-1 text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                        <div className="text-2xl font-bold text-green-600 mb-2">
+                          €{partnerSettings.customPricing.perLeadPrice ||
+                            (globalSettings?.pricing?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.perLeadPrice) ||
+                            '25'
+                          }
+                        </div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman ? 'Preis pro Lead' : 'Price per Lead'}
+                        </div>
+                        <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                          {partnerSettings.customPricing.perLeadPrice ?
+                            (isGerman ? '(Individuell)' : '(Custom)') :
+                            (isGerman ? '(Standard)' : '(Default)')
+                          }
+                        </div>
+                      </div>
+                      <div className="flex-1 text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                        <div className="text-2xl font-bold text-blue-600 mb-2">
+                          {partnerSettings.customPricing.leadsPerWeek ||
+                            (globalSettings?.leadDistribution?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.leadsPerWeek) ||
+                            '3'
+                          }
+                        </div>
+                        <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
+                          {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
+                        </div>
+                        <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                          {partnerSettings.customPricing.leadsPerWeek ?
+                            (isGerman ? '(Individuell)' : '(Custom)') :
+                            (isGerman ? '(Standard)' : '(Default)')
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
             </div>
           )}
         </motion.div>
@@ -3024,112 +3436,115 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </div>
                 </div>
 
-                {/* Service Type - Multi-select Dropdown */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                    🛠️ {isGerman ? 'Service-Typ' : 'Service Type'} *
-                  </label>
-                  <div className="service-dropdown-container relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
-                      className="w-full px-3 py-2 rounded-lg border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors.services ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                    >
-                      <span>
-                        {partnerFormData.services.length === 0
-                          ? (isGerman ? 'Service-Typ auswählen' : 'Select service type')
-                          : partnerFormData.services.length === 1
-                          ? (() => {
-                              const selectedService = servicesData.find(s => s.id === partnerFormData.services[0]);
-                              return selectedService ? selectedService.name : partnerFormData.services[0];
-                            })()
-                          : `${partnerFormData.services.length} ${isGerman ? 'Services ausgewählt' : 'Services selected'}`
-                        }
-                      </span>
-                      <svg className={`w-5 h-5 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {isServiceDropdownOpen && (
-                      <div 
-                        className="absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-auto"
-                        style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}
+                {/* Service Type and Company Name - Same Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Service Type - Dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                      🛠️ {isGerman ? 'Service-Typ' : 'Service Type'} *
+                    </label>
+                    <div className="service-dropdown-container relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                        className="w-full px-3 py-2 rounded-lg border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: partnerFormErrors.serviceType ? '#ef4444' : 'var(--theme-border)',
+                          color: 'var(--theme-text)'
+                        }}
                       >
-                        {(servicesData && servicesData.length > 0) ? servicesData.map((service) => (
-                          <label key={service.id} className="flex items-center px-3 py-2 hover:bg-opacity-80 cursor-pointer" style={{ backgroundColor: 'transparent' }}>
-                            <input
-                              type="checkbox"
-                              checked={partnerFormData.services.includes(service.id)}
-                              onChange={() => handleServiceToggle(service.id)}
-                              className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {service.id === 'moving' ? '🚛' : '🧽'} {service.name}
-                            </span>
-                          </label>
-                        )) : (
-                          <div className="px-3 py-2 text-sm" style={{ color: 'var(--theme-muted)' }}>
-                            {isGerman ? 'Services werden geladen...' : 'Loading services...'}
-                          </div>
-                        )}
-                      </div>
+                        <span>
+                          {!partnerFormData.serviceType
+                            ? (isGerman ? 'Service-Typ auswählen' : 'Select service type')
+                            : (() => {
+                                const selectedService = servicesData.find(s => s.id === partnerFormData.serviceType);
+                                return selectedService ? selectedService.name : partnerFormData.serviceType;
+                              })()
+                          }
+                        </span>
+                        <svg className={`w-5 h-5 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {isServiceDropdownOpen && (
+                        <div
+                          className="absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-auto"
+                          style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}
+                        >
+                          {(servicesData && servicesData.length > 0) ? servicesData.map((service) => (
+                            <label key={service.id} className="flex items-center px-3 py-2 hover:bg-opacity-80 cursor-pointer" style={{ backgroundColor: 'transparent' }}>
+                              <input
+                                type="radio"
+                                name="serviceType"
+                                checked={partnerFormData.serviceType === service.id}
+                                onChange={() => handleServiceSelect(service.id)}
+                                className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                                {service.id === 'moving' ? '🚛' : '🧽'} {service.name}
+                              </span>
+                            </label>
+                          )) : (
+                            <div className="px-3 py-2 text-sm" style={{ color: 'var(--theme-muted)' }}>
+                              {isGerman ? 'Services werden geladen...' : 'Loading services...'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {partnerFormErrors.serviceType && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.serviceType}</p>
                     )}
                   </div>
-                  {partnerFormErrors.services && (
-                    <p className="text-red-500 text-sm mt-1">{partnerFormErrors.services}</p>
-                  )}
+
+                  {/* Company Name */}
+                  <div>
+                    <label
+                      htmlFor="partner-company"
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      🏢 {isGerman ? 'Firmenname' : 'Company Name'} *
+                    </label>
+                    <input
+                      id="partner-company"
+                      name="partner-company"
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={partnerFormData.companyName}
+                      onChange={(e) => handlePartnerFormChange('companyName', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: partnerFormErrors.companyName ? '#ef4444' : 'var(--theme-border)',
+                        color: 'var(--theme-text)'
+                      }}
+                      placeholder={isGerman ? 'Firmenname eingeben' : 'Enter company name'}
+                    />
+                    {partnerFormErrors.companyName && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Company Name */}
-                <div>
-                  <label 
-                    htmlFor="partner-company" 
-                    className="block text-sm font-medium mb-2"
-                    style={{ color: 'var(--theme-text)' }}
-                  >
-                    🏢 {isGerman ? 'Firmenname' : 'Company Name'} *
-                  </label>
-                  <input
-                    id="partner-company"
-                    name="partner-company"
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    value={partnerFormData.companyName}
-                    onChange={(e) => handlePartnerFormChange('companyName', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: partnerFormErrors.companyName ? '#ef4444' : 'var(--theme-border)',
-                      color: 'var(--theme-text)'
-                    }}
-                    placeholder={isGerman ? 'Firmenname eingeben' : 'Enter company name'}
-                  />
-                  {partnerFormErrors.companyName && (
-                    <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
-                  )}
-                </div>
-
-                {/* Address and Postcode City - Same Row */}
+                {/* Address Fields - Two Rows */}
+                {/* Street and City - Row 1 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label 
-                      htmlFor="partner-address" 
+                    <label
+                      htmlFor="partner-street"
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      📍 {isGerman ? 'Adresse' : 'Address'} *
+                      📍 {isGerman ? 'Straße' : 'Street'} *
                     </label>
                     <input
-                      id="partner-address"
-                      name="partner-address"
+                      id="partner-street"
+                      name="partner-street"
                       type="text"
                       autoComplete="off"
                       autoCorrect="off"
@@ -3151,41 +3566,98 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </div>
 
                   <div>
-                    <label 
-                      htmlFor="partner-postcodeCity" 
+                    <label
+                      htmlFor="partner-city"
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      🏘️ {isGerman ? 'PLZ & Stadt' : 'Postcode & City'} *
+                      🏘️ {isGerman ? 'Stadt' : 'City'} *
                     </label>
                     <input
-                      id="partner-postcodeCity"
-                      name="partner-postcodeCity"
+                      id="partner-city"
+                      name="partner-city"
                       type="text"
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
                       value={partnerFormData.address.city}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        handlePartnerFormChange('address.city', value);
-                        // Also extract postal code if present
-                        const postalCodeMatch = value.match(/^(\d{5})\s/);
-                        if (postalCodeMatch) {
-                          handlePartnerFormChange('address.postalCode', postalCodeMatch[1]);
-                        }
-                      }}
+                      onChange={(e) => handlePartnerFormChange('address.city', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
                         borderColor: partnerFormErrors['address.city'] ? '#ef4444' : 'var(--theme-border)',
                         color: 'var(--theme-text)'
                       }}
-                      placeholder={isGerman ? 'PLZ Stadt' : 'Postcode City'}
+                      placeholder={isGerman ? 'Stadt' : 'City'}
                     />
                     {partnerFormErrors['address.city'] && (
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.city']}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Zip Code and Country - Row 2 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="partner-zipCode"
+                      className="block text-sm font-medium mb-1"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      📮 {isGerman ? 'PLZ' : 'Zip Code'} *
+                    </label>
+                    <input
+                      id="partner-zipCode"
+                      name="partner-zipCode"
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={partnerFormData.address.zipCode}
+                      onChange={(e) => handlePartnerFormChange('address.zipCode', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: partnerFormErrors['address.zipCode'] ? '#ef4444' : 'var(--theme-border)',
+                        color: 'var(--theme-text)'
+                      }}
+                      placeholder={isGerman ? 'PLZ' : 'Zip Code'}
+                    />
+                    {partnerFormErrors['address.zipCode'] && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.zipCode']}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="partner-country"
+                      className="block text-sm font-medium mb-1"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      🌍 {isGerman ? 'Land' : 'Country'} *
+                    </label>
+                    <input
+                      id="partner-country"
+                      name="partner-country"
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={partnerFormData.address.country}
+                      onChange={(e) => handlePartnerFormChange('address.country', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: partnerFormErrors['address.country'] ? '#ef4444' : 'var(--theme-border)',
+                        color: 'var(--theme-text)'
+                      }}
+                      placeholder={isGerman ? 'Land' : 'Country'}
+                    />
+                    {partnerFormErrors['address.country'] && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.country']}</p>
                     )}
                   </div>
                 </div>

@@ -6,7 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
-import { leadsAPI, partnersAPI } from '../../../lib/api/api';
+import { leadsAPI, partnersAPI, settingsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
 import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
@@ -45,6 +45,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const [allActivePartners, setAllActivePartners] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [adminSettings, setAdminSettings] = useState(null);
   
   // Cancel lead states
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -63,6 +64,62 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const [selectedRejectLead, setSelectedRejectLead] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Helper function to get current partner's assignment status
+  const getPartnerAssignmentStatus = (lead) => {
+    if (!isPartner || !user?.id) return null;
+
+    // Safety check: ensure partnerAssignments is an array
+    const assignments = Array.isArray(lead.partnerAssignments) ? lead.partnerAssignments : [];
+
+    const currentPartnerAssignment = assignments.find(assignment =>
+      assignment.partner === user.id ||
+      assignment.partner === user.id.toString() ||
+      assignment.partner?._id === user.id ||
+      assignment.partner?._id === user.id.toString()
+    );
+
+    // Debug logging
+    console.log('getPartnerAssignmentStatus - Lead:', lead.leadId || lead.id);
+    console.log('User ID:', user.id, 'Type:', typeof user.id);
+    console.log('User ID toString:', user.id.toString());
+    console.log('Assignments array:', assignments);
+    console.log('Assignments length:', assignments.length);
+    assignments.forEach((assignment, index) => {
+      console.log(`Assignment ${index}:`, {
+        partner: assignment.partner,
+        partnerType: typeof assignment.partner,
+        status: assignment.status,
+        matchesUserId: assignment.partner === user.id,
+        matchesUserIdAsString: assignment.partner === user.id.toString(),
+        matchesPartner_id: assignment.partner?._id === user.id
+      });
+    });
+    console.log('Current partner assignment found:', currentPartnerAssignment);
+
+    // Fallback: If no assignment found but we have overall lead status, use that
+    let status = currentPartnerAssignment?.status || 'pending';
+
+    // If no partner assignment found, but lead has overall status, use lead status as fallback
+    if (!currentPartnerAssignment && lead.status) {
+      status = lead.status;
+    }
+
+    // Additional fallback: check if lead has partnerStatus field
+    if (!currentPartnerAssignment && lead.partnerStatus) {
+      status = lead.partnerStatus;
+    }
+
+    return {
+      assignment: currentPartnerAssignment,
+      status: status,
+      isAccepted: status === 'accepted',
+      isRejected: status === 'rejected',
+      isCancellationRequested: status === 'cancellationRequested' ||
+                              status === 'cancel_requested' ||
+                              currentPartnerAssignment?.cancellationRequested === true
+    };
+  };
   
   // Cancelled requests state
   const [cancelledRequests, setCancelledRequests] = useState([]);
@@ -116,15 +173,19 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     if (partnerFilter === 'search') {
       // Use all active partners for search
       sourcePartners = allActivePartners || [];
+      console.log('Using search mode, sourcePartners count:', sourcePartners.length);
     } else if (partnerFilter === 'basic') {
       // Use suggested basic partners from API
       sourcePartners = partnerTabs.basic.partners || [];
+      console.log('Using basic tab, sourcePartners count:', sourcePartners.length);
     } else if (partnerFilter === 'exclusive') {
       // Use suggested exclusive partners from API
       sourcePartners = partnerTabs.exclusive.partners || [];
+      console.log('Using exclusive tab, sourcePartners count:', sourcePartners.length);
     } else {
       // Fallback to legacy availablePartners if needed
       sourcePartners = availablePartners || [];
+      console.log('Using fallback, sourcePartners count:', sourcePartners.length);
     }
 
     // Apply search query if provided
@@ -132,19 +193,152 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const query = partnerSearchQuery.toLowerCase().trim();
 
       sourcePartners = sourcePartners.filter(partner => {
-        return (
-          partner.companyName?.toLowerCase().includes(query) ||
-          partner.partnerId?.toLowerCase().includes(query) ||
-          partner.contactPerson?.firstName?.toLowerCase().includes(query) ||
-          partner.contactPerson?.lastName?.toLowerCase().includes(query) ||
-          partner.contactPerson?.email?.toLowerCase().includes(query) ||
-          `${partner.contactPerson?.firstName} ${partner.contactPerson?.lastName}`.toLowerCase().includes(query)
-        );
+        const companyMatch = partner.companyName?.toLowerCase().includes(query);
+        const partnerIdMatch = partner.partnerId?.toLowerCase().includes(query);
+        const firstNameMatch = partner.contactPerson?.firstName?.toLowerCase().includes(query);
+        const lastNameMatch = partner.contactPerson?.lastName?.toLowerCase().includes(query);
+        const emailMatch = partner.contactPerson?.email?.toLowerCase().includes(query);
+        const fullNameMatch = `${partner.contactPerson?.firstName || ''} ${partner.contactPerson?.lastName || ''}`.toLowerCase().includes(query);
+
+        const matches = companyMatch || partnerIdMatch || firstNameMatch || lastNameMatch || emailMatch || fullNameMatch;
+
+        // Debug logging for search issues
+        if (query.includes('abc') && partner.companyName?.toLowerCase().includes('abc')) {
+          console.log('Search Debug:', {
+            query,
+            partner: partner.companyName,
+            partnerId: partner.partnerId,
+            companyMatch,
+            matches
+          });
+        }
+
+        return matches;
       });
     }
 
+    // For search partners, filter by service type AND partner type based on selected tab
+    if (partnerFilter === 'search' && selectedLead) {
+      // First filter by service type to match the current lead
+      sourcePartners = sourcePartners.filter(partner => {
+        const hasServices = partner.services && Array.isArray(partner.services);
+        const matchesService = hasServices && partner.services.includes(selectedLead.serviceType);
+        const matchesServiceType = partner.serviceType === selectedLead.serviceType;
+
+        console.log(`Service filtering for ${partner.companyName}:`, {
+          leadServiceType: selectedLead.serviceType,
+          partnerServices: partner.services,
+          partnerServiceType: partner.serviceType,
+          matchesService,
+          matchesServiceType,
+          shouldInclude: matchesService || matchesServiceType
+        });
+
+        return matchesService || matchesServiceType;
+      });
+
+      console.log(`After service filtering: ${sourcePartners.length} partners for service: ${selectedLead.serviceType}`);
+    }
+
+    // Apply partner type filtering for basic and exclusive tabs (including search mode)
+    if (partnerFilter === 'basic' || partnerFilter === 'exclusive') {
+      // Filter by partner type when using basic or exclusive tabs
+      const targetPartnerType = partnerFilter; // 'basic' or 'exclusive'
+
+      sourcePartners = sourcePartners.filter(partner => {
+        const matchesPartnerType = partner.partnerType === targetPartnerType;
+
+        console.log(`Partner type filtering for ${partner.companyName}:`, {
+          partnerType: partner.partnerType,
+          targetType: targetPartnerType,
+          matches: matchesPartnerType
+        });
+
+        return matchesPartnerType;
+      });
+
+      console.log(`After partner type filtering (${targetPartnerType}): ${sourcePartners.length} partners`);
+    }
+
+    // Calculate weekly leads for all filtered partners if admin settings available
+    if (selectedLead && adminSettings && (partnerFilter === 'search' || partnerFilter === 'basic' || partnerFilter === 'exclusive')) {
+      sourcePartners = sourcePartners.map(partner => {
+        // If partner already has averageLeadsPerWeek, use it
+        if (partner.averageLeadsPerWeek !== undefined) {
+          return partner;
+        }
+
+        // Apply the same priority logic as backend:
+        // 1. Check customPricing.leadsPerWeek
+        // 2. Fall back to admin settings leadDistribution[serviceType][partnerType].leadsPerWeek
+        // 3. Use default fallback of 5
+        let avgLeadsPerWeek = 5; // Default fallback
+
+        // Debug PTRCLNMAK specifically
+        if (partner.partnerId === 'PTRCLNMAK') {
+          console.log('🔍 FRONTEND PTRCLNMAK DEBUG:', {
+            companyName: partner.companyName,
+            hasAverageLeadsPerWeek: partner.averageLeadsPerWeek !== undefined,
+            backendValue: partner.averageLeadsPerWeek,
+            customPricing: partner.customPricing,
+            adminSettings: adminSettings?.leadDistribution?.cleaning?.basic
+          });
+        }
+
+        if (partner.customPricing?.leadsPerWeek) {
+          avgLeadsPerWeek = partner.customPricing.leadsPerWeek;
+          console.log(`Partner ${partner.companyName} using custom pricing: ${avgLeadsPerWeek} leads/week`);
+        } else if (adminSettings.leadDistribution && selectedLead.serviceType && partner.partnerType) {
+          const defaultWeekly = adminSettings.leadDistribution[selectedLead.serviceType]?.[partner.partnerType]?.leadsPerWeek;
+
+          // Debug logging to understand the issue
+          if (partner.partnerId === 'PTRCLNMAK') {
+            console.log('🔍 PTRCLNMAK ADMIN LOOKUP:', {
+              adminSettingsExists: !!adminSettings.leadDistribution,
+              serviceType: selectedLead.serviceType,
+              partnerType: partner.partnerType,
+              lookupPath: `${selectedLead.serviceType}.${partner.partnerType}.leadsPerWeek`,
+              adminValue: defaultWeekly,
+              fullPath: adminSettings.leadDistribution[selectedLead.serviceType]
+            });
+          }
+
+          console.log(`Debug for ${partner.companyName}:`, {
+            serviceType: selectedLead.serviceType,
+            partnerType: partner.partnerType,
+            adminSettings: adminSettings.leadDistribution,
+            lookupPath: `${selectedLead.serviceType}.${partner.partnerType}.leadsPerWeek`,
+            defaultWeekly: defaultWeekly,
+            hasAdminSettings: !!adminSettings.leadDistribution,
+            hasServiceType: !!selectedLead.serviceType,
+            hasPartnerType: !!partner.partnerType
+          });
+
+          if (defaultWeekly) {
+            avgLeadsPerWeek = defaultWeekly;
+            console.log(`Partner ${partner.companyName} using admin settings: ${avgLeadsPerWeek} leads/week`);
+          } else {
+            console.log(`Partner ${partner.companyName} - no admin settings found, using default: ${avgLeadsPerWeek} leads/week`);
+          }
+        } else {
+          console.log(`Partner ${partner.companyName} - conditions not met:`, {
+            hasAdminSettings: !!adminSettings.leadDistribution,
+            hasServiceType: !!selectedLead.serviceType,
+            hasPartnerType: !!partner.partnerType
+          });
+        }
+
+        return {
+          ...partner,
+          averageLeadsPerWeek: avgLeadsPerWeek
+        };
+      });
+
+      console.log('Enhanced partners with weekly leads calculation:', sourcePartners.slice(0, 3));
+    }
+
     return sourcePartners;
-  }, [partnerTabs, allActivePartners, availablePartners, partnerFilter, partnerSearchQuery]);
+  }, [partnerTabs, allActivePartners, availablePartners, partnerFilter, partnerSearchQuery, selectedLead, adminSettings]);
 
   // Translation functions using centralized translations
   const translateStatus = (status) => {
@@ -303,26 +497,32 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Handle view lead details
   const handleViewLead = async (lead) => {
+    if (!lead) {
+      toast.error(isGerman ? 'Fehler: Lead nicht gefunden' : 'Error: Lead not found');
+      return;
+    }
+
     // Block view for partners if lead is not accepted
     if (isPartner) {
-      const isAccepted = lead.status === 'accepted' || lead.partnerStatus === 'accepted';
-      const isCancellationRequested = lead.status === 'cancellationRequested' ||
-                                     lead.status === 'cancel_requested' ||
-                                     lead.partnerStatus === 'cancellationRequested' ||
-                                     lead.partnerStatus === 'cancel_requested';
+      const partnerStatus = getPartnerAssignmentStatus(lead);
 
-      if (!isAccepted || isCancellationRequested) {
-        if (isCancellationRequested) {
+      console.log('handleViewLead - Partner status check:', {
+        leadId: lead.leadId || lead.id,
+        partnerStatus: partnerStatus,
+        isAccepted: partnerStatus?.isAccepted,
+        isCancellationRequested: partnerStatus?.isCancellationRequested,
+        isRejected: partnerStatus?.isRejected,
+        status: partnerStatus?.status
+      });
+
+      if (!partnerStatus?.isAccepted || partnerStatus?.isCancellationRequested) {
+        if (partnerStatus?.isCancellationRequested) {
           toast.error(isGerman ? 'Details nicht verfügbar - Stornierung beantragt' : 'Details unavailable - Cancellation requested');
+        } else if (partnerStatus?.isRejected) {
+          toast.error(isGerman ? 'Details nicht verfügbar - Lead abgelehnt' : 'Details unavailable - Lead rejected');
         } else {
-          // Check if lead is rejected
-          const isRejected = lead.status === 'rejected' || lead.partnerStatus === 'rejected';
-
-          if (isRejected) {
-            toast.error(isGerman ? 'Details nicht verfügbar - Lead abgelehnt' : 'Details unavailable - Lead rejected');
-          } else {
-            toast.error(isGerman ? 'Zuerst akzeptieren um Details zu sehen' : 'Accept first to see details');
-          }
+          console.log('Showing Accept first message - partnerStatus:', partnerStatus);
+          toast.error(isGerman ? 'Zuerst akzeptieren um Details zu sehen' : 'Accept first to see details');
         }
         return;
       }
@@ -347,8 +547,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           (leadData.name || ''),
         email: leadData.user?.email || leadData.email || '',
         city: leadData.location?.city || leadData.city || '',
-        // Use cancel request status if viewing from cancelled tab
-        status: activeTab === 'cancelled' && lead.requestStatus ? lead.requestStatus : (leadData.status || 'pending'),
+        // Always use the actual lead status in details dialog, not cancel request status
+        status: leadData.status || 'pending',
         // Preserve partner assignment information
         assignedPartner: leadData.assignedPartner,
         assignedPartners: leadData.assignedPartners,
@@ -443,16 +643,31 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Handle assign lead button click
   const handleAssignLead = async (lead) => {
+    const leadId = lead?.id || lead?._id;
+    if (!lead || !leadId) {
+      toast.error(isGerman ? 'Fehler: Lead nicht gefunden' : 'Error: Lead not found');
+      return;
+    }
+
     try {
       setSelectedLead(lead);
       setPartnersLoading(true);
       setShowAssignModal(true);
       setSelectedPartners([]);
       setPartnerSearchQuery(''); // Reset search query
-      
+
       // Get available partners for this lead
-      const response = await leadsAPI.getAvailablePartners(lead.id);
+      console.log('Calling getAvailablePartners with leadId:', leadId);
+      const response = await leadsAPI.getAvailablePartners(leadId);
       const data = response.data;
+
+      console.log('API Response:', {
+        success: data.success,
+        basicCount: data.partnerTabs?.basic?.count,
+        exclusiveCount: data.partnerTabs?.exclusive?.count,
+        basicPartners: data.partnerTabs?.basic?.partners?.length,
+        exclusivePartners: data.partnerTabs?.exclusive?.partners?.length
+      });
 
       // Update state with new API response structure
       setPartnerTabs(data.partnerTabs || { basic: { partners: [], count: 0 }, exclusive: { partners: [], count: 0 } });
@@ -463,7 +678,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       // Use allActivePartners for search fallback
       if (data.allActivePartners) {
         setAllActivePartners(data.allActivePartners);
+      } else {
+        // If no allActivePartners from API, fetch them for search functionality
+        console.log('No allActivePartners from API, fetching for search...');
+        fetchAllActivePartners();
       }
+
+      // Fetch admin settings for weekly leads calculation
+      fetchAdminSettings();
 
       // Set the appropriate tab based on API response
       if (data.showTabs && data.defaultTab) {
@@ -474,6 +696,16 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       } else {
         setPartnerFilter('basic'); // Fallback
       }
+
+      // Log debug info for the assignment modal
+      console.log('Assignment modal data:', {
+        leadId: lead.id,
+        showTabs: data.showTabs,
+        defaultTab: data.defaultTab,
+        basicPartnersCount: data.partnerTabs?.basic?.count || 0,
+        exclusivePartnersCount: data.partnerTabs?.exclusive?.count || 0,
+        allActivePartnersCount: data.allActivePartners?.length || allActivePartners.length
+      });
       
       // No need to show toast error - the dialog already displays this information clearly
     } catch (error) {
@@ -484,25 +716,84 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
   };
 
+  // Fetch admin settings for weekly leads calculation
+  const fetchAdminSettings = async () => {
+    if (adminSettings) return; // Already fetched
+
+    try {
+      console.log('Fetching admin settings for weekly leads calculation...');
+      const response = await settingsAPI.get();
+      console.log('Admin settings response:', response.data);
+      setAdminSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching admin settings:', error);
+      // Set empty settings as fallback
+      setAdminSettings({ leadDistribution: {} });
+    }
+  };
+
   // Fetch all active partners for search
   const fetchAllActivePartners = async () => {
     if (allActivePartners.length > 0) return; // Already fetched
-    
+
     try {
       setSearchLoading(true);
-      
+      console.log('Fetching all active partners for search...', { currentService });
+
       // Use the new partner search endpoint that's available to all authenticated users
       const response = await partnersAPI.search({
         status: 'active',
         limit: 1000,
         page: 1
       });
-      
+
+      console.log('Partner search response:', response.data);
+
       const partners = response.data.partners || response.data || [];
-      const filteredByService = partners.filter(partner => 
-        partner.services && partner.services.includes(currentService || 'moving')
-      );
-      
+
+      // Debug: Log all partners to understand structure
+      console.log('All partners from API:', partners.slice(0, 3));
+      console.log('Current service for filtering:', currentService || 'moving');
+
+      const filteredByService = partners.filter(partner => {
+        // More flexible service filtering
+        const hasServices = partner.services && Array.isArray(partner.services);
+        const matchesService = hasServices && partner.services.includes(currentService || 'moving');
+
+        // Also check serviceType field as fallback
+        const matchesServiceType = partner.serviceType === (currentService || 'moving');
+
+        // For moving service, also accept partners without specific service filtering
+        const isMovingService = (currentService || 'moving') === 'moving';
+        const isActivePartner = partner.status === 'active';
+
+        const shouldInclude = matchesService || matchesServiceType || (isMovingService && isActivePartner);
+
+        // Debug specific partners
+        if (partner.companyName && partner.companyName.toLowerCase().includes('xyz')) {
+          console.log('Debug xyz company partner:', {
+            companyName: partner.companyName,
+            services: partner.services,
+            serviceType: partner.serviceType,
+            status: partner.status,
+            currentService: currentService || 'moving',
+            hasServices,
+            matchesService,
+            matchesServiceType,
+            shouldInclude
+          });
+        }
+
+        return shouldInclude;
+      });
+
+      console.log('Filtered partners by service:', {
+        totalPartners: partners.length,
+        filteredCount: filteredByService.length,
+        currentService: currentService || 'moving',
+        samplePartner: filteredByService[0]
+      });
+
       setAllActivePartners(filteredByService);
     } catch (error) {
       console.error('Error fetching all active partners:', error);
@@ -510,20 +801,32 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       // Fallback: Try the superadmin endpoint if user is superadmin
       try {
         if (isSuperAdmin) {
+          console.log('Trying fallback: superadmin getAll endpoint...');
           const response = await partnersAPI.getAll({
             status: 'active',
             limit: 1000,
             page: 1
           });
-          
+
           const partners = response.data.partners || response.data || [];
-          const filteredByService = partners.filter(partner => 
-            partner.services && partner.services.includes(currentService || 'moving')
-          );
-          
+          console.log('Fallback partners from getAll:', partners.slice(0, 3));
+
+          const filteredByService = partners.filter(partner => {
+            // Use same improved filtering logic as above
+            const hasServices = partner.services && Array.isArray(partner.services);
+            const matchesService = hasServices && partner.services.includes(currentService || 'moving');
+            const matchesServiceType = partner.serviceType === (currentService || 'moving');
+            const isMovingService = (currentService || 'moving') === 'moving';
+            const isActivePartner = partner.status === 'active';
+
+            return matchesService || matchesServiceType || (isMovingService && isActivePartner);
+          });
+
+          console.log('Fallback filtered partners count:', filteredByService.length);
           setAllActivePartners(filteredByService);
         } else {
           // Last fallback: use availablePartners (limited search)
+          console.log('Using availablePartners as fallback...');
           setAllActivePartners(availablePartners || []);
         }
       } catch (fallbackError) {
@@ -549,6 +852,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const handleSearchInputChange = (e) => {
     const value = e.target.value;
     setPartnerSearchQuery(value);
+
+    // Auto-switch to search mode when user starts typing
+    if (value.trim().length > 0) {
+      setPartnerFilter('search');
+      // Fetch all active partners if not already loaded
+      if (allActivePartners.length === 0) {
+        fetchAllActivePartners();
+      }
+    } else {
+      // Switch back to default tab when search is cleared
+      setPartnerFilter(defaultTab);
+    }
   };
 
   // Handle partner selection
@@ -661,7 +976,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load leads from API when service changes or sorting changes
   const loadLeads = async () => {
-    if (!currentService) return;
+    const serviceToUse = currentService || 'moving';
+    console.log('loadLeads called with currentService:', currentService, 'using:', serviceToUse);
+
+    if (!serviceToUse) {
+      console.warn('No service available, cannot load leads');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -715,7 +1036,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       if (isPartner && user?.id) {
         // For partners, get only their assigned leads
         response = await partnersAPI.getLeads(user.id, {
-          serviceType: currentService,
+          serviceType: serviceToUse,
           sortBy: sortConfig.key,
           sortOrder: sortConfig.direction,
           page: currentPage,
@@ -729,7 +1050,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       } else {
         // For admins, get all leads
         const apiParams = {
-          serviceType: currentService,
+          serviceType: serviceToUse,
           sortBy: sortConfig.key,
           sortOrder: sortConfig.direction,
           page: currentPage,
@@ -817,13 +1138,20 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             dateDisplay = `${startDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')} - ${endDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}`;
             pickupDate = startDate; // Use start date for filtering
           }
-          // Check for flexible period
-          else if (lead.formData.flexiblePeriod) {
+          // Check for flexible period with startDate/endDate
+          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.startDate && lead.formData.flexiblePeriod.endDate) {
+            const startDate = new Date(lead.formData.flexiblePeriod.startDate);
+            const endDate = new Date(lead.formData.flexiblePeriod.endDate);
+            dateDisplay = `${startDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')} - ${endDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}`;
+            pickupDate = startDate; // Use start date for filtering
+          }
+          // Check for flexible period with month/year format
+          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.month && lead.formData.flexiblePeriod.year) {
             dateDisplay = `${lead.formData.flexiblePeriod.month} ${lead.formData.flexiblePeriod.year}`;
           }
           // Check for moveDateType with corresponding dates
-          else if (lead.formData.moveDateType === 'fixed' && lead.formData.moveDate) {
-            pickupDate = new Date(lead.formData.moveDate);
+          else if (lead.formData.moveDateType === 'fixed' && (lead.formData.moveDate || lead.formData.desiredMoveDate)) {
+            pickupDate = new Date(lead.formData.moveDate || lead.formData.desiredMoveDate);
             dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
           }
         }
@@ -877,7 +1205,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load partners for filter dropdown
   const loadPartnersForFilter = async () => {
-    if (!currentService) return;
+    const serviceToUse = currentService || 'moving';
+    console.log('loadPartnersForFilter called with currentService:', currentService, 'using:', serviceToUse);
+
+    if (!serviceToUse) {
+      console.warn('No service available, cannot load partners');
+      return;
+    }
     
     try {
       const response = await partnersAPI.getAll({
@@ -896,7 +1230,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load cancelled requests
   const loadCancelledRequests = async () => {
-    if (!currentService) return;
+    const serviceToUse = currentService || 'moving';
+    console.log('loadCancelledRequests called with currentService:', currentService, 'using:', serviceToUse);
+
+    if (!serviceToUse) {
+      console.warn('No service available, cannot load cancelled requests');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -908,7 +1248,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
       while (hasMorePages && currentPage <= 20) { // Safety limit of 20 pages max
         const response = await leadsAPI.getAll({
-          serviceType: currentService,
+          serviceType: serviceToUse,
           page: currentPage,
           limit: maxLimit,
           search: filters.searchTerm || undefined,
@@ -1275,14 +1615,16 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Reload leads when sorting, date filter, page, or filters change
   useEffect(() => {
-    if (currentService && activeTab === 'leads') {
+    console.log('useEffect triggered - currentService:', currentService, 'activeTab:', activeTab);
+    if (activeTab === 'leads') {
       loadLeads();
     }
-  }, [sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, currentPage, filters.status, filters.city, filters.partner, filters.searchTerm, activeTab]);
+  }, [currentService, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, currentPage, filters.status, filters.city, filters.partner, filters.searchTerm, activeTab]);
 
   // Load cancelled requests when activeTab changes to 'cancelled' or filters change
   useEffect(() => {
-    if (currentService && activeTab === 'cancelled') {
+    console.log('Cancelled requests useEffect - currentService:', currentService, 'activeTab:', activeTab);
+    if (activeTab === 'cancelled') {
       loadCancelledRequests();
     }
   }, [activeTab, currentService, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, cancelledCurrentPage, filters.status, filters.city, filters.partner, filters.searchTerm]);
@@ -1332,10 +1674,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     // Search term
     if (filters.searchTerm) {
       const term = filters.searchTerm.toLowerCase();
-      filtered = filtered.filter(lead => 
+      filtered = filtered.filter(lead =>
         lead.name.toLowerCase().includes(term) ||
         lead.email.toLowerCase().includes(term) ||
-        lead.id.toLowerCase().includes(term)
+        (lead.leadId && lead.leadId.toLowerCase().includes(term))
       );
     }
 
@@ -1502,9 +1844,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             pickupStartDate = lead.formData.flexibleDateRange.startDate;
             pickupEndDate = lead.formData.flexibleDateRange.endDate;
           }
+          // Check for flexible period with startDate/endDate
+          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.startDate && lead.formData.flexiblePeriod.endDate) {
+            pickupStartDate = lead.formData.flexiblePeriod.startDate;
+            pickupEndDate = lead.formData.flexiblePeriod.endDate;
+          }
           // Check for move date (alternative format)
-          else if (lead.formData.moveDateType === 'fixed' && lead.formData.moveDate) {
-            pickupDate = lead.formData.moveDate;
+          else if (lead.formData.moveDateType === 'fixed' && (lead.formData.moveDate || lead.formData.desiredMoveDate)) {
+            pickupDate = lead.formData.moveDate || lead.formData.desiredMoveDate;
           }
         }
 
@@ -1576,6 +1923,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   };
 
   const handleAcceptLead = async (leadId, partnerId) => {
+    if (!leadId || !user?.id) {
+      toast.error(isGerman ? 'Fehler: Ungültige Parameter' : 'Error: Invalid parameters');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await leadsAPI.accept(leadId);
@@ -1584,6 +1936,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       await loadLeads();
 
       toast.success(isGerman ? 'Lead erfolgreich akzeptiert' : 'Lead accepted successfully');
+
+      // Find the accepted lead and open view dialog
+      const acceptedLead = response.data?.lead || leads.find(l => l.id === leadId);
+      if (acceptedLead) {
+        // Set status to accepted for view access
+        const leadForView = {
+          ...acceptedLead,
+          status: 'accepted',
+          partnerStatus: 'accepted'
+        };
+        handleViewLead(leadForView);
+      }
     } catch (error) {
       console.error('Error accepting lead:', error);
 
@@ -1601,6 +1965,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Handle reject lead - show modal
   const handleRejectLead = (lead) => {
+    if (!lead || !lead.id) {
+      toast.error(isGerman ? 'Fehler: Lead nicht gefunden' : 'Error: Lead not found');
+      return;
+    }
     setSelectedRejectLead(lead);
     setRejectionReason('');
     setShowRejectModal(true);
@@ -1646,6 +2014,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Handle cancel lead - show modal for reason
   const handleCancelLead = (lead) => {
+    if (!lead || !user?.id) {
+      toast.error(isGerman ? 'Fehler: Ungültige Parameter' : 'Error: Invalid parameters');
+      return;
+    }
     setSelectedCancelLead(lead);
     setShowCancelModal(true);
     setCancelReason('');
@@ -1748,7 +2120,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Check if partner's cancellation request was rejected
   const isCancellationRequestRejected = (lead) => {
-    if (!lead.partnerAssignments) return false;
+    if (!lead.partnerAssignments || !user?.id) return false;
 
     // Handle both array and single object formats
     if (Array.isArray(lead.partnerAssignments)) {
@@ -1787,6 +2159,37 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     console.log('useMemo currentLeads - after filtering:', filtered.length, 'leads');
     return filtered;
   }, [leads, filters, dateFilter]);
+
+  // Calculate filtered stats based on currentLeads
+  const filteredStats = useMemo(() => {
+    const stats = {
+      total: currentLeads.length,
+      pending: 0,
+      assigned: 0,
+      accepted: 0,
+      cancelled: 0
+    };
+
+    currentLeads.forEach(lead => {
+      switch (lead.status) {
+        case 'pending':
+          stats.pending++;
+          break;
+        case 'assigned':
+        case 'partial_assigned':
+          stats.assigned++;
+          break;
+        case 'accepted':
+          stats.accepted++;
+          break;
+        case 'cancelled':
+          stats.cancelled++;
+          break;
+      }
+    });
+
+    return stats;
+  }, [currentLeads]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -2174,11 +2577,23 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             >
               <option value="all">{isGerman ? 'Alle Status' : 'All Status'}</option>
               {activeTab === 'leads' ? (
-                <>
-                  <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
-                  <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
-                  <option value="partial_assigned">{isGerman ? 'Teilweise zugewiesen' : 'Partial Assigned'}</option>
-                </>
+                isPartner ? (
+                  // Partner-specific status options
+                  <>
+                    <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
+                    <option value="accepted">{isGerman ? 'Akzeptiert' : 'Accepted'}</option>
+                    <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
+                    <option value="cancel_requested">{isGerman ? 'Stornierung angefragt' : 'Cancel Requested'}</option>
+                    <option value="cancelled">{isGerman ? 'Storniert' : 'Cancelled'}</option>
+                  </>
+                ) : (
+                  // Admin status options (unchanged)
+                  <>
+                    <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
+                    <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
+                    <option value="partial_assigned">{isGerman ? 'Teilweise zugewiesen' : 'Partial Assigned'}</option>
+                  </>
+                )
               ) : (
                 <>
                   <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
@@ -2362,9 +2777,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       {currentView === 'table' && activeTab === 'leads' && (isPartner || isSuperAdmin) && (
         <div className="flex flex-wrap gap-4 mt-6">
         {[
-          { label: t('leads.totalLeads'), value: leadStats.total, icon: '📋', color: 'blue' },
-          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: '⏳', color: 'yellow' },
-          ...(isSuperAdmin ? [{ label: translateStatus('assigned'), value: leadStats.assigned, icon: '👤', color: 'blue' }] : [])
+          { label: t('leads.totalLeads'), value: filteredStats.total, icon: '📋', color: 'blue' },
+          { label: translateStatus('pending'), value: filteredStats.pending || 0, icon: '⏳', color: 'yellow' },
+          ...(isSuperAdmin ? [{ label: translateStatus('assigned'), value: filteredStats.assigned, icon: '👤', color: 'blue' }] : [])
         ].map((stat, index) => (
           <motion.div
             key={index}
@@ -2517,7 +2932,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
                       const statusToShow = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
-                      console.log('Lead ID:', lead.leadId, 'Status to show:', statusToShow, 'partnerStatus:', lead.partnerStatus, 'status:', lead.status, 'isPartner:', isPartner, 'partnerAssignments:', lead.partnerAssignments, 'userId:', user.id);
+                      console.log('Lead ID:', lead.leadId, 'Status to show:', statusToShow, 'partnerStatus:', lead.partnerStatus, 'status:', lead.status, 'isPartner:', isPartner, 'partnerAssignments:', lead.partnerAssignments, 'userId:', user?.id);
                       return (
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(statusToShow)}`}>
                           {translateStatus(statusToShow)}
@@ -2530,26 +2945,28 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      {/* View button - available to all users */}
-                      <button
-                        onClick={() => handleViewLead(lead)}
-                        className="text-xs px-3 py-1 rounded transition-colors"
-                        style={{ 
-                          backgroundColor: 'var(--theme-bg-secondary)',
-                          color: 'var(--theme-text)',
-                          border: '1px solid var(--theme-border)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = 'var(--theme-hover)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
-                        }}
-                        title={t('leads.viewDetails')}
-                      >
-                        👁️ {t('common.view')}
-                      </button>
-                      {isSuperAdmin && (lead.status === 'pending' || (lead.status === 'partial_assigned' && lead.assignmentInfo?.canAssignMore)) && (
+                      {/* View button - available to admin users only (partners have conditional view buttons) */}
+                      {!isPartner && (
+                        <button
+                          onClick={() => handleViewLead(lead)}
+                          className="text-xs px-3 py-1 rounded transition-colors"
+                          style={{
+                            backgroundColor: 'var(--theme-bg-secondary)',
+                            color: 'var(--theme-text)',
+                            border: '1px solid var(--theme-border)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'var(--theme-hover)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
+                          }}
+                          title={t('leads.viewDetails')}
+                        >
+                          👁️ {t('common.view')}
+                        </button>
+                      )}
+                      {isSuperAdmin && (lead.status === 'pending' || lead.status === 'partial_assigned') && (
                         <button
                           onClick={() => handleAssignLead(lead)}
                           className="text-xs px-3 py-1 rounded transition-colors"
@@ -2568,110 +2985,156 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                           👤 {t('leads.assignLead')}
                         </button>
                       )}
-                      {isPartner && (
-                        <>
-                          {/* Show reject and accept buttons only for pending status */}
-                          {lead.partnerStatus === 'pending' && (
-                            <>
-                              {/* Reject button */}
-                              <button
-                                onClick={() => handleRejectLead(lead)}
-                                className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md border"
-                                style={{
-                                  backgroundColor: '#f3f4f6',
-                                  color: '#374151',
-                                  borderColor: '#d1d5db'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#f87171';
-                                  e.target.style.color = 'white';
-                                  e.target.style.borderColor = '#ef4444';
-                                  e.target.style.transform = 'translateY(-1px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = '#f3f4f6';
-                                  e.target.style.color = '#374151';
-                                  e.target.style.borderColor = '#d1d5db';
-                                  e.target.style.transform = 'translateY(0)';
-                                }}
-                                title={isGerman ? 'Lead ablehnen (wird sofort entfernt)' : 'Reject lead (will be removed immediately)'}
-                              >
-                                ✖️ {isGerman ? 'Ablehnen' : 'Reject'}
-                              </button>
+                      {isPartner && (() => {
+                        const partnerStatus = getPartnerAssignmentStatus(lead);
 
-                              {/* Accept button */}
-                              <button
-                                onClick={() => handleAcceptLead(lead.id, user.id)}
-                                className="text-xs px-3 py-1 rounded transition-colors"
-                                style={{
-                                  backgroundColor: '#10b981',
-                                  color: 'white',
-                                  border: '1px solid #10b981'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#059669';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = '#10b981';
-                                }}
-                                title={isGerman ? 'Lead akzeptieren' : 'Accept lead'}
-                              >
-                                ✅ {isGerman ? 'Akzeptieren' : 'Accept'}
-                              </button>
-                            </>
-                          )}
+                        // Debug logging
+                        console.log('Button rendering - Lead:', lead.leadId || lead.id, 'Status:', partnerStatus?.status);
 
-                          {/* Show cancel request button for accepted leads (but not if already requested or rejected) */}
-                          {(lead.partnerStatus === 'accepted' || lead.status === 'accepted') &&
-                           lead.partnerStatus !== 'cancel_requested' &&
-                           !isCancellationRequestRejected(lead) && (
-                            <button
-                              onClick={() => handleCancelLead(lead)}
-                              className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md"
-                              style={{
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: '1px solid #dc2626'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = '#dc2626';
-                                e.target.style.transform = 'translateY(-1px)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = '#ef4444';
-                                e.target.style.transform = 'translateY(0)';
-                              }}
-                              title={isGerman ? 'Stornierungsantrag stellen' : 'Request cancellation'}
-                            >
-                              ⚠️ {isGerman ? 'Stornierung anfordern' : 'Request Cancel'}
-                            </button>
-                          )}
+                        switch(partnerStatus?.status) {
+                          case 'pending':
+                            // Pending: Show Reject and Accept buttons
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleRejectLead(lead)}
+                                  className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md border"
+                                  style={{
+                                    backgroundColor: '#f3f4f6',
+                                    color: '#374151',
+                                    borderColor: '#d1d5db'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f87171';
+                                    e.target.style.color = 'white';
+                                    e.target.style.borderColor = '#ef4444';
+                                    e.target.style.transform = 'translateY(-1px)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#f3f4f6';
+                                    e.target.style.color = '#374151';
+                                    e.target.style.borderColor = '#d1d5db';
+                                    e.target.style.transform = 'translateY(0)';
+                                  }}
+                                  title={isGerman ? 'Lead ablehnen' : 'Reject lead'}
+                                >
+                                  ✖️ {isGerman ? 'Ablehnen' : 'Reject'}
+                                </button>
+                                <button
+                                  onClick={() => handleAcceptLead(lead.id, user?.id)}
+                                  className="text-xs px-3 py-1 rounded transition-colors"
+                                  style={{
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: '1px solid #10b981'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#059669';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#10b981';
+                                  }}
+                                  title={isGerman ? 'Lead akzeptieren' : 'Accept lead'}
+                                >
+                                  ✅ {isGerman ? 'Akzeptieren' : 'Accept'}
+                                </button>
+                              </>
+                            );
 
-                          {/* Show status for cancel requested leads */}
-                          {lead.partnerStatus === 'cancel_requested' && (
-                            <span className="text-xs px-3 py-1 rounded bg-purple-100 text-purple-800">
-                              🔄 {isGerman ? 'Stornierung angefragt' : 'Cancel Pending'}
-                            </span>
-                          )}
+                          case 'accepted':
+                            // Accepted: Show View and optionally Cancel Request buttons
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleViewLead(lead)}
+                                  className="text-xs px-3 py-1 rounded transition-colors"
+                                  style={{
+                                    backgroundColor: 'var(--theme-bg-secondary)',
+                                    color: 'var(--theme-text)',
+                                    border: '1px solid var(--theme-border)'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = 'var(--theme-hover)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
+                                  }}
+                                >
+                                  👁️ {isGerman ? 'Anzeigen' : 'View'}
+                                </button>
+                                {!partnerStatus?.isCancellationRequested && !isCancellationRequestRejected(lead) && (
+                                  <button
+                                    onClick={() => handleCancelLead(lead)}
+                                    className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md"
+                                    style={{
+                                      backgroundColor: '#ef4444',
+                                      color: 'white',
+                                      border: '1px solid #dc2626'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#dc2626';
+                                      e.target.style.transform = 'translateY(-1px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = '#ef4444';
+                                      e.target.style.transform = 'translateY(0)';
+                                    }}
+                                    title={isGerman ? 'Stornierungsantrag stellen' : 'Request cancellation'}
+                                  >
+                                    ⚠️ {isGerman ? 'Stornierung anfordern' : 'Request Cancel'}
+                                  </button>
+                                )}
+                              </>
+                            );
 
-                          {/* Show status for rejected cancellation requests */}
-                          {isCancellationRequestRejected(lead) && (
-                            <span
-                              className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 cursor-pointer"
-                              onClick={() => {
-                                toast.error(
-                                  isGerman
-                                    ? 'Ihre Stornierungsanfrage wurde abgelehnt. Sie können keine weitere Stornierung für diesen Lead anfordern.'
-                                    : 'Your cancellation request was rejected. You cannot request another cancellation for this lead.',
-                                  { duration: 4000 }
-                                );
-                              }}
-                            >
-                              ❌ {translateStatus('cancellation_rejected')}
-                            </span>
-                          )}
-                        </>
-                      )}
+                          case 'rejected':
+                          case 'cancellationRequested':
+                          case 'cancel_requested':
+                          default:
+                            // Rejected, Cancelled, or Cancel Requested: Show only View button and status
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleViewLead(lead)}
+                                  className="text-xs px-3 py-1 rounded transition-colors"
+                                  style={{
+                                    backgroundColor: 'var(--theme-bg-secondary)',
+                                    color: 'var(--theme-text)',
+                                    border: '1px solid var(--theme-border)'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = 'var(--theme-hover)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
+                                  }}
+                                >
+                                  👁️ {isGerman ? 'Anzeigen' : 'View'}
+                                </button>
+                                {partnerStatus?.isCancellationRequested && (
+                                  <span className="text-xs px-3 py-1 rounded bg-purple-100 text-purple-800">
+                                    🔄 {isGerman ? 'Stornierung angefragt' : 'Cancel Pending'}
+                                  </span>
+                                )}
+                                {isCancellationRequestRejected(lead) && (
+                                  <span
+                                    className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 cursor-pointer"
+                                    onClick={() => {
+                                      toast.error(
+                                        isGerman
+                                          ? 'Ihre Stornierungsanfrage wurde abgelehnt. Sie können keine weitere Stornierung für diesen Lead anfordern.'
+                                          : 'Your cancellation request was rejected. You cannot request another cancellation for this lead.',
+                                        { duration: 4000 }
+                                      );
+                                    }}
+                                  >
+                                    ❌ {translateStatus('cancellation_rejected')}
+                                  </span>
+                                )}
+                              </>
+                            );
+                        }
+                      })()}
                     </div>
                   </td>
                 </motion.tr>
@@ -3072,12 +3535,54 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             </div>
                           )}
                           {request.status !== 'pending' && (
-                            <span className="text-gray-500 italic text-xs">
-                              {request.status === 'approved' ? 
-                                (isGerman ? 'Genehmigt' : 'Approved') : 
-                                (isGerman ? 'Abgelehnt' : 'Rejected')
-                              }
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-500 italic text-xs">
+                                {request.status === 'approved' ?
+                                  (isGerman ? 'Genehmigt' : 'Approved') :
+                                  (isGerman ? 'Abgelehnt' : 'Rejected')
+                                }
+                              </span>
+                              {/* Action buttons to reverse decision */}
+                              {request.status === 'approved' ? (
+                                <button
+                                  onClick={() => handleRejectCancelRequest(request)}
+                                  className="text-xs px-2 py-1 rounded transition-colors"
+                                  style={{
+                                    backgroundColor: '#ef4444',
+                                    color: 'white',
+                                    border: '1px solid #ef4444'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#dc2626';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#ef4444';
+                                  }}
+                                  title={isGerman ? 'Genehmigung zurücknehmen' : 'Reverse Approval'}
+                                >
+                                  ❌ {isGerman ? 'Ablehnen' : 'Reject'}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleApproveCancelRequest(request.id)}
+                                  className="text-xs px-2 py-1 rounded transition-colors"
+                                  style={{
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: '1px solid #10b981'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#059669';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#10b981';
+                                  }}
+                                  title={isGerman ? 'Ablehnung zurücknehmen' : 'Reverse Rejection'}
+                                >
+                                  ✅ {isGerman ? 'Genehmigen' : 'Approve'}
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
                       )}
@@ -3378,27 +3883,40 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     {filteredPartners.map((partner) => {
                       const isSelected = selectedPartners.includes(partner._id);
                       const isExclusive = partner.partnerType === 'exclusive';
-                      const isAtCapacity = !partner.hasWeeklyCapacity;
-                      
+                      const isAtCapacity = partner.hasCapacity === false; // Check backend capacity status
+
+                      // Debug logging for partner data
+                      console.log('Partner weekly data:', {
+                        companyName: partner.companyName,
+                        currentWeekLeads: partner.currentWeekLeads,
+                        averageLeadsPerWeek: partner.averageLeadsPerWeek,
+                        weeklyLimit: partner.weeklyLimit,
+                        customPricing: partner.customPricing
+                      });
+
                       return (
                         <div
                           key={partner._id}
                           className={`p-4 rounded-lg border transition-all duration-200 ${
-                            isAtCapacity
-                              ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                              : isSelected
-                                ? 'border-blue-500 shadow-md cursor-pointer'
-                                : 'hover:border-gray-400 hover:shadow-sm cursor-pointer'
-                          } ${isExclusive ? 'ring-2 ring-yellow-400' : ''}`}
-                          style={{ 
-                            backgroundColor: isSelected 
-                              ? 'rgba(59, 130, 246, 0.1)' 
-                              : 'var(--theme-bg-secondary)',
-                            borderColor: isSelected 
-                              ? '#3b82f6' 
-                              : 'var(--theme-border)'
+                            isSelected
+                              ? 'border-blue-500 shadow-md cursor-pointer'
+                              : 'hover:border-gray-400 hover:shadow-sm cursor-pointer'
+                          } ${isExclusive ? 'ring-2 ring-yellow-400' : ''} ${
+                            isAtCapacity ? 'ring-2 ring-orange-400' : ''
+                          }`}
+                          style={{
+                            backgroundColor: isSelected
+                              ? 'rgba(59, 130, 246, 0.1)'
+                              : isAtCapacity
+                                ? 'rgba(249, 115, 22, 0.1)' // Light orange background for no capacity
+                                : 'var(--theme-bg-secondary)',
+                            borderColor: isSelected
+                              ? '#3b82f6'
+                              : isAtCapacity
+                                ? '#f97316' // Orange border for no capacity
+                                : 'var(--theme-border)'
                           }}
-                          onClick={() => !isAtCapacity && handlePartnerSelect(partner)}
+                          onClick={() => handlePartnerSelect(partner)}
                         >
                           {/* Company Header */}
                           <div className="flex items-center justify-between mb-3">
@@ -3421,8 +3939,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 </span>
                               )}
                               {isAtCapacity && (
-                                <span className="px-2 py-1 bg-red-500 text-white rounded-full text-xs font-medium">
-                                  FULL
+                                <span className="px-2 py-1 bg-orange-500 text-white rounded-full text-xs font-medium">
+                                  AT CAPACITY
                                 </span>
                               )}
                             </div>
@@ -3451,10 +3969,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             
                             <div className="flex justify-between items-center pt-2 border-t" style={{ borderColor: 'var(--theme-border)' }}>
                               <div className="text-center">
-                                <div className="font-bold text-sm" style={{ color: 'var(--theme-text)' }}>
-                                  {partner.currentWeekLeads || 0}/{partner.weeklyLimit || 0}
+                                <div className={`font-bold text-sm ${isAtCapacity ? 'text-orange-600' : ''}`}
+                                     style={{ color: isAtCapacity ? '#ea580c' : 'var(--theme-text)' }}>
+                                  {partner.currentWeekLeads || 0}/{partner.averageLeadsPerWeek || 0}
                                 </div>
-                                <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Weekly</div>
+                                <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+                                  {isAtCapacity ? 'At Capacity' : 'Weekly'}
+                                </div>
                               </div>
                               <div className="w-px h-6 bg-gray-200"></div>
                               <div className="text-center">

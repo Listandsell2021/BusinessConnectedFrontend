@@ -281,11 +281,17 @@ const LeadDetailsDialog = ({
                     leadData.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     leadData.status === 'accepted' ? 'bg-green-100 text-green-800' :
                     leadData.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    leadData.status === 'partial_assigned' ? 'bg-blue-100 text-blue-800' :
+                    leadData.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                    leadData.status === 'cancelled' || leadData.status === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {leadData.status === 'pending' ? (isGerman ? 'Ausstehend' : 'Pending') :
                      leadData.status === 'accepted' ? (isGerman ? 'Akzeptiert' : 'Accepted') :
                      leadData.status === 'rejected' ? (isGerman ? 'Abgelehnt' : 'Rejected') :
+                     leadData.status === 'partial_assigned' ? (isGerman ? 'Teilweise zugewiesen' : 'Partially Assigned') :
+                     leadData.status === 'assigned' ? (isGerman ? 'Zugewiesen' : 'Assigned') :
+                     leadData.status === 'cancelled' || leadData.status === 'cancellation_approved' ? (isGerman ? 'Storniert' : 'Cancelled') :
                      leadData.status}
                   </span>
                 </div>
@@ -326,10 +332,6 @@ const LeadDetailsDialog = ({
                           isContactInfo={true}
                         />
                       )}
-                      <TableRow
-                        label={t('common.city')}
-                        value={leadData.city}
-                      />
                     </tbody>
                   </table>
                 </div>

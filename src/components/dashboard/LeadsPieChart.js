@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
+import { dashboardAPI } from '../../lib/api/api';
 
 const LeadsPieChart = ({ className = "" }) => {
   const { isGerman } = useLanguage();
@@ -16,18 +17,42 @@ const LeadsPieChart = ({ className = "" }) => {
   const fetchLeadData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/dashboard/leads/distribution?service=${currentService}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await dashboardAPI.getStats(currentService);
+
+      if (response.data && response.data.success) {
+        setLeadData(transformLeadData(response.data.data));
+      } else {
+        setLeadData(getDefaultLeadData());
       }
-      const data = await response.json();
-      setLeadData(data);
     } catch (error) {
       console.error('Error fetching lead data:', error);
       setLeadData(getDefaultLeadData());
     } finally {
       setLoading(false);
     }
+  };
+
+  const transformLeadData = (stats) => {
+    if (!stats) return getDefaultLeadData();
+
+    const byStatus = [
+      { status: 'pending', count: stats.pendingLeads || 0, color: '#3b82f6' },
+      { status: 'accepted', count: stats.acceptedLeads || 0, color: '#10b981' },
+      { status: 'cancelled', count: stats.cancelledLeads || 0, color: '#ef4444' }
+    ];
+
+    const byService = currentService === 'all' ? [
+      { service: 'moving', count: Math.floor((stats.totalLeads || 0) * 0.6), color: '#667eea' },
+      { service: 'cleaning', count: Math.floor((stats.totalLeads || 0) * 0.4), color: '#f093fb' }
+    ] : [
+      { service: currentService, count: stats.totalLeads || 0, color: currentService === 'moving' ? '#667eea' : '#f093fb' }
+    ];
+
+    return {
+      byStatus,
+      byService,
+      total: stats.totalLeads || 0
+    };
   };
 
   const getDefaultLeadData = () => ({

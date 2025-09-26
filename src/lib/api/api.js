@@ -160,7 +160,7 @@ export const leadsAPI = {
   getCancelledRequests: (params) => api.get('/cancel-requests', { params }),
   createCancelRequest: (leadId, data) => api.post(`/leads/${leadId}/cancel-request`, data),
   approveCancelRequest: (leadId, partnerId, data = {}) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'approve', ...data }),
-  cancelLead: (leadId, data) => api.post(`/leads/${leadId}/cancel`, data),
+  cancelLead: (leadId, data) => api.put(`/leads/${leadId}/cancel`, data),
   rejectCancelRequest: (leadId, partnerId, reason) => api.put(`/leads/${leadId}/partners/${partnerId}/cancel`, { action: 'reject', reason }),
   exportCancelRequests: (format, filters) => api.get(`/cancel-requests/export/${format}`, {
     params: filters,
@@ -185,11 +185,17 @@ export const partnersAPI = {
   export: (format, filters) => api.get(`/partners/export/${format}`, {
     params: filters,
     responseType: 'blob'
-  })
+  }),
+  updatePartnerSettings: (id, settings) => api.put(`/partners/${id}/settings`, settings),
+  updateMySettings: (settings) => api.put('/partners/my/settings', settings),
+  getMyProfile: () => api.get('/partners/my/profile')
 };
 
 export const dashboardAPI = {
-  getStats: (role) => api.get(`/dashboard/stats/${role}`),
+  getStats: (service) => api.get('/dashboard/stats', { params: { service } }),
+  getSuperadminData: (serviceType, period) => api.get('/dashboard/superadmin', { params: { serviceType, period } }),
+  getPartnerData: (partnerId, period) => api.get(`/dashboard/partner/${partnerId}`, { params: { period } }),
+  getOverview: () => api.get('/dashboard/overview'),
   getCharts: (role, period) => api.get(`/dashboard/charts/${role}`, { params: { period } }),
   getRecentActivity: (role, limit) => api.get(`/dashboard/activity/${role}`, { params: { limit } })
 };
@@ -199,7 +205,16 @@ export const logsAPI = {
   getPartnerLogs: (partnerId, params) => api.get(`/logs/partner/${partnerId}`, { params }),
   getLeadTimeline: (leadId) => api.get(`/logs/lead/${leadId}`),
   getAnalytics: (params) => api.get('/logs/analytics', { params }),
-  export: (format, filters) => api.get(`/logs/export/${format}`, { 
+  export: (format, filters) => api.get(`/logs/export/${format}`, {
+    params: filters,
+    responseType: 'blob'
+  })
+};
+
+export const adminLogsAPI = {
+  getAll: (params) => api.get('/admin-logs', { params }),
+  getAnalytics: (params) => api.get('/admin-logs/analytics', { params }),
+  export: (format, filters) => api.get(`/admin-logs/export/${format}`, {
     params: filters,
     responseType: 'blob'
   })
@@ -208,13 +223,14 @@ export const logsAPI = {
 export const invoicesAPI = {
   getAll: (params) => api.get('/invoices', { params }),
   getById: (id) => api.get(`/invoices/${id}`),
-  create: (data) => api.post('/invoices', data),
+  create: (data) => api.post('/invoices/generate', data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
   delete: (id) => api.delete(`/invoices/${id}`),
   markPaid: (id) => api.patch(`/invoices/${id}/paid`),
-  generatePDF: (id) => api.get(`/invoices/${id}/pdf`, { responseType: 'blob' }),
+  generatePDF: (id) => api.get(`/invoices/${id}/download`, { responseType: 'blob' }),
   getStats: () => api.get('/invoices/stats'),
-  export: (format, filters) => api.get(`/invoices/export/${format}`, { 
+  getPartnerInvoices: (partnerId, params) => api.get(`/invoices/partner/${partnerId}`, { params }),
+  export: (format, filters) => api.get(`/invoices/export/${format}`, {
     params: filters,
     responseType: 'blob'
   })
@@ -222,11 +238,13 @@ export const invoicesAPI = {
 
 export const revenueAPI = {
   getAll: (params) => api.get('/revenue', { params }),
+  getIncomeOverview: (params) => api.get('/revenue/income-overview', { params }),
   getPartnerRevenue: (partnerId, params) => api.get(`/revenue/partner/${partnerId}`, { params }),
   create: (data) => api.post('/revenue', data),
   updateStatus: (id, data) => api.put(`/revenue/${id}/status`, data),
+  updatePaymentStatus: (leadId, status) => api.put(`/revenue/${leadId}/payment-status`, { status }),
   getAnalytics: (params) => api.get('/revenue/analytics', { params }),
-  export: (format, filters) => api.get(`/revenue/export`, { 
+  export: (format, filters) => api.get(`/revenue/export`, {
     params: { format, ...filters },
     responseType: format === 'csv' ? 'blob' : 'json'
   })

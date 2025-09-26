@@ -16,6 +16,50 @@ const createAuditLog = (action, serviceType = 'system') => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           setImmediate(async () => {
             try {
+              // Determine the correct service type based on action and request data
+              let finalServiceType = serviceType;
+
+              // Special handling for partner registration - use the service type from the registration
+              if (action === 'partner_registration' && req.body.services) {
+                // For partner registration, use the first service type or create multiple logs
+                const services = req.body.services;
+                if (services.length === 1) {
+                  finalServiceType = services[0];
+                } else {
+                  // If multiple services, create a log for each
+                  for (const svcType of services) {
+                    await Log.createLog({
+                      actor: {
+                        type: req.user?.role || 'system',
+                        id: req.user?.id || null,
+                        name: req.user?.name || 'System',
+                        email: req.user?.email || null
+                      },
+                      action,
+                      serviceType: svcType,
+                      leadId: req.params.leadId || req.body.leadId || null,
+                      partnerId: req.params.partnerId || req.body.partnerId || null,
+                      status: 'success',
+                      message: `partner registration completed successfully`,
+                      details: {
+                        method: req.method,
+                        url: req.originalUrl,
+                        body: req.method !== 'GET' ? req.body : undefined,
+                        params: req.params,
+                        query: req.query
+                      },
+                      metadata: {
+                        ipAddress: req.ip,
+                        userAgent: req.get('User-Agent'),
+                        domain: req.get('host'),
+                        requestId: req.headers['x-request-id']
+                      }
+                    });
+                  }
+                  return; // Exit early since we've created all the logs
+                }
+              }
+
               await Log.createLog({
                 actor: {
                   type: req.user?.role || 'system',
@@ -24,7 +68,7 @@ const createAuditLog = (action, serviceType = 'system') => {
                   email: req.user?.email || null
                 },
                 action,
-                serviceType,
+                serviceType: finalServiceType,
                 leadId: req.params.leadId || req.body.leadId || null,
                 partnerId: req.params.partnerId || req.body.partnerId || null,
                 status: 'success',
