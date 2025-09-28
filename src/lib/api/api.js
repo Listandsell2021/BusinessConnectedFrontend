@@ -179,7 +179,7 @@ export const partnersAPI = {
   updateStatus: (id, status) => api.put(`/partners/${id}/status`, { status }),
   updateType: (id, partnerType) => api.put(`/partners/${id}/type`, { partnerType }),
   updateServiceStatus: (id, serviceType, status, reason) => api.put(`/partners/${id}/services/${serviceType}/status`, { status, reason }),
-  approveService: (id, serviceType) => api.put(`/partners/${id}/services/${serviceType}/status`, { status: 'active' }),
+  approveService: (id, serviceType, adminLanguage) => api.put(`/partners/${id}/services/${serviceType}/status`, { status: 'active', adminLanguage }),
   rejectService: (id, serviceType, reason) => api.put(`/partners/${id}/services/${serviceType}/status`, { status: 'rejected', reason }),
   getStats: (params = {}) => api.get('/partners/stats', { params }),
   getLeads: (id, params) => api.get(`/partners/${id}/leads`, { params }),
@@ -194,10 +194,10 @@ export const partnersAPI = {
 
 export const dashboardAPI = {
   getStats: (service) => api.get('/dashboard/stats', { params: { service } }),
-  getSuperadminData: (serviceType, period) => api.get('/dashboard/superadmin', { params: { serviceType, period } }),
-  getPartnerData: (partnerId, period) => api.get(`/dashboard/partner/${partnerId}`, { params: { period } }),
+  getSuperadminData: (serviceType) => api.get('/dashboard/superadmin', { params: { serviceType } }),
+  getPartnerData: (partnerId) => api.get(`/dashboard/partner/${partnerId}`),
   getOverview: () => api.get('/dashboard/overview'),
-  getCharts: (role, period) => api.get(`/dashboard/charts/${role}`, { params: { period } }),
+  getCharts: (role) => api.get(`/dashboard/charts/${role}`),
   getRecentActivity: (role, limit) => api.get(`/dashboard/activity/${role}`, { params: { limit } })
 };
 

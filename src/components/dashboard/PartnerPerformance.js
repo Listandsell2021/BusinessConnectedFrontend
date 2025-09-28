@@ -20,112 +20,37 @@ const PartnerPerformance = ({ className = "" }) => {
   const fetchPartnerData = async () => {
     try {
       setLoading(true);
-      const response = await dashboardAPI.getSuperadminData(currentService, '30d');
+      // Use partners API to get real partner data
+      const response = await dashboardAPI.getSuperadminData(currentService);
 
-      if (response.data && response.data.success && response.data.data.charts.topPartners) {
+      if (response.data && response.data.success && response.data.data.charts.topPartners && response.data.data.charts.topPartners.length > 0) {
         setPartnerData(response.data.data.charts.topPartners.map(partner => ({
           ...partner,
-          serviceType: currentService === 'all' ? (Math.random() > 0.5 ? 'moving' : 'cleaning') : currentService,
+          id: partner._id || partner.id,
+          serviceType: partner.serviceType || (currentService === 'all' ? 'moving' : currentService),
           totalRevenue: partner.metrics?.totalRevenue || 0,
           totalLeadsReceived: partner.metrics?.totalLeadsReceived || 0,
           totalLeadsAccepted: partner.metrics?.totalLeadsAccepted || 0,
           totalLeadsCancelled: Math.max(0, (partner.metrics?.totalLeadsReceived || 0) - (partner.metrics?.totalLeadsAccepted || 0)),
-          rating: 4.0 + Math.random() * 1.0,
-          status: 'active',
-          partnerType: Math.random() > 0.3 ? 'exclusive' : 'basic'
+          rating: partner.rating || 4.5,
+          status: partner.status || 'active',
+          partnerType: partner.partnerType || 'basic'
         })));
       } else {
-        setPartnerData(getMockPartnerData());
+        // If no partners from API, show empty array instead of mock data
+        setPartnerData([]);
       }
     } catch (error) {
       console.error('Error fetching partner data:', error);
-      setPartnerData(getMockPartnerData());
+      // Show empty array instead of mock data on error
+      setPartnerData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getMockPartnerData = () => {
-    const allPartners = [
-      {
-        id: 1,
-        companyName: 'Munich Moving Masters',
-        serviceType: 'moving',
-        totalRevenue: 15420,
-        totalLeadsReceived: 42,
-        totalLeadsAccepted: 34,
-        totalLeadsCancelled: 5,
-        rating: 4.9,
-        status: 'active',
-        partnerType: 'exclusive'
-      },
-      {
-        id: 2,
-        companyName: 'Berlin Cleaning Pro',
-        serviceType: 'cleaning',
-        totalRevenue: 12840,
-        totalLeadsReceived: 35,
-        totalLeadsAccepted: 28,
-        totalLeadsCancelled: 3,
-        rating: 4.7,
-        status: 'active',
-        partnerType: 'basic'
-      },
-      {
-        id: 3,
-        companyName: 'Hamburg Transport Solutions',
-        serviceType: 'moving',
-        totalRevenue: 11200,
-        totalLeadsReceived: 31,
-        totalLeadsAccepted: 25,
-        totalLeadsCancelled: 2,
-        rating: 4.8,
-        status: 'active',
-        partnerType: 'exclusive'
-      },
-      {
-        id: 4,
-        companyName: 'Frankfurt Clean & Shine',
-        serviceType: 'cleaning',
-        totalRevenue: 9650,
-        totalLeadsReceived: 29,
-        totalLeadsAccepted: 22,
-        totalLeadsCancelled: 4,
-        rating: 4.5,
-        status: 'active',
-        partnerType: 'basic'
-      },
-      {
-        id: 5,
-        companyName: 'Stuttgart Relocation Experts',
-        serviceType: 'moving',
-        totalRevenue: 8930,
-        totalLeadsReceived: 26,
-        totalLeadsAccepted: 19,
-        totalLeadsCancelled: 3,
-        rating: 4.6,
-        status: 'active',
-        partnerType: 'basic'
-      },
-      {
-        id: 6,
-        companyName: 'Cologne Cleaning Crew',
-        serviceType: 'cleaning',
-        totalRevenue: 8100,
-        totalLeadsReceived: 24,
-        totalLeadsAccepted: 18,
-        totalLeadsCancelled: 2,
-        rating: 4.4,
-        status: 'active',
-        partnerType: 'basic'
-      }
-    ];
 
-    // Filter by current service
-    return allPartners.filter(partner => partner.serviceType === currentService);
-  };
-
-  if (loading || !partnerData) {
+  if (loading) {
     return (
       <div className={`p-6 rounded-2xl border ${className}`} style={{
         backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -141,31 +66,31 @@ const PartnerPerformance = ({ className = "" }) => {
         </div>
       </div>
     );
-  };
+  }
 
   const sortOptions = [
     { id: 'revenue', label: isGerman ? 'Umsatz' : 'Revenue' },
-    { id: 'acceptanceRate', label: isGerman ? 'Akzeptanzrate' : 'Acceptance Rate' },
-    { id: 'rating', label: isGerman ? 'Bewertung' : 'Rating' },
-    { id: 'leadsReceived', label: isGerman ? 'Erhaltene Leads' : 'Leads Received' }
+    { id: 'acceptanceRate', label: isGerman ? 'Akzeptanzrate' : 'Acceptance Rate' }
   ];
 
-  const sortedPartners = [...partnerData].sort((a, b) => {
+  const sortedPartners = partnerData ? [...partnerData].sort((a, b) => {
     switch (sortBy) {
       case 'revenue':
-        return b.totalRevenue - a.totalRevenue;
+        return (b.totalRevenue || 0) - (a.totalRevenue || 0);
       case 'acceptanceRate':
-        const aRate = (a.totalLeadsAccepted / a.totalLeadsReceived) * 100;
-        const bRate = (b.totalLeadsAccepted / b.totalLeadsReceived) * 100;
+        const aReceived = a.totalLeadsReceived || 1;
+        const bReceived = b.totalLeadsReceived || 1;
+        const aRate = ((a.totalLeadsAccepted || 0) / aReceived) * 100;
+        const bRate = ((b.totalLeadsAccepted || 0) / bReceived) * 100;
         return bRate - aRate;
       case 'rating':
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       case 'leadsReceived':
-        return b.totalLeadsReceived - a.totalLeadsReceived;
+        return (b.totalLeadsReceived || 0) - (a.totalLeadsReceived || 0);
       default:
         return 0;
     }
-  });
+  }) : [];
 
   const getServiceIcon = (serviceType) => {
     return serviceType === 'moving' ? '🚛' : '🧽';
@@ -188,7 +113,7 @@ const PartnerPerformance = ({ className = "" }) => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold flex items-center" style={{ color: 'var(--theme-text)' }}>
+        <h3 className="text-xl font-bold flex items-center mr-8" style={{ color: 'var(--theme-text)' }}>
           <motion.span
             className="mr-2 text-2xl"
             animate={{ rotate: [0, 10, -10, 0] }}
@@ -222,7 +147,7 @@ const PartnerPerformance = ({ className = "" }) => {
 
       {/* Partners List */}
       <div className="space-y-4">
-        {sortedPartners.slice(0, 5).map((partner, index) => {
+        {sortedPartners && sortedPartners.length > 0 ? sortedPartners.slice(0, 5).map((partner, index) => {
           return (
             <motion.div
               key={partner.id}
@@ -329,7 +254,18 @@ const PartnerPerformance = ({ className = "" }) => {
               </div>
             </motion.div>
           );
-        })}
+        }) : (
+          /* No Partners Available */
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">🏢</div>
+            <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Keine Partner verfügbar' : 'No Partners Available'}
+            </h4>
+            <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'Derzeit sind keine Partner für diesen Service registriert.' : 'No partners are currently registered for this service.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* View All Button */}

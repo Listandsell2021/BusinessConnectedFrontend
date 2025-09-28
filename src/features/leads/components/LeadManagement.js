@@ -17,7 +17,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const { t, isGerman } = useLanguage();
   const { user, isSuperAdmin, isPartner } = useAuth();
   
-  const [leads, setLeads] = useState(initialLeads);
+  const [leads, setLeads] = useState(initialLeads); // Paginated leads for table display
+  const [allLeadsData, setAllLeadsData] = useState([]); // All leads data for filtering and stats
   const [totalLeads, setTotalLeads] = useState(0);
   // Removed totalCancelRequests state
   const [leadStats, setLeadStats] = useState({
@@ -26,7 +27,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     assigned: 0,
     accepted: 0,
     cancelled: 0,
-    rejected: 0
+    rejected: 0,
+    cancelRequests: 0
   });
   const [loading, setLoading] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -919,11 +921,17 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       console.error('Error assigning lead:', error);
       const errorMessage = error.response?.data?.message || 'Failed to assign lead';
       toast.error(errorMessage);
-      
+
       // Show business rule if available
       if (error.response?.data?.rule) {
         toast.error(error.response.data.rule, { duration: 5000 });
       }
+
+      // Close modal and clear state even on error to prevent dialog staying open
+      setShowAssignModal(false);
+      setSelectedLead(null);
+      setSelectedPartners([]);
+      setAvailablePartners([]);
     } finally {
       setAssigningLead(false);
     }
@@ -1032,65 +1040,86 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       console.log('Status filter value being sent to API:', filters.status !== 'all' ? filters.status : undefined);
       console.log('User type - isPartner:', isPartner, 'isSuperAdmin:', isSuperAdmin);
 
-      let response;
-      if (isPartner && user?.id) {
-        // For partners, get only their assigned leads
-        response = await partnersAPI.getLeads(user.id, {
-          serviceType: serviceToUse,
-          sortBy: sortConfig.key,
-          sortOrder: sortConfig.direction,
-          page: currentPage,
-          limit: itemsPerPage,
-          // Add filters to API call - for partners, use status parameter (mapped to partner assignment status on backend)
-          status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          search: filters.searchTerm || undefined,
-          ...dateParams
-        });
-      } else {
-        // For admins, get all leads
-        const apiParams = {
-          serviceType: serviceToUse,
-          sortBy: sortConfig.key,
-          sortOrder: sortConfig.direction,
-          page: currentPage,
-          limit: itemsPerPage,
-          // Add filters to API call
-          status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          partner: partnerParam,
-          assignedPartner: partnerParam,
-          search: filters.searchTerm || undefined,
-          ...dateParams
-        };
-        console.log('Admin API call parameters:', apiParams);
-        response = await leadsAPI.getAll(apiParams);
-      }
-      
-      const rawLeadsData = response.data.leads || [];
-      const totalCount = response.data.pagination?.total || rawLeadsData.length;
-      const stats = response.data.stats || {};
+      // Fetch ALL pages to get complete data for stats calculation
+      let allLeadsData = [];
+      let totalCount = 0;
+      let currentPageForFetch = 1;
+      let hasMorePages = true;
 
-      console.log('API Response - Total leads returned:', rawLeadsData.length);
-      console.log('API Response - Lead statuses:', rawLeadsData.map(lead => ({ id: lead.leadId || lead._id, status: lead.status })));
-      console.log('API Response - Stats:', stats);
-      
-      // Transform backend data structure to match frontend expectations
-      const transformedLeads = rawLeadsData.map(lead => {
+      console.log('Starting to fetch all pages for complete stats...');
+
+      while (hasMorePages) {
+        let response;
+
+        if (isPartner && user?.id) {
+          // For partners, use regular leads API with partner filter
+          console.log('Partner API call - user.id:', user.id, 'serviceType:', serviceToUse, 'page:', currentPageForFetch);
+          response = await leadsAPI.getAll({
+            serviceType: serviceToUse,
+            page: currentPageForFetch,
+            limit: 100, // Maximum allowed limit
+            partner: user.id, // Filter by partner ID
+            status: filters.status !== 'all' ? filters.status : undefined,
+            city: filters.city || undefined,
+            search: filters.searchTerm || undefined,
+            ...dateParams
+          });
+          console.log('Partner API response:', response);
+        } else {
+          // For admins, get all leads page by page
+          const apiParams = {
+            serviceType: serviceToUse,
+            page: currentPageForFetch,
+            limit: 100, // Maximum allowed limit
+            // Add filters to API call
+            status: filters.status !== 'all' ? filters.status : undefined,
+            city: filters.city || undefined,
+            partner: partnerParam,
+            assignedPartner: partnerParam,
+            search: filters.searchTerm || undefined,
+            ...dateParams
+          };
+          console.log(`Admin API call parameters (page ${currentPageForFetch}):`, apiParams);
+          response = await leadsAPI.getAll(apiParams);
+        }
+
+        const pageLeads = response.data.leads || [];
+        const pagination = response.data.pagination;
+
+        allLeadsData = [...allLeadsData, ...pageLeads];
+        totalCount = pagination?.total || allLeadsData.length;
+
+        console.log(`Fetched page ${currentPageForFetch}: ${pageLeads.length} leads. Total so far: ${allLeadsData.length}`);
+
+        // Check if we have more pages
+        if (pagination && pagination.totalPages && currentPageForFetch < pagination.totalPages) {
+          currentPageForFetch++;
+        } else {
+          hasMorePages = false;
+        }
+      }
+
+      console.log('API Response - All leads fetched:', allLeadsData.length);
+      console.log('API Response - Total count from pagination:', totalCount);
+      console.log('API Response - First lead sample:', allLeadsData[0]);
+      console.log('API Response - isPartner:', isPartner, 'user.id:', user?.id);
+
+      // Transform ALL leads data with full transformation for both display and stats
+      const allTransformedLeads = allLeadsData.map(lead => {
         let cityDisplay = lead.location?.city || lead.city || '';
-        
+
         // For moving leads, show both pickup and destination cities
         if (lead.serviceType === 'moving') {
           // Try multiple sources for location data
-          const pickupCity = lead.formData?.pickupAddress?.city || 
-                           lead.pickupLocation?.city || 
-                           lead.formData?.pickupCity || 
+          const pickupCity = lead.formData?.pickupAddress?.city ||
+                           lead.pickupLocation?.city ||
+                           lead.formData?.pickupCity ||
                            lead.pickupCity;
-          const destinationCity = lead.formData?.destinationAddress?.city || 
-                                 lead.destinationLocation?.city || 
-                                 lead.formData?.destinationCity || 
+          const destinationCity = lead.formData?.destinationAddress?.city ||
+                                 lead.destinationLocation?.city ||
+                                 lead.formData?.destinationCity ||
                                  lead.destinationCity;
-          
+
           console.log('Lead data for debugging:', {
             leadId: lead.leadId || lead.id,
             serviceType: lead.serviceType,
@@ -1099,7 +1128,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             destinationCity,
             formDataKeys: lead.formData ? Object.keys(lead.formData) : []
           });
-          
+
           if (pickupCity && destinationCity) {
             cityDisplay = `${pickupCity} → ${destinationCity}`;
           } else if (pickupCity) {
@@ -1111,7 +1140,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             cityDisplay = 'Location data missing';
           }
         }
-        
+
         // For cleaning leads, show service location city
         if (lead.serviceType === 'cleaning') {
           if (lead.formData?.serviceAddress?.city) {
@@ -1120,11 +1149,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             cityDisplay = lead.serviceLocation.city;
           }
         }
-        
+
         // Extract pickup date information for display
         let dateDisplay = '';
         let pickupDate = null;
-        
+
         if (lead.formData) {
           // Check for fixed date
           if (lead.formData.fixedDate) {
@@ -1155,7 +1184,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
           }
         }
-        
+
+        // For partners, extract their specific assignment status
+        let displayStatus = lead.status || 'pending';
+        if (isPartner && user?.id && lead.partnerAssignments) {
+          const partnerAssignment = lead.partnerAssignments.find(pa =>
+            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+          );
+          if (partnerAssignment) {
+            displayStatus = partnerAssignment.status;
+          }
+        }
+
         return {
           ...lead,
           id: lead._id || lead.id, // Use MongoDB _id for navigation
@@ -1167,22 +1207,179 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           destinationCity: lead.formData?.destinationAddress?.city || '',
           dateDisplay: dateDisplay,
           pickupDate: pickupDate,
-          status: lead.status || 'pending'
+          status: displayStatus,
+          partnerStatus: displayStatus // Also set partnerStatus for consistency
         };
       });
-      
-      setLeads(transformedLeads);
-      setTotalLeads(totalCount);
-      
-      // Update stats from API response or calculate from total counts
-      setLeadStats({
-        total: totalCount,
-        pending: stats.pending || 0,
-        assigned: stats.assigned || 0,
-        accepted: stats.accepted || 0,
-        cancelled: stats.cancelled || 0,
-        rejected: stats.rejected || 0
+
+      // Store ALL leads data for filtering and stats
+      console.log('Transformed leads sample:', allTransformedLeads[0]);
+      console.log('All transformed leads count:', allTransformedLeads.length);
+      setAllLeadsData(allTransformedLeads);
+
+      // Now get the current page data with proper server-side pagination
+      let currentPageResponse;
+      if (isPartner && user?.id) {
+        console.log('Partner current page API call - user.id:', user.id, 'page:', currentPage, 'limit:', itemsPerPage);
+        currentPageResponse = await leadsAPI.getAll({
+          serviceType: serviceToUse,
+          sortBy: sortConfig.key,
+          sortOrder: sortConfig.direction,
+          page: currentPage,
+          limit: itemsPerPage,
+          partner: user.id, // Filter by partner ID
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          search: filters.searchTerm || undefined,
+          ...dateParams
+        });
+        console.log('Partner current page API response:', currentPageResponse);
+      } else {
+        const currentPageParams = {
+          serviceType: serviceToUse,
+          sortBy: sortConfig.key,
+          sortOrder: sortConfig.direction,
+          page: currentPage,
+          limit: itemsPerPage,
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          partner: partnerParam,
+          assignedPartner: partnerParam,
+          search: filters.searchTerm || undefined,
+          ...dateParams
+        };
+        currentPageResponse = await leadsAPI.getAll(currentPageParams);
+      }
+
+      // Transform current page data for display
+      const currentPageLeads = currentPageResponse.data.leads || [];
+      const currentPageTransformed = currentPageLeads.map(lead => {
+        let cityDisplay = lead.location?.city || lead.city || '';
+
+        if (lead.serviceType === 'moving') {
+          const pickupCity = lead.formData?.pickupAddress?.city ||
+                           lead.pickupLocation?.city ||
+                           lead.formData?.pickupCity ||
+                           lead.pickupCity;
+          const destinationCity = lead.formData?.destinationAddress?.city ||
+                                 lead.destinationLocation?.city ||
+                                 lead.formData?.destinationCity ||
+                                 lead.destinationCity;
+
+          if (pickupCity && destinationCity) {
+            cityDisplay = `${pickupCity} → ${destinationCity}`;
+          } else if (pickupCity) {
+            cityDisplay = pickupCity;
+          } else if (destinationCity) {
+            cityDisplay = destinationCity;
+          }
+        }
+
+        if (lead.serviceType === 'cleaning') {
+          if (lead.formData?.serviceAddress?.city) {
+            cityDisplay = lead.formData.serviceAddress.city;
+          } else if (lead.serviceLocation?.city) {
+            cityDisplay = lead.serviceLocation.city;
+          }
+        }
+
+        // Date display logic (simplified for current page)
+        let dateDisplay = '';
+        let pickupDate = null;
+        if (lead.formData?.fixedDate) {
+          pickupDate = new Date(lead.formData.fixedDate);
+          dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+        }
+
+        // For partners, extract their specific assignment status (current page)
+        let currentPageStatus = lead.status || 'pending';
+        if (isPartner && user?.id && lead.partnerAssignments) {
+          const partnerAssignment = lead.partnerAssignments.find(pa =>
+            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+          );
+          if (partnerAssignment) {
+            currentPageStatus = partnerAssignment.status;
+          }
+        }
+
+        return {
+          ...lead,
+          id: lead._id || lead.id,
+          leadId: lead.leadId || lead.id,
+          name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : (lead.name || ''),
+          email: lead.user?.email || lead.email || '',
+          city: cityDisplay,
+          dateDisplay: dateDisplay,
+          pickupDate: pickupDate,
+          status: currentPageStatus,
+          partnerStatus: currentPageStatus // Also set partnerStatus for consistency
+        };
       });
+
+      // Store paginated leads for table display
+      console.log('Setting leads for table display - page:', currentPage, 'count:', currentPageTransformed.length);
+      console.log('Current page transformed leads:', currentPageTransformed.map(l => l.leadId));
+      console.log('Partner status debug:', currentPageTransformed.map(l => ({ leadId: l.leadId, partnerStatus: l.partnerStatus, status: l.status })));
+      setLeads(currentPageTransformed);
+      setTotalLeads(totalCount);
+
+      // Calculate stats from ALL leads data (not just paginated)
+      const calculatedStats = {
+        total: allTransformedLeads.length,
+        pending: 0,
+        assigned: 0,
+        accepted: 0,
+        cancelled: 0,
+        rejected: 0,
+        cancelRequests: 0
+      };
+
+      allTransformedLeads.forEach(lead => {
+        // For partners, use partnerStatus; for admins, use general status
+        const statusToCount = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
+
+        // Count cancel requests - for partners, only count PENDING cancellation requests
+        if (isPartner && user?.id) {
+          // For partners, only count their pending cancellation requests
+          if (lead.partnerAssignments) {
+            const partnerAssignment = lead.partnerAssignments.find(pa =>
+              pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+            );
+            if (partnerAssignment && partnerAssignment.cancellationRequested &&
+                !partnerAssignment.cancellationApproved && !partnerAssignment.cancellationRejected) {
+              calculatedStats.cancelRequests++;
+            }
+          }
+        } else {
+          // For admins, use the original logic
+          if (statusToCount === 'cancel_requested' || statusToCount === 'cancellationRequested' ||
+              (lead.partnerAssignments && lead.partnerAssignments.some(pa => pa.cancellationRequested))) {
+            calculatedStats.cancelRequests++;
+          }
+        }
+
+        switch (statusToCount) {
+          case 'pending':
+            calculatedStats.pending++;
+            break;
+          case 'assigned':
+          case 'partial_assigned':
+            calculatedStats.assigned++;
+            break;
+          case 'accepted':
+            calculatedStats.accepted++;
+            break;
+          case 'cancelled':
+            calculatedStats.cancelled++;
+            break;
+          case 'rejected':
+            calculatedStats.rejected++;
+            break;
+        }
+      });
+
+      console.log('Calculated stats from all leads:', calculatedStats);
+      setLeadStats(calculatedStats);
     } catch (error) {
       console.error('Error loading leads:', error);
       // Show empty state when API fails
@@ -1231,7 +1428,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Load cancelled requests
   const loadCancelledRequests = async () => {
     const serviceToUse = currentService || 'moving';
-    console.log('loadCancelledRequests called with currentService:', currentService, 'using:', serviceToUse);
+    console.log('loadCancelledRequests called with currentService:', currentService, 'using:', serviceToUse, 'isPartner:', isPartner, 'userId:', user?.id);
 
     if (!serviceToUse) {
       console.warn('No service available, cannot load cancelled requests');
@@ -1247,12 +1444,25 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const maxLimit = 100; // Backend maximum allowed limit
 
       while (hasMorePages && currentPage <= 20) { // Safety limit of 20 pages max
-        const response = await leadsAPI.getAll({
-          serviceType: serviceToUse,
-          page: currentPage,
-          limit: maxLimit,
-          search: filters.searchTerm || undefined,
-        });
+        let response;
+
+        if (isPartner && user?.id) {
+          // For partners, get only their assigned leads
+          response = await partnersAPI.getLeads(user.id, {
+            serviceType: serviceToUse,
+            page: currentPage,
+            limit: maxLimit,
+            search: filters.searchTerm || undefined,
+          });
+        } else {
+          // For admins, get all leads
+          response = await leadsAPI.getAll({
+            serviceType: serviceToUse,
+            page: currentPage,
+            limit: maxLimit,
+            search: filters.searchTerm || undefined,
+          });
+        }
 
         const pageLeads = response.data.leads || response.data || [];
         allLeads = allLeads.concat(pageLeads);
@@ -1629,11 +1839,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
   }, [activeTab, currentService, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, cancelledCurrentPage, filters.status, filters.city, filters.partner, filters.searchTerm]);
 
+  // Load cancelled requests for stats when on leads tab
+  useEffect(() => {
+    if (activeTab === 'leads' && (isPartner || isSuperAdmin)) {
+      loadCancelledRequests();
+    }
+  }, [activeTab, currentService, isPartner, isSuperAdmin]);
+
   // DEPRECATED: Client-side filtering is now handled server-side for multi-partner assignments
   // This function is kept for backward compatibility but should be removed eventually
   const applyFilters = () => {
-    let filtered = [...leads];
-    console.log('Applying filters:', filters, 'Total leads:', leads.length);
+    let filtered = [...allLeadsData];
+    console.log('Applying filters:', filters, 'Total leads:', allLeadsData.length);
 
     // Filter by status
     if (filters.status !== 'all') {
@@ -2154,11 +2371,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const currentLeads = useMemo(() => {
     // Apply client-side filtering (especially important for single date filtering)
     // Server-side filtering is used for performance, but client-side handles complex date logic
-    console.log('useMemo currentLeads - applying filters to', leads.length, 'leads');
+    console.log('useMemo currentLeads - applying filters to', allLeadsData.length, 'all leads');
     const filtered = applyFilters();
     console.log('useMemo currentLeads - after filtering:', filtered.length, 'leads');
     return filtered;
-  }, [leads, filters, dateFilter]);
+  }, [allLeadsData, filters, dateFilter]);
 
   // Calculate filtered stats based on currentLeads
   const filteredStats = useMemo(() => {
@@ -2195,6 +2412,86 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [totalLeads]);
+
+  // Partner-specific export function with partner statuses
+  const exportPartnerLeads = async (format) => {
+    try {
+      let exportParams;
+      let response;
+
+      if (activeTab === 'cancelled') {
+        // Export cancelled requests
+        exportParams = {
+          serviceType: currentService,
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          search: filters.searchTerm || undefined
+        };
+
+        // Remove undefined values
+        const cleanParams = Object.entries(exportParams)
+          .filter(([_, value]) => value !== undefined)
+          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+        console.log('Export partner cancel requests params:', cleanParams);
+        response = await leadsAPI.exportCancelRequests(format, cleanParams);
+      } else {
+        // Export leads with partner-specific parameters
+        exportParams = {
+          serviceType: currentService,
+          partnerView: true, // Flag to indicate partner export
+          status: filters.status !== 'all' ? filters.status : undefined,
+          city: filters.city || undefined,
+          search: filters.searchTerm || undefined
+        };
+
+        // Remove undefined values
+        const cleanParams = Object.entries(exportParams)
+          .filter(([_, value]) => value !== undefined)
+          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+        console.log('Export partner leads params:', cleanParams);
+        response = await leadsAPI.export(format, cleanParams);
+      }
+
+      console.log('Export partner response:', response);
+
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      // Set filename based on format and active tab
+      const timestamp = new Date().toISOString().split('T')[0];
+      const dataType = activeTab === 'cancelled' ? 'partner_cancel_requests' : 'partner_leads';
+      const filename = `${dataType}_export_${timestamp}.${format}`;
+      link.download = filename;
+
+      // Trigger download
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      window.URL.revokeObjectURL(downloadUrl);
+
+      const formatName = format === 'xlsx' ? 'Excel' : 'PDF';
+      toast.success(`${t('common.success')}: ${t('common.export')} (${formatName})`);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Error exporting partner leads:', error);
+      console.error('Error details:', error.response);
+
+      if (error.response?.status === 401) {
+        toast.error('Authentication required. Please log in again.');
+      } else if (error.response?.status === 403) {
+        toast.error('Access denied. You need proper privileges to export.');
+      } else {
+        toast.error(`Failed to export to ${format.toUpperCase()}: ${error.response?.data?.message || error.message}`);
+      }
+    }
+  };
 
   const exportLeads = async (format) => {
     try {
@@ -2427,14 +2724,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 (isGerman ? 'Reinigungs-Lead-Verwaltung' : 'Cleaning Lead Management') :
                 (isGerman ? 'Lead-Verwaltung' : 'Lead Management')}
             </h2>
-          {isSuperAdmin && (
+          {(isSuperAdmin || isPartner) && (
             <div className="relative export-menu-container">
               <motion.button
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                style={{ 
-                  backgroundColor: 'var(--theme-button-bg)', 
-                  color: 'var(--theme-button-text)' 
+                style={{
+                  backgroundColor: 'var(--theme-button-bg)',
+                  color: 'var(--theme-button-text)'
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -2449,7 +2746,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg shadow-lg z-50" style={{ backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)' }}>
                   <div className="py-2">
                     <button
-                      onClick={() => exportLeads('xlsx')}
+                      onClick={() => isPartner ? exportPartnerLeads('xlsx') : exportLeads('xlsx')}
                       className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
                       style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
@@ -2462,7 +2759,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       </div>
                     </button>
                     <button
-                      onClick={() => exportLeads('pdf')}
+                      onClick={() => isPartner ? exportPartnerLeads('pdf') : exportLeads('pdf')}
                       className="w-full px-4 py-2 text-left hover:bg-opacity-80 transition-colors flex items-center gap-3"
                       style={{ color: 'var(--theme-text)', backgroundColor: 'transparent' }}
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
@@ -2776,11 +3073,20 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       {/* Statistics - only show when currentView is 'table' and user is partner or super admin */}
       {currentView === 'table' && activeTab === 'leads' && (isPartner || isSuperAdmin) && (
         <div className="flex flex-wrap gap-4 mt-6">
-        {[
-          { label: t('leads.totalLeads'), value: filteredStats.total, icon: '📋', color: 'blue' },
-          { label: translateStatus('pending'), value: filteredStats.pending || 0, icon: '⏳', color: 'yellow' },
-          ...(isSuperAdmin ? [{ label: translateStatus('assigned'), value: filteredStats.assigned, icon: '👤', color: 'blue' }] : [])
-        ].map((stat, index) => (
+        {(isPartner ? [
+          // Partner-specific stats
+          { label: t('leads.totalLeads'), value: leadStats.total, icon: '📋', color: 'blue' },
+          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: '⏳', color: 'yellow' },
+          { label: translateStatus('accepted'), value: leadStats.accepted || 0, icon: '✅', color: 'green' },
+          { label: translateStatus('rejected'), value: leadStats.rejected || 0, icon: '❌', color: 'red' },
+          { label: isGerman ? 'Stornierungsanfragen' : 'Cancel Requests', value: cancelledRequestStats.total || leadStats.cancelRequests || 0, icon: '🔄', color: 'orange' },
+          { label: translateStatus('cancelled'), value: leadStats.cancelled || 0, icon: '🚫', color: 'gray' }
+        ] : [
+          // Admin-specific stats (original: All, Pending, Assigned only)
+          { label: t('leads.totalLeads'), value: leadStats.total, icon: '📋', color: 'blue' },
+          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: '⏳', color: 'yellow' },
+          { label: translateStatus('assigned'), value: leadStats.assigned || 0, icon: '🔗', color: 'indigo' }
+        ]).map((stat, index) => (
           <motion.div
             key={index}
             className="p-4 rounded-lg flex-1 min-w-[180px] border"
@@ -2852,14 +3158,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </div>
                   </td>
                 </tr>
-              ) : currentLeads.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
-                    {t('leads.noLeadsFound') || (isGerman ? 'Keine Leads gefunden' : 'No leads found')}
-                  </td>
-                </tr>
+              ) : leads.length === 0 ? (
+                <>
+                  {console.log('Rendering no leads found - leads array:', leads, 'isPartner:', isPartner, 'loading:', loading)}
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                      {t('leads.noLeadsFound') || (isGerman ? 'Keine Leads gefunden' : 'No leads found')}
+                    </td>
+                  </tr>
+                </>
+
               ) : (
-                currentLeads.map((lead, index) => (
+                leads.map((lead, index) => (
                 <motion.tr
                   key={lead.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -3111,7 +3421,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 >
                                   👁️ {isGerman ? 'Anzeigen' : 'View'}
                                 </button>
-                                {partnerStatus?.isCancellationRequested && (
+                                {partnerStatus?.isCancellationRequested && lead.status !== 'cancelled' && (
                                   <span className="text-xs px-3 py-1 rounded bg-purple-100 text-purple-800">
                                     🔄 {isGerman ? 'Stornierung angefragt' : 'Cancel Pending'}
                                   </span>
@@ -3215,7 +3525,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
                     {t('common.date')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider min-w-0" style={{ color: 'var(--theme-text)' }}>
                     {t('common.actions')}
                   </th>
                 </tr>
@@ -3412,7 +3722,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     {t('leads.requestDate')}
                   </SortableHeader>
                   {isSuperAdmin && (
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+                    <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider min-w-0" style={{ color: 'var(--theme-muted)' }}>
                       {t('common.actions')}
                     </th>
                   )}
@@ -3493,13 +3803,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         {new Date(request.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
                       </td>
                       {isSuperAdmin && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 py-4 text-sm font-medium min-w-0">
                           {request.status === 'pending' && (
-                            <div className="flex space-x-2">
+                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 w-full">
                               <button
                                 onClick={() => handleApproveCancelRequest(request.id)}
-                                className="text-xs px-3 py-1 rounded transition-colors"
-                                style={{ 
+                                className="text-xs px-2 py-1 rounded transition-colors flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
+                                style={{
                                   backgroundColor: '#10b981',
                                   color: 'white',
                                   border: '1px solid #10b981'
@@ -3512,12 +3822,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 }}
                                 title={t('leads.approveCancelRequest')}
                               >
-                                ✅ {isGerman ? 'Genehmigen' : 'Approve'}
+                                ✅ {isGerman ? 'Genehmigen' : 'Accept'}
                               </button>
                               <button
                                 onClick={() => handleRejectCancelRequest(request)}
-                                className="text-xs px-3 py-1 rounded transition-colors"
-                                style={{ 
+                                className="text-xs px-2 py-1 rounded transition-colors flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
+                                style={{
                                   backgroundColor: '#ef4444',
                                   color: 'white',
                                   border: '1px solid #ef4444'
@@ -3535,8 +3845,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             </div>
                           )}
                           {request.status !== 'pending' && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-gray-500 italic text-xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 w-full">
+                              <span className="text-gray-500 italic text-xs flex-shrink-0">
                                 {request.status === 'approved' ?
                                   (isGerman ? 'Genehmigt' : 'Approved') :
                                   (isGerman ? 'Abgelehnt' : 'Rejected')
@@ -3546,7 +3856,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               {request.status === 'approved' ? (
                                 <button
                                   onClick={() => handleRejectCancelRequest(request)}
-                                  className="text-xs px-2 py-1 rounded transition-colors"
+                                  className="text-xs px-2 py-1 rounded transition-colors flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
                                   style={{
                                     backgroundColor: '#ef4444',
                                     color: 'white',
@@ -3565,7 +3875,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               ) : (
                                 <button
                                   onClick={() => handleApproveCancelRequest(request.id)}
-                                  className="text-xs px-2 py-1 rounded transition-colors"
+                                  className="text-xs px-2 py-1 rounded transition-colors flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
                                   style={{
                                     backgroundColor: '#10b981',
                                     color: 'white',
@@ -3579,7 +3889,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                   }}
                                   title={isGerman ? 'Ablehnung zurücknehmen' : 'Reverse Rejection'}
                                 >
-                                  ✅ {isGerman ? 'Genehmigen' : 'Approve'}
+                                  ✅ {isGerman ? 'Genehmigen' : 'Accept'}
                                 </button>
                               )}
                             </div>
@@ -4025,18 +4335,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <button
                     onClick={handleConfirmAssignment}
                     disabled={selectedPartners.length === 0 || assigningLead}
-                    className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                       selectedPartners.length === 0 || assigningLead
-                        ? 'cursor-not-allowed opacity-50'
-                        : 'hover:shadow-md'
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
-                    style={{
-                      backgroundColor: selectedPartners.length === 0 || assigningLead 
-                        ? 'var(--theme-muted)' 
-                        : '#3b82f6',
-                      color: 'white',
-                      border: 'none'
-                    }}
                   >
                     {assigningLead ? (
                       <span className="flex items-center gap-2">

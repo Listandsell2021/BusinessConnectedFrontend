@@ -225,14 +225,17 @@ class EmailService {
 
   // Helper method to detect language preference
   detectLanguagePreference(user) {
-    // Priority 1: Explicit language preference from request
+    // Priority 1: Check stored language preference from registration form
     if (user.language === 'de' || user.language === 'german') return true;
     if (user.language === 'en' || user.language === 'english') return false;
 
-    // Priority 2: Check if user has German country or language settings
-    if (user.address && user.address.country === 'Germany') return true;
+    // Priority 2: Check contact person language preference (for backwards compatibility)
     if (user.contactPerson && user.contactPerson.language === 'de') return true;
-    if (user.language === 'de') return true;
+    if (user.contactPerson && user.contactPerson.language === 'en') return false;
+
+    // Priority 3: Fallback to country-based detection (for older records without language preference)
+    if (user.address && user.address.country === 'Germany') return true;
+
     return false; // Default to English
   }
 
@@ -522,9 +525,10 @@ class EmailService {
   }
 
   // Send service-specific approval notification with password
-  async sendServiceApprovalNotification(partner, serviceType, password) {
+  async sendServiceApprovalNotification(partner, serviceType, password, adminLanguage = null) {
     const email = partner.contactPerson.email;
-    const isGerman = this.detectLanguagePreference(partner);
+    // Use admin's language preference if provided, otherwise use partner's preference
+    const isGerman = adminLanguage ? (adminLanguage === 'de') : this.detectLanguagePreference(partner);
 
     const subject = isGerman
       ? `${this.companyName} - ${serviceType === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} Genehmigt`

@@ -2110,8 +2110,8 @@ const acceptLead = async (req, res) => {
     // Populate partner data before calculating admin status
     await lead.populate('partnerAssignments.partner');
 
-    // Update overall lead status using new 3-tier admin system
-    lead.status = await calculateAdminStatus(lead);
+    // NOTE: Do NOT update overall lead status - only update specific partner assignment status
+    // The overall lead status should remain as 'assigned' or 'partial_assigned' to allow other partners to still accept/reject
 
     // Set acceptedAt if this is first acceptance
     if (!lead.acceptedAt) {

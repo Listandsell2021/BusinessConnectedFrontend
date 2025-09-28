@@ -23,10 +23,6 @@ const PartnerSettings = () => {
     fromRadius: 50,
     toRadius: 50,
     
-    // Notifications
-    emailNotifications: true,
-    smsNotifications: false,
-    instantNotifications: true,
     
     // Contact Info
     companyName: '',
@@ -78,9 +74,6 @@ const PartnerSettings = () => {
         avgLeadsPerWeek: 5,
         fromRadius: 50,
         toRadius: 50,
-        emailNotifications: true,
-        smsNotifications: false,
-        instantNotifications: true,
         companyName: user?.name || 'MoveIt Pro GmbH',
         contactPerson: 'John Doe',
         phone: '+49 30 12345678',
@@ -701,59 +694,6 @@ const PartnerSettings = () => {
             </div>
           </div>
 
-          {/* Notification Settings */}
-          <div className="p-6 rounded-lg space-y-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-              🔔 {isGerman ? 'Benachrichtigungseinstellungen' : 'Notification Settings'}
-            </h3>
-
-            <div className="space-y-3">
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={settings.emailNotifications}
-                  onChange={(e) => setSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'E-Mail-Benachrichtigungen für neue Leads' : 'Email notifications for new leads'}
-                </span>
-              </label>
-
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={settings.smsNotifications}
-                  onChange={(e) => setSettings(prev => ({ ...prev, smsNotifications: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'SMS-Benachrichtigungen für dringende Leads' : 'SMS notifications for urgent leads'}
-                </span>
-              </label>
-
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={settings.instantNotifications}
-                  onChange={(e) => setSettings(prev => ({ ...prev, instantNotifications: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Sofortige Push-Benachrichtigungen' : 'Instant push notifications'}
-                </span>
-              </label>
-            </div>
-
-            <div className="pt-3 border-t" style={{ borderColor: 'var(--theme-border)' }}>
-              <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Sie erhalten Benachrichtigungen nur für Leads, die Ihren Präferenzen entsprechen.'
-                  : 'You will only receive notifications for leads matching your preferences.'
-                }
-              </p>
-            </div>
-          </div>
 
           {/* Password Reset Section */}
           <div className="p-6 rounded-lg border" style={{

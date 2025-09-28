@@ -518,7 +518,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     // Get current service filter to determine which service to approve
     const currentService = filters.serviceType || 'moving'; // Default to moving if no filter
 
-    const confirmMessage = `Sind Sie sicher, dass Sie ${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} für ${partnerName} genehmigen möchten? Es wird eine E-Mail mit dem temporären Passwort gesendet.`;
+    const serviceText = currentService === 'moving'
+      ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
+      : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
+
+    const confirmMessage = isGerman
+      ? `Sind Sie sicher, dass Sie ${serviceText} für ${partnerName} genehmigen möchten? Es wird eine E-Mail mit dem temporären Passwort gesendet.`
+      : `Are you sure you want to approve ${serviceText} for ${partnerName}? An email with a temporary password will be sent.`;
 
     showConfirmation({
       title: partnerName,
@@ -532,7 +538,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           const partner = partners.find(p => p.id === partnerId);
           const serviceTypeToApprove = partner?.serviceType || currentService;
 
-          const response = await partnersAPI.approveService(partnerId, serviceTypeToApprove);
+          const adminLanguage = isGerman ? 'de' : 'en';
+          const response = await partnersAPI.approveService(partnerId, serviceTypeToApprove, adminLanguage);
 
           // Check if response indicates success
           if (response.data?.success) {
@@ -546,7 +553,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               })
             );
 
-            toast.success(`${currentService === 'moving' ? 'Umzugsdienst' : 'Reinigungsdienst'} erfolgreich genehmigt`);
+            const serviceText = currentService === 'moving'
+              ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
+              : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
+            const successMessage = isGerman
+              ? `${serviceText} erfolgreich genehmigt`
+              : `${serviceText} successfully approved`;
+            toast.success(successMessage);
           } else {
             throw new Error('Unexpected response format');
           }
@@ -975,7 +988,14 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
     setIsSubmittingPartner(true);
     try {
-      const response = await partnersAPI.create(partnerFormData);
+      // Include admin language preference for email localization
+      const adminLanguage = isGerman ? 'de' : 'en';
+      const dataWithLanguage = {
+        ...partnerFormData,
+        adminLanguage
+      };
+
+      const response = await partnersAPI.create(dataWithLanguage);
       
       if (response.data.success) {
         toast.success(isGerman ? 'Partner erfolgreich erstellt' : 'Partner created successfully');
@@ -1379,6 +1399,18 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         [field]: value
       }
     }));
+  };
+
+  // Reset to default price
+  const resetToDefaultPrice = () => {
+    const defaultPrice = globalSettings?.pricing?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.perLeadPrice || 25;
+    handlePartnerSettingsChange('perLeadPrice', null); // Set to null to use default
+  };
+
+  // Reset to default leads per week
+  const resetToDefaultLeadsPerWeek = () => {
+    const defaultLeads = globalSettings?.leadDistribution?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.leadsPerWeek || 3;
+    handlePartnerSettingsChange('leadsPerWeek', null); // Set to null to use default
   };
 
   // Load partner leads when tab changes or filters change or service changes
@@ -1983,18 +2015,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             <button
                               onClick={() => handleApprovePartner(partner.id, partner.name)}
                               disabled={loading}
-                              className="text-xs px-3 py-1 rounded transition-colors disabled:opacity-50"
-                              style={{ 
-                                backgroundColor: 'var(--theme-bg-secondary)',
-                                color: 'var(--theme-text)',
-                                border: '1px solid var(--theme-border)'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!loading) e.target.style.backgroundColor = 'var(--theme-hover)';
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
-                              }}
+                              className={`text-xs px-3 py-1 rounded font-medium transition-colors disabled:opacity-50 ${
+                                loading
+                                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
                               title={isGerman ? "Service genehmigen" : "Approve service"}
                             >
                               ✅ {isGerman ? 'Genehmigen' : 'Approve'}
@@ -2929,39 +2954,55 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Preis pro Lead (€)' : 'Price per Lead (€)'}
                         </label>
-                        <div
-                          className="flex items-center border rounded-lg px-3"
-                          style={{
-                            backgroundColor: 'var(--theme-input-bg)',
-                            borderColor: 'var(--theme-border)',
-                            height: '48px'
-                          }}
-                        >
-                          <span
-                            className="text-lg font-semibold mr-3 inline-flex items-center"
-                            style={{ color: 'var(--theme-text)' }}
-                          >
-                            €
-                          </span>
-                          <input
-                            type="number"
-                            value={partnerSettings.customPricing.perLeadPrice || ''}
-                            onChange={(e) => handlePartnerSettingsChange('perLeadPrice', e.target.value ? parseFloat(e.target.value) : null)}
-                            min="1"
-                            step="0.01"
-                            placeholder={globalSettings ?
-                              `Standard: €${globalSettings.pricing?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.perLeadPrice || '25'}` :
-                              'Standard: €25'
-                            }
-                            className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className="flex items-center border rounded-lg px-3 flex-1"
                             style={{
-                              backgroundColor: 'transparent',
-                              color: 'var(--theme-text)',
-                              border: 'none',
-                              lineHeight: '1.1',
-                              padding: 0
+                              backgroundColor: 'var(--theme-input-bg)',
+                              borderColor: 'var(--theme-border)',
+                              height: '48px'
                             }}
-                          />
+                          >
+                            <span
+                              className="text-lg font-semibold mr-3 inline-flex items-center"
+                              style={{ color: 'var(--theme-text)' }}
+                            >
+                              €
+                            </span>
+                            <input
+                              type="number"
+                              value={partnerSettings.customPricing.perLeadPrice || ''}
+                              onChange={(e) => handlePartnerSettingsChange('perLeadPrice', e.target.value ? parseFloat(e.target.value) : null)}
+                              min="1"
+                              step="0.01"
+                              placeholder={globalSettings ?
+                                `Standard: €${globalSettings.pricing?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.perLeadPrice || '25'}` :
+                                'Standard: €25'
+                              }
+                              className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: 'var(--theme-text)',
+                                border: 'none',
+                                lineHeight: '1.1',
+                                padding: 0
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={resetToDefaultPrice}
+                            className="px-3 py-2 text-sm rounded-lg border transition-colors hover:opacity-80"
+                            style={{
+                              borderColor: 'var(--theme-border)',
+                              color: 'var(--theme-text)',
+                              backgroundColor: 'var(--theme-card-bg)',
+                              height: '48px'
+                            }}
+                            title={isGerman ? 'Standard verwenden' : 'Use Default'}
+                          >
+                            🔄 {isGerman ? 'Standard' : 'Default'}
+                          </button>
                         </div>
                         <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
                           {isGerman
@@ -2976,24 +3017,40 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
                         </label>
-                        <input
-                          type="number"
-                          value={partnerSettings.customPricing.leadsPerWeek || ''}
-                          onChange={(e) => handlePartnerSettingsChange('leadsPerWeek', e.target.value ? parseInt(e.target.value) : null)}
-                          min="1"
-                          max="50"
-                          placeholder={globalSettings ?
-                            `Standard: ${globalSettings.leadDistribution?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.leadsPerWeek || '3'}` :
-                            'Standard: 3'
-                          }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          style={{
-                            backgroundColor: 'var(--theme-input-bg)',
-                            borderColor: 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            height: '48px'
-                          }}
-                        />
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            value={partnerSettings.customPricing.leadsPerWeek || ''}
+                            onChange={(e) => handlePartnerSettingsChange('leadsPerWeek', e.target.value ? parseInt(e.target.value) : null)}
+                            min="1"
+                            max="50"
+                            placeholder={globalSettings ?
+                              `Standard: ${globalSettings.leadDistribution?.[partnerForDetails.serviceType]?.[partnerForDetails.partnerType]?.leadsPerWeek || '3'}` :
+                              'Standard: 3'
+                            }
+                            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            style={{
+                              backgroundColor: 'var(--theme-input-bg)',
+                              borderColor: 'var(--theme-border)',
+                              color: 'var(--theme-text)',
+                              height: '48px'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={resetToDefaultLeadsPerWeek}
+                            className="px-3 py-2 text-sm rounded-lg border transition-colors hover:opacity-80"
+                            style={{
+                              borderColor: 'var(--theme-border)',
+                              color: 'var(--theme-text)',
+                              backgroundColor: 'var(--theme-card-bg)',
+                              height: '48px'
+                            }}
+                            title={isGerman ? 'Standard verwenden' : 'Use Default'}
+                          >
+                            🔄 {isGerman ? 'Standard' : 'Default'}
+                          </button>
+                        </div>
                         <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
                           {isGerman
                             ? 'Leer lassen für Standardverteilung'

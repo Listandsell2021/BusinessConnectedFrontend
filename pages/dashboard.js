@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,7 @@ import { IncomeInvoices } from '../src/features/income';
 import { PartnerSettings, AdminSettings } from '../src/features/settings';
 import PartnerInvoices from '../src/components/partner/PartnerInvoices';
 import EnhancedDashboard from '../src/components/dashboard/EnhancedDashboard';
+import { partnersAPI, invoicesAPI, leadsAPI } from '../src/lib/api/api';
 
 export default function Dashboard({ initialData = {} }) {
   const router = useRouter();
@@ -35,6 +36,20 @@ export default function Dashboard({ initialData = {} }) {
   } = useNotification();
   // Get active tab from URL query parameter
   const activeTab = router.query.tab || 'overview';
+
+  // State for dynamic recent leads
+  const [recentLeadsData, setRecentLeadsData] = useState([]);
+  const [loadingRecentLeads, setLoadingRecentLeads] = useState(true);
+
+  // State for dynamic partner stats
+  const [partnerStats, setPartnerStats] = useState({
+    totalLeads: 0,
+    accepted: 0,
+    rejectedCancelled: 0,
+    totalPaidInvoices: 0,
+    pendingInvoices: 0
+  });
+  const [loadingPartnerStats, setLoadingPartnerStats] = useState(true);
   
   // Function to handle tab changes and update URL
   const handleTabChange = (tabId) => {
@@ -47,6 +62,308 @@ export default function Dashboard({ initialData = {} }) {
       router.push('/auth/login');
     }
   }, [isAuthenticated, loading, router]);
+
+  // Fetch recent leads for partners
+  useEffect(() => {
+    if (isPartner && user?.id && currentService) {
+      fetchRecentLeads();
+    } else if (!isPartner) {
+      // For admins, show empty state
+      setRecentLeadsData([]);
+      setLoadingRecentLeads(false);
+    }
+  }, [isPartner, user?.id, currentService]);
+
+  const fetchPartnerStats = useCallback(async () => {
+    try {
+      setLoadingPartnerStats(true);
+      console.log('Fetching partner stats for:', user.id, 'service:', currentService);
+
+      // Fetch partner leads using same API as Lead Management
+      const leadsResponse = await leadsAPI.getAll({
+        serviceType: currentService,
+        partner: user.id, // Filter by partner ID
+        page: 1,
+        limit: 100 // Maximum allowed limit for stats
+      });
+
+      const leads = leadsResponse.data.leads || [];
+      console.log('=== PARTNER STATS DEBUG ===');
+      console.log('All partner leads for stats:', leads);
+      console.log('Number of leads found:', leads.length);
+      console.log('Sample lead structure:', leads[0]);
+      console.log('Sample partnerAssignments:', leads[0]?.partnerAssignments);
+
+      // Calculate lead stats
+      let totalLeads = 0;
+      let accepted = 0;
+      let rejectedCancelled = 0;
+
+      leads.forEach((lead, index) => {
+        console.log(`Lead ${index + 1}:`, {
+          leadId: lead.leadId,
+          hasPartnerAssignments: !!lead.partnerAssignments,
+          partnerAssignments: lead.partnerAssignments
+        });
+
+        if (lead.partnerAssignments) {
+          const partnerAssignment = lead.partnerAssignments.find(pa =>
+            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+          );
+
+          console.log(`  Partner assignment for ${user.id}:`, partnerAssignment);
+
+          if (partnerAssignment) {
+            totalLeads++;
+            console.log(`  ✅ Counting lead ${lead.leadId}, status: ${partnerAssignment.status}`);
+
+            if (partnerAssignment.status === 'accepted') {
+              accepted++;
+              console.log(`    → Accepted count: ${accepted}`);
+            } else if (partnerAssignment.status === 'rejected' || partnerAssignment.status === 'cancelled') {
+              rejectedCancelled++;
+              console.log(`    → Rejected/Cancelled count: ${rejectedCancelled}`);
+            }
+          } else {
+            console.log(`  ❌ No matching partner assignment for ${user.id}`);
+          }
+        }
+      });
+
+      console.log('=== FINAL COUNTS ===');
+      console.log('Total leads:', totalLeads);
+      console.log('Accepted:', accepted);
+      console.log('Rejected/Cancelled:', rejectedCancelled);
+
+      // Fetch partner invoices - try/catch to handle potential errors
+      let invoices = [];
+      let totalPaidAmount = 0;
+      let pendingAmount = 0;
+
+      try {
+        console.log('Fetching invoices for partner:', user.id);
+        // Get current month date range to match Invoice Management
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+        const invoicesResponse = await invoicesAPI.getPartnerInvoices(user.id, {
+          limit: 100, // Maximum allowed limit for invoices
+          startDate,
+          endDate
+        });
+
+        invoices = invoicesResponse.data.invoices || invoicesResponse.data || [];
+        console.log('Partner invoices for stats:', invoices);
+
+        // Calculate invoice amounts
+        invoices.forEach(invoice => {
+          if (invoice.status === 'paid') {
+            totalPaidAmount += invoice.amount || 0;
+          } else if (invoice.status === 'pending' || invoice.status === 'sent') {
+            pendingAmount += invoice.amount || 0;
+          }
+        });
+
+      } catch (invoiceError) {
+        console.error('Error fetching partner invoices:', invoiceError);
+        // Continue with 0 invoice amounts if invoice fetch fails
+      }
+
+      setPartnerStats({
+        totalLeads,
+        accepted,
+        rejectedCancelled,
+        totalPaidInvoices: totalPaidAmount,
+        pendingInvoices: pendingAmount
+      });
+
+      console.log('Calculated partner stats:', {
+        totalLeads,
+        accepted,
+        rejectedCancelled,
+        totalPaidAmount,
+        pendingAmount
+      });
+
+    } catch (error) {
+      console.error('Error fetching partner stats:', error);
+      setPartnerStats({
+        totalLeads: 0,
+        accepted: 0,
+        rejectedCancelled: 0,
+        totalPaidInvoices: 0,
+        pendingInvoices: 0
+      });
+    } finally {
+      setLoadingPartnerStats(false);
+    }
+  }, [user?.id, currentService]); // Add dependencies
+
+  // Fetch partner stats for dashboard cards
+  useEffect(() => {
+    console.log('Stats useEffect triggered:', { isPartner, userId: user?.id, currentService });
+    if (isPartner && user?.id && currentService) {
+      console.log('Calling fetchPartnerStats...');
+      fetchPartnerStats();
+    } else {
+      console.log('Skipping fetchPartnerStats - conditions not met');
+    }
+  }, [isPartner, user?.id, currentService, fetchPartnerStats]);
+
+  const fetchRecentLeads = async () => {
+    try {
+      setLoadingRecentLeads(true);
+      console.log('Fetching recent leads for partner:', user.id, 'service:', currentService);
+
+      const response = await leadsAPI.getAll({
+        serviceType: currentService,
+        partner: user.id, // Filter by partner ID
+        page: 1,
+        limit: 100, // Get more leads to sort by assignedAt properly
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+
+      console.log('Recent leads API response:', response);
+      const leads = response.data.leads || [];
+      console.log('Extracted leads:', leads);
+
+      // Filter leads that have partner assignments for this partner
+      const partnerLeads = leads.filter(lead => {
+        return lead.partnerAssignments?.some(pa =>
+          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+        );
+      });
+
+      // Transform and sort by assignedAt date
+      const transformedLeads = partnerLeads.map(lead => {
+        const partnerAssignment = lead.partnerAssignments?.find(pa =>
+          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+        );
+
+        return {
+          id: lead._id,
+          leadId: lead.leadId,
+          name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : 'Unknown',
+          email: lead.user?.email || 'No email',
+          phone: lead.user?.phone || 'No phone',
+          service: getServiceDisplayName(lead),
+          serviceType: lead.serviceType,
+          location: getLocationDisplay(lead) || 'Unknown location',
+          address: getAddressDisplay(lead),
+          value: partnerAssignment?.leadPrice ? `€${partnerAssignment.leadPrice}` : '€-',
+          estimatedTime: '2-4 hours',
+          status: getPartnerStatusForDisplay(partnerAssignment?.status),
+          time: getTimeAgo(partnerAssignment?.assignedAt || lead.createdAt), // Use assignedAt from partner assignment
+          priority: 'medium',
+          avatar: '👤', // Default avatar for all leads
+          assignedAt: partnerAssignment?.assignedAt || lead.createdAt, // Keep original date for sorting
+          partnerAssignment: partnerAssignment // Keep reference for debugging
+        };
+      }).sort((a, b) => {
+        // Sort by assignedAt date, most recent first
+        const dateA = new Date(a.assignedAt);
+        const dateB = new Date(b.assignedAt);
+        return dateB - dateA;
+      }).slice(0, 5); // Take only the latest 5
+
+      console.log('Filtered partner leads:', partnerLeads.length);
+      console.log('Transformed and sorted leads for recent display:', transformedLeads);
+      console.log('Leads sorted by assignedAt:', transformedLeads.map(l => ({
+        leadId: l.leadId,
+        assignedAt: l.assignedAt,
+        status: l.status
+      })));
+      setRecentLeadsData(transformedLeads);
+    } catch (error) {
+      console.error('Error fetching recent leads:', error);
+      setRecentLeadsData([]);
+    } finally {
+      setLoadingRecentLeads(false);
+    }
+  };
+
+  const getMockRecentLeads = () => {
+    return [
+      {
+        id: 1,
+        name: 'Maria Schmidt',
+        email: 'maria.schmidt@email.com',
+        phone: '+49 89 123456',
+        service: isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
+        serviceType: 'cleaning',
+        location: 'München',
+        address: 'Maximilianstraße 35',
+        value: '€320',
+        estimatedTime: '4 hours',
+        status: 'new',
+        time: '5 min ago',
+        priority: 'high',
+        avatar: '👩',
+      },
+      {
+        id: 2,
+        name: 'Hans Mueller',
+        email: 'hans.mueller@email.com',
+        phone: '+49 89 654321',
+        service: isGerman ? 'Büroumzug' : 'Office Move',
+        serviceType: 'moving',
+        location: 'Berlin',
+        address: 'Friedrichstraße 123',
+        value: '€850',
+        estimatedTime: '6 hours',
+        status: 'qualified',
+        time: '2 hours ago',
+        priority: 'medium',
+        avatar: '👨',
+      }
+    ];
+  };
+
+  const getServiceDisplayName = (lead) => {
+    if (lead.serviceType === 'moving') {
+      const moveType = lead.moveType || lead.formData?.movingType;
+      if (moveType === 'business') return isGerman ? 'Büroumzug' : 'Office Move';
+      if (moveType === 'long_distance') return isGerman ? 'Fernumzug' : 'Long Distance Move';
+      if (moveType === 'special_transport') return isGerman ? 'Spezialtransport' : 'Special Transport';
+      return isGerman ? 'Umzug' : 'Moving';
+    }
+    return isGerman ? 'Reinigung' : 'Cleaning';
+  };
+
+  const getLocationDisplay = (lead) => {
+    if (lead.formData?.pickupAddress?.city) {
+      return lead.formData.pickupAddress.city;
+    }
+    return lead.serviceLocation?.city || '';
+  };
+
+  const getAddressDisplay = (lead) => {
+    if (lead.formData?.pickupAddress?.address) {
+      return lead.formData.pickupAddress.address;
+    }
+    return '';
+  };
+
+  const getPartnerStatusForDisplay = (partnerStatus) => {
+    // Map partner assignment statuses to dashboard display statuses
+    if (partnerStatus === 'pending') return 'new';
+    if (partnerStatus === 'accepted') return 'qualified';
+    if (partnerStatus === 'rejected') return 'contacted';
+    return 'new';
+  };
+
+  const getTimeAgo = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hour${Math.floor(diffInMinutes / 60) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffInMinutes / 1440)} day${Math.floor(diffInMinutes / 1440) > 1 ? 's' : ''} ago`;
+  };
+
 
   if (!mounted || loading) {
     return (
@@ -131,30 +448,83 @@ export default function Dashboard({ initialData = {} }) {
     return menuItems;
   };
 
-  const dashboardStats = [
+  const dashboardStats = isPartner ? [
+    {
+      id: 'total_leads',
+      title: isGerman ? 'Gesamt Leads' : 'Total Leads',
+      value: partnerStats.totalLeads.toString(),
+      previousValue: '0',
+      change: partnerStats.totalLeads > 0 ? `+${partnerStats.totalLeads}` : '0',
+      trend: partnerStats.totalLeads > 0 ? 'up' : 'neutral',
+      icon: '📊',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      description: isGerman ? 'Alle Leads' : 'All leads',
+      details: isGerman ? 'Gesamt zugewiesen' : 'Total assigned'
+    },
+    {
+      id: 'accepted',
+      title: isGerman ? 'Akzeptiert' : 'Accepted',
+      value: partnerStats.accepted.toString(),
+      previousValue: '0',
+      change: partnerStats.accepted > 0 ? `+${partnerStats.accepted}` : '0',
+      trend: partnerStats.accepted > 0 ? 'up' : 'neutral',
+      icon: '✅',
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      description: isGerman ? 'Leads angenommen' : 'Leads accepted',
+      details: isGerman ? 'Erfolgreich' : 'Successful'
+    },
+    {
+      id: 'rejected_cancelled',
+      title: isGerman ? 'Abgelehnt/Storniert' : 'Rejected/Cancelled',
+      value: partnerStats.rejectedCancelled.toString(),
+      previousValue: '0',
+      change: partnerStats.rejectedCancelled > 0 ? `+${partnerStats.rejectedCancelled}` : '0',
+      trend: partnerStats.rejectedCancelled > 0 ? 'down' : 'neutral',
+      icon: '❌',
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      description: isGerman ? 'Kombiniert' : 'Combined',
+      details: isGerman ? 'Nicht erfolgreich' : 'Unsuccessful'
+    },
+    {
+      id: 'paid_invoices',
+      title: isGerman ? 'Bezahlte Rechnungen' : 'Total Paid Invoices',
+      value: `€${partnerStats.totalPaidInvoices.toFixed(2)}`,
+      previousValue: '€0.00',
+      change: partnerStats.totalPaidInvoices > 0 ? `+€${partnerStats.totalPaidInvoices.toFixed(2)}` : '€0.00',
+      trend: partnerStats.totalPaidInvoices > 0 ? 'up' : 'neutral',
+      icon: '💰',
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      description: isGerman ? 'Gesamtbetrag' : 'Total amount',
+      details: isGerman ? 'Bezahlt' : 'Paid'
+    },
+    {
+      id: 'pending_invoices',
+      title: isGerman ? 'Ausstehende Rechnungen' : 'Pending Invoices',
+      value: `€${partnerStats.pendingInvoices.toFixed(2)}`,
+      previousValue: '€0.00',
+      change: partnerStats.pendingInvoices > 0 ? `+€${partnerStats.pendingInvoices.toFixed(2)}` : '€0.00',
+      trend: partnerStats.pendingInvoices > 0 ? 'up' : 'neutral',
+      icon: '⏳',
+      gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      description: isGerman ? 'Ausstehend' : 'Outstanding',
+      details: isGerman ? 'Zu bezahlen' : 'To be paid'
+    }
+  ] : [
     {
       id: 'leads',
-      title: isPartner 
-        ? (isGerman 
-          ? `${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Leads` 
-          : `${currentService === 'moving' ? 'Moving' : 'Cleaning'} Leads`)
-        : (isGerman ? 'Neue Leads' : 'New Leads'),
+      title: isGerman ? 'Neue Leads' : 'New Leads',
       value: '47',
       previousValue: '38',
       change: '+23%',
       trend: 'up',
-      icon: isPartner ? (currentService === 'moving' ? '🚛' : '🧽') : '📈',
+      icon: '📈',
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       description: isGerman ? 'Diese Woche' : 'This week',
       details: isGerman ? 'vs. letzte Woche' : 'vs. last week'
     },
     {
       id: 'revenue',
-      title: isPartner 
-        ? (isGerman 
-          ? `${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Umsatz` 
-          : `${currentService === 'moving' ? 'Moving' : 'Cleaning'} Revenue`)
-        : (isGerman ? 'Umsatz' : 'Revenue'),
+      title: isGerman ? 'Umsatz' : 'Revenue',
       value: '€12,840',
       previousValue: '€11,165',
       change: '+15%',
@@ -319,10 +689,8 @@ export default function Dashboard({ initialData = {} }) {
     }
   ];
 
-  // Filter leads by current service for partners
-  const recentLeads = isPartner 
-    ? allRecentLeads.filter(lead => lead.serviceType === currentService)
-    : allRecentLeads;
+  // Use dynamic data for partners, mock data for admins
+  const recentLeads = recentLeadsData;
 
   const getStatusColor = (status) => {
     const colors = {
@@ -395,7 +763,7 @@ export default function Dashboard({ initialData = {} }) {
             </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            <div className={`grid gap-6 ${isPartner ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'}`}>
               {dashboardStats.map((stat, index) => (
                 <motion.div
                   key={stat.id}
@@ -510,7 +878,25 @@ export default function Dashboard({ initialData = {} }) {
                 </div>
 
                 <div className="space-y-4">
-                  {recentLeads.slice(0, 5).map((lead, index) => (
+                  {loadingRecentLeads ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="mt-2 text-sm" style={{ color: 'var(--theme-muted)' }}>
+                        {isGerman ? 'Lade Leads...' : 'Loading leads...'}
+                      </p>
+                    </div>
+                  ) : recentLeads.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-4">📭</div>
+                      <p className="text-lg font-medium" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? 'Keine aktuellen Leads' : 'No Recent Leads'}
+                      </p>
+                      <p className="text-sm mt-2" style={{ color: 'var(--theme-muted)' }}>
+                        {isGerman ? 'Neue Leads werden hier angezeigt' : 'New leads will appear here'}
+                      </p>
+                    </div>
+                  ) : (
+                    recentLeads.slice(0, 5).map((lead, index) => (
                     <motion.div
                       key={lead.id}
                       className="flex items-center justify-between p-4 rounded-xl hover:shadow-lg transition-all duration-300 border group cursor-pointer"
@@ -550,15 +936,13 @@ export default function Dashboard({ initialData = {} }) {
                         <p className="font-bold text-xl" style={{ color: 'var(--theme-text)' }}>
                           {lead.value}
                         </p>
-                        <span className={`text-xs px-3 py-1 rounded-full font-bold ${getStatusColor(lead.status)}`}>
-                          {lead.status.toUpperCase()}
-                        </span>
                         <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
                           {lead.time}
                         </p>
                       </div>
                     </motion.div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </motion.div>
 
@@ -635,10 +1019,8 @@ export default function Dashboard({ initialData = {} }) {
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { icon: '➕', label: isGerman ? 'Lead hinzufügen' : 'Add Lead', action: 'leads' },
-                      { icon: '📊', label: isGerman ? 'Berichte' : 'Reports', action: 'income' },
-                      { icon: '⚙️', label: isGerman ? 'Einstellungen' : 'Settings', action: 'settings' },
-                      { icon: '💬', label: isGerman ? 'Support' : 'Support', action: 'support' }
+                      { icon: '📊', label: isGerman ? 'Berichte' : 'Reports', action: isPartner ? 'invoices' : 'income' },
+                      { icon: '⚙️', label: isGerman ? 'Einstellungen' : 'Settings', action: 'settings' }
                     ].map((action, index) => (
                       <motion.button
                         key={action.label}

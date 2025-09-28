@@ -398,37 +398,75 @@ export default function ForgotPassword() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 }}
                     >
-                      <label 
-                        htmlFor="email" 
+                      <label
+                        htmlFor="email"
                         className="block text-sm font-semibold mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
                         📧 {isGerman ? 'E-Mail-Adresse' : 'Email Address'}
                       </label>
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        className={`
-                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                          backdrop-blur-sm transition-all duration-300
-                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                          ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
-                        `}
-                        style={{
-                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                          borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
-                          color: 'var(--theme-text)',
-                          backdropFilter: 'blur(10px)'
-                        }}
-                        placeholder={isGerman ? 'E-Mail eingeben' : 'Enter email'}
-                      />
+
+                      {/* Email and Send OTP Button on same line */}
+                      <div className="flex gap-3">
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          value={formData.email}
+                          onChange={handleChange}
+                          className={`
+                            appearance-none relative block flex-1 px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                            backdrop-blur-sm transition-all duration-300
+                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                            ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
+                          `}
+                          style={{
+                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                            borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
+                            color: 'var(--theme-text)',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                          placeholder={isGerman ? 'E-Mail eingeben' : 'Enter email'}
+                        />
+
+                        <motion.button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className={`
+                            group relative flex justify-center items-center py-3 px-4 sm:py-4 sm:px-6 border-0
+                            text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4
+                            focus:ring-orange-500/30 transition-all duration-300 whitespace-nowrap
+                            bg-gradient-to-r from-orange-600 via-red-600 to-pink-600
+                            hover:from-orange-700 hover:via-red-700 hover:to-pink-700
+                            ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-orange-500/25 hover:scale-105'}
+                          `}
+                          whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {isSubmitting ? (
+                            <div className="flex items-center">
+                              <motion.div
+                                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              />
+                              <span className="hidden sm:inline">{isGerman ? 'Senden...' : 'Sending...'}</span>
+                              <span className="sm:hidden">...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <span className="mr-2">📤</span>
+                              <span className="hidden sm:inline">{isGerman ? 'OTP senden' : 'Send OTP'}</span>
+                              <span className="sm:hidden">{isGerman ? 'Senden' : 'Send'}</span>
+                            </div>
+                          )}
+                        </motion.button>
+                      </div>
+
                       {errors.email && (
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-2 text-sm text-red-400 flex items-center"
@@ -438,37 +476,6 @@ export default function ForgotPassword() {
                         </motion.p>
                       )}
                     </motion.div>
-
-                    <motion.button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={`
-                        group relative w-full flex justify-center py-3 px-4 sm:py-4 sm:px-6 border-0 
-                        text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4 
-                        focus:ring-orange-500/30 transition-all duration-300
-                        bg-gradient-to-r from-orange-600 via-red-600 to-pink-600
-                        hover:from-orange-700 hover:via-red-700 hover:to-pink-700
-                        ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-orange-500/25 hover:scale-105'}
-                      `}
-                      whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center">
-                          <motion.div
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                          <span>{isGerman ? 'Senden...' : 'Sending...'}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="mr-2">📤</span>
-                          <span>{isGerman ? 'OTP senden' : 'Send OTP'}</span>
-                        </div>
-                      )}
-                    </motion.button>
                   </form>
                 )}
 

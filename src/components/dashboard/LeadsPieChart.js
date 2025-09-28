@@ -35,39 +35,52 @@ const LeadsPieChart = ({ className = "" }) => {
   const transformLeadData = (stats) => {
     if (!stats) return getDefaultLeadData();
 
-    const byStatus = [
-      { status: 'pending', count: stats.pendingLeads || 0, color: '#3b82f6' },
+    // Include ALL status types, even if count is 0 - only filter for pie display
+    const allByStatus = [
+      { status: 'pending', count: stats.pendingLeads || 0, color: '#f59e0b' },
+      { status: 'assigned', count: (stats.assignedLeads || 0), color: '#8b5cf6' },
       { status: 'accepted', count: stats.acceptedLeads || 0, color: '#10b981' },
       { status: 'cancelled', count: stats.cancelledLeads || 0, color: '#ef4444' }
     ];
 
-    const byService = currentService === 'all' ? [
-      { service: 'moving', count: Math.floor((stats.totalLeads || 0) * 0.6), color: '#667eea' },
-      { service: 'cleaning', count: Math.floor((stats.totalLeads || 0) * 0.4), color: '#f093fb' }
-    ] : [
-      { service: currentService, count: stats.totalLeads || 0, color: currentService === 'moving' ? '#667eea' : '#f093fb' }
+    // For pie chart display, only show statuses with leads > 0
+    const byStatusForDisplay = allByStatus.filter(item => item.count > 0);
+    const totalStatusCount = allByStatus.reduce((sum, item) => sum + item.count, 0);
+
+    // ALWAYS show both moving and cleaning services with REAL data from backend
+    const byService = [
+      { service: 'moving', count: stats.movingLeads || 0, color: '#667eea' },
+      { service: 'cleaning', count: stats.cleaningLeads || 0, color: '#f093fb' }
     ];
 
+    // For display in pie, only show services with leads > 0
+    const byServiceForDisplay = byService.filter(item => item.count > 0);
+
     return {
-      byStatus,
-      byService,
-      total: stats.totalLeads || 0
+      byStatus: allByStatus, // All status types for legend
+      byStatusForDisplay, // Only non-zero for pie chart
+      byService, // All services for legend
+      byServiceForDisplay, // Only non-zero for pie chart
+      total: totalStatusCount,
+      totalService: stats.totalLeads || 0
     };
   };
 
   const getDefaultLeadData = () => ({
     byStatus: [
-      { status: 'pending', count: 0, color: '#3b82f6' },
+      { status: 'pending', count: 0, color: '#f59e0b' },
       { status: 'assigned', count: 0, color: '#8b5cf6' },
       { status: 'accepted', count: 0, color: '#10b981' },
-      { status: 'cancelled', count: 0, color: '#f59e0b' },
-      { status: 'rejected', count: 0, color: '#ef4444' }
+      { status: 'cancelled', count: 0, color: '#ef4444' }
     ],
+    byStatusForDisplay: [],
     byService: [
       { service: 'moving', count: 0, color: '#667eea' },
       { service: 'cleaning', count: 0, color: '#f093fb' }
     ],
-    total: 0
+    byServiceForDisplay: [],
+    total: 0,
+    totalService: 0
   });
 
   if (loading || !leadData) {
@@ -84,8 +97,8 @@ const LeadsPieChart = ({ className = "" }) => {
     );
   }
 
-  const PieSlice = ({ data, startAngle, size, radius, centerX, centerY, index }) => {
-    const angle = (data.count / leadData.total) * 360;
+  const PieSlice = ({ data, startAngle, size, radius, centerX, centerY, index, total }) => {
+    const angle = (data.count / total) * 360;
     const endAngle = startAngle + angle;
 
     const startAngleRad = (startAngle * Math.PI) / 180;
@@ -130,7 +143,7 @@ const LeadsPieChart = ({ className = "" }) => {
             y={labelY}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-xs font-bold fill-white"
+            className="text-sm font-bold fill-white"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: index * 0.1 + 0.5 }}
@@ -175,24 +188,79 @@ const LeadsPieChart = ({ className = "" }) => {
           </h4>
 
           <div className="relative">
-            <svg width="200" height="200" className="mx-auto">
-              {leadData.byStatus.reduce((acc, data, index) => {
-                const slice = (
-                  <PieSlice
-                    key={data.status}
-                    data={data}
-                    startAngle={acc.currentAngle}
-                    radius={80}
-                    centerX={100}
-                    centerY={100}
-                    index={index}
+            {leadData.total > 0 ? (
+              <svg width="200" height="200" className="mx-auto">
+                {leadData.byStatusForDisplay.length === 1 ? (
+                  // Special case: single status gets full circle
+                  <motion.circle
+                    cx={100}
+                    cy={100}
+                    r={80}
+                    fill={leadData.byStatusForDisplay[0].color}
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="2"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.8 }}
                   />
-                );
-                acc.slices.push(slice);
-                acc.currentAngle += (data.count / leadData.total) * 360;
-                return acc;
-              }, { slices: [], currentAngle: 0 }).slices}
-            </svg>
+                ) : (
+                  // Multiple statuses: render pie slices
+                  leadData.byStatusForDisplay.reduce((acc, data, index) => {
+                    const slice = (
+                      <PieSlice
+                        key={data.status}
+                        data={data}
+                        startAngle={acc.currentAngle}
+                        radius={80}
+                        centerX={100}
+                        centerY={100}
+                        index={index}
+                        total={leadData.total}
+                      />
+                    );
+                    acc.slices.push(slice);
+                    acc.currentAngle += (data.count / leadData.total) * 360;
+                    return acc;
+                  }, { slices: [], currentAngle: 0 }).slices
+                )}
+
+                {/* Center label showing total */}
+                <motion.text
+                  x={100}
+                  y={95}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-2xl font-bold fill-white"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {leadData.total}
+                </motion.text>
+                <motion.text
+                  x={100}
+                  y={115}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-xs fill-gray-300"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  {isGerman ? 'Gesamt' : 'Total'}
+                </motion.text>
+              </svg>
+            ) : (
+              // No data: show empty state
+              <div className="w-[200px] h-[200px] mx-auto flex items-center justify-center bg-gray-200 rounded-full">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">📊</div>
+                  <div className="text-sm text-gray-600">
+                    {isGerman ? 'Keine Daten' : 'No Data'}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Status Legend */}
@@ -239,24 +307,80 @@ const LeadsPieChart = ({ className = "" }) => {
           </h4>
 
           <div className="relative">
-            <svg width="200" height="200" className="mx-auto">
-              {leadData.byService.reduce((acc, data, index) => {
-                const slice = (
-                  <PieSlice
-                    key={data.service}
-                    data={data}
-                    startAngle={acc.currentAngle}
-                    radius={80}
-                    centerX={100}
-                    centerY={100}
-                    index={index}
+            {leadData.totalService > 0 ? (
+              <svg width="200" height="200" className="mx-auto">
+                {leadData.byServiceForDisplay.length === 1 ? (
+                  // Special case: single service gets full circle
+                  <motion.circle
+                    cx={100}
+                    cy={100}
+                    r={80}
+                    fill={leadData.byServiceForDisplay[0].color}
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="2"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.8 }}
                   />
-                );
-                acc.slices.push(slice);
-                acc.currentAngle += (data.count / leadData.byService.reduce((sum, item) => sum + item.count, 0)) * 360;
-                return acc;
-              }, { slices: [], currentAngle: 0 }).slices}
-            </svg>
+                ) : (
+                  // Multiple services: render pie slices
+                  leadData.byServiceForDisplay.reduce((acc, data, index) => {
+                    const serviceTotal = leadData.byService.reduce((sum, item) => sum + item.count, 0);
+                    const slice = (
+                      <PieSlice
+                        key={data.service}
+                        data={data}
+                        startAngle={acc.currentAngle}
+                        radius={80}
+                        centerX={100}
+                        centerY={100}
+                        index={index}
+                        total={serviceTotal}
+                      />
+                    );
+                    acc.slices.push(slice);
+                    acc.currentAngle += (data.count / serviceTotal) * 360;
+                    return acc;
+                  }, { slices: [], currentAngle: 0 }).slices
+                )}
+
+                {/* Center label showing total */}
+                <motion.text
+                  x={100}
+                  y={95}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-2xl font-bold fill-white"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {leadData.byService.reduce((sum, item) => sum + item.count, 0)}
+                </motion.text>
+                <motion.text
+                  x={100}
+                  y={115}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-xs fill-gray-300"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  {isGerman ? 'Gesamt' : 'Total'}
+                </motion.text>
+              </svg>
+            ) : (
+              // No data: show empty state
+              <div className="w-[200px] h-[200px] mx-auto flex items-center justify-center bg-gray-200 rounded-full">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🔧</div>
+                  <div className="text-sm text-gray-600">
+                    {isGerman ? 'Keine Daten' : 'No Data'}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Service Legend */}

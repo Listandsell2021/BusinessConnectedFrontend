@@ -134,12 +134,6 @@ const PartnerSettingsNew = () => {
           // Format: { 'DE-Berlin': { radius: 50, country: 'DE' }, 'AT-Vienna': { radius: 30, country: 'AT' } }
         }
       }
-    },
-    
-    // Notification Settings
-    notifications: {
-      email: true,
-      sms: false
     }
   });
 
@@ -288,10 +282,6 @@ const PartnerSettingsNew = () => {
               citySettings: serviceAreaCitySettings
             };
           })()
-        },
-        notifications: partner.notifications || {
-          email: true,
-          sms: false
         }
       });
       
@@ -510,8 +500,7 @@ const PartnerSettingsNew = () => {
         companyName: settings.companyName,
         contactPerson: settings.contactPerson,
         address: settings.address,
-        preferences: preferences,
-        notifications: settings.notifications
+        preferences: preferences
       };
 
       console.log('Saving partner settings:', updateData);
@@ -1204,10 +1193,6 @@ const PartnerSettingsNew = () => {
     {
       id: 'services',
       label: isGerman ? 'Service-Präferenzen' : 'Service Preferences'
-    },
-    {
-      id: 'notifications',
-      label: isGerman ? 'Benachrichtigungen' : 'Notifications'
     }
   ];
 
@@ -2335,107 +2320,6 @@ const PartnerSettingsNew = () => {
     </div>
   );
 
-  const renderNotificationsTab = () => (
-    <div className="space-y-6">
-      {/* Notification Settings */}
-      <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-          🔔 {isGerman ? 'Benachrichtigungseinstellungen' : 'Notification Settings'}
-        </h3>
-        
-        <div className="space-y-4">
-          <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
-            <p className="text-sm" style={{ color: 'var(--theme-text)' }}>
-              {isGerman 
-                ? 'Konfigurieren Sie, wie Sie über neue Leads und wichtige Updates benachrichtigt werden möchten.'
-                : 'Configure how you want to be notified about new leads and important updates.'
-              }
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <label className="flex items-start space-x-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-              <input
-                type="checkbox"
-                checked={settings.notifications.email}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  notifications: { ...prev.notifications, email: e.target.checked }
-                }))}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                  📧 {isGerman ? 'E-Mail-Benachrichtigungen für neue Leads' : 'Email notifications for new leads'}
-                </span>
-                <p className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman 
-                    ? 'Erhalten Sie E-Mail-Benachrichtigungen, wenn neue Leads zugewiesen werden'
-                    : 'Receive email notifications when new leads are assigned to you'
-                  }
-                </p>
-              </div>
-            </label>
-
-            <label className="flex items-start space-x-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-              <input
-                type="checkbox"
-                checked={settings.notifications.sms}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  notifications: { ...prev.notifications, sms: e.target.checked }
-                }))}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                  📱 {isGerman ? 'SMS-Benachrichtigungen für dringende Leads' : 'SMS notifications for urgent leads'}
-                </span>
-                <p className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman 
-                    ? 'Erhalten Sie SMS-Nachrichten für besonders dringende oder wichtige Leads'
-                    : 'Receive SMS messages for particularly urgent or important leads'
-                  }
-                </p>
-              </div>
-            </label>
-          </div>
-
-          {/* Additional notification preferences */}
-          <div className="border-t pt-4" style={{ borderColor: 'var(--theme-border)' }}>
-            <h4 className="text-md font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Erweiterte Einstellungen' : 'Advanced Settings'}
-            </h4>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
-                <div>
-                  <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Benachrichtigungsfrequenz' : 'Notification Frequency'}
-                  </span>
-                  <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                    {isGerman ? 'Wie oft möchten Sie benachrichtigt werden?' : 'How often do you want to be notified?'}
-                  </p>
-                </div>
-                <select 
-                  className="px-3 py-1 border rounded text-sm"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                >
-                  <option value="immediate">{isGerman ? 'Sofort' : 'Immediate'}</option>
-                  <option value="hourly">{isGerman ? 'Stündlich' : 'Hourly'}</option>
-                  <option value="daily">{isGerman ? 'Täglich' : 'Daily'}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -2492,7 +2376,6 @@ const PartnerSettingsNew = () => {
       {/* Tab Content */}
       {activeTab === 'contact' && renderContactTab()}
       {activeTab === 'services' && renderServicesTab()}
-      {activeTab === 'notifications' && renderNotificationsTab()}
     </div>
   );
 };

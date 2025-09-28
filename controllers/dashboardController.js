@@ -6,28 +6,10 @@ const Partner = require('../models/Partner');
 // @access  Private (Superadmin)
 const getSuperadminDashboard = async (req, res) => {
   try {
-    const { serviceType, period = '30d' } = req.query;
+    const { serviceType } = req.query;
 
-    // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    
-    switch (period) {
-      case '7d':
-        startDate.setDate(endDate.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(endDate.getDate() - 30);
-        break;
-      case '90d':
-        startDate.setDate(endDate.getDate() - 90);
-        break;
-      default:
-        startDate.setDate(endDate.getDate() - 30);
-    }
-
-    // Build filters
-    const leadFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+    // Build filters - no date filtering, show all data
+    const leadFilter = {};
     const partnerFilter = {};
     
     if (serviceType) {
@@ -125,7 +107,7 @@ const getSuperadminDashboard = async (req, res) => {
         leadsByDomain,
         topPartners
       },
-      period: { startDate, endDate }
+      period: null
     };
 
     res.json({
@@ -147,37 +129,17 @@ const getSuperadminDashboard = async (req, res) => {
 const getPartnerDashboard = async (req, res) => {
   try {
     const { partnerId } = req.params;
-    const { period = '30d' } = req.query;
 
     // Partners can only see their own dashboard
     if (req.user.role === 'partner' && req.user.id !== partnerId) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Access denied' 
+        message: 'Access denied'
       });
     }
 
-    // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    
-    switch (period) {
-      case '7d':
-        startDate.setDate(endDate.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(endDate.getDate() - 30);
-        break;
-      case '90d':
-        startDate.setDate(endDate.getDate() - 90);
-        break;
-      default:
-        startDate.setDate(endDate.getDate() - 30);
-    }
-
     const leadFilter = {
-      assignedPartner: partnerId,
-      createdAt: { $gte: startDate, $lte: endDate }
+      assignedPartner: partnerId
     };
 
     // Get KPIs including pending cancellation approvals
@@ -249,7 +211,7 @@ const getPartnerDashboard = async (req, res) => {
         leadsPerDay,
         serviceBreakdown
       },
-      period: { startDate, endDate }
+      period: null
     };
 
     res.json({

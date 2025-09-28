@@ -9,16 +9,14 @@ const RevenueChart = ({ className = "" }) => {
   const { currentService } = useService();
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('7d');
-
   useEffect(() => {
     fetchRevenueData();
-  }, [timeRange, currentService]);
+  }, [currentService]);
 
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
-      const response = await dashboardAPI.getSuperadminData(currentService, timeRange);
+      const response = await dashboardAPI.getSuperadminData(currentService);
 
       if (response.data && response.data.success && response.data.data.charts.leadsPerDay) {
         setChartData(transformRevenueData(response.data.data.charts.leadsPerDay));
@@ -38,44 +36,22 @@ const RevenueChart = ({ className = "" }) => {
       return getDefaultRevenueData();
     }
 
-    // Transform the leads data to revenue-like visualization
-    // For demo purposes, we'll multiply leads by average lead values
-    const movingAverage = 280; // Average value for moving leads
-    const cleaningAverage = 150; // Average value for cleaning leads
-
     return {
       labels: leadsPerDay.map(day => new Date(day._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
-      moving: leadsPerDay.map(day => (day.moving || 0) * movingAverage),
-      cleaning: leadsPerDay.map(day => (day.cleaning || 0) * cleaningAverage)
+      moving: leadsPerDay.map(day => day.movingRevenue || 0),
+      cleaning: leadsPerDay.map(day => day.cleaningRevenue || 0),
+      total: leadsPerDay.map(day => day.totalRevenue || 0)
     };
   };
 
   const getDefaultRevenueData = () => {
-    const ranges = {
-      '7d': {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        moving: [0, 0, 0, 0, 0, 0, 0],
-        cleaning: [0, 0, 0, 0, 0, 0, 0]
-      },
-      '30d': {
-        labels: Array.from({length: 30}, (_, i) => `${i + 1}`),
-        moving: Array.from({length: 30}, () => 0),
-        cleaning: Array.from({length: 30}, () => 0)
-      },
-      '90d': {
-        labels: Array.from({length: 90}, (_, i) => `${i + 1}`),
-        moving: Array.from({length: 90}, () => 0),
-        cleaning: Array.from({length: 90}, () => 0)
-      }
+    return {
+      labels: ['No Data'],
+      moving: [0],
+      cleaning: [0],
+      total: [0]
     };
-    return ranges[timeRange];
   };
-
-  const timeRanges = [
-    { id: '7d', label: isGerman ? '7 Tage' : '7 Days' },
-    { id: '30d', label: isGerman ? '30 Tage' : '30 Days' },
-    { id: '90d', label: isGerman ? '90 Tage' : '90 Days' }
-  ];
 
   if (loading) {
     return (
@@ -136,30 +112,8 @@ const RevenueChart = ({ className = "" }) => {
           >
             💰
           </motion.span>
-          {isGerman ? 'Umsatzentwicklung' : 'Revenue Trends'}
+          {isGerman ? 'Umsatzentwicklung (Alle Daten)' : 'Revenue Trends (All Data)'}
         </h3>
-
-        {/* Time Range Selector */}
-        <div className="flex space-x-2">
-          {timeRanges.map((range) => (
-            <motion.button
-              key={range.id}
-              onClick={() => setTimeRange(range.id)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                timeRange === range.id
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-              style={{
-                backgroundColor: timeRange === range.id ? 'var(--theme-button-bg)' : 'transparent'
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {range.label}
-            </motion.button>
-          ))}
-        </div>
       </div>
 
       {/* Chart */}
