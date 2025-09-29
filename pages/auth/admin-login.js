@@ -427,24 +427,14 @@ const handleSubmit = async (e) => {
                     )}
                   </motion.div>
 
-                  <motion.div 
-                    className="flex items-center justify-between mb-6"
+                  <motion.div
+                    className="flex items-center justify-end mb-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.9 }}
                   >
-                    <div className="text-sm">
-                      <Link 
-                        href="/auth/forgot-password" 
-                        className="font-medium transition-all duration-200 hover:underline flex items-center" 
-                        style={{ color: 'var(--theme-accent)' }}
-                      >
-                        <span className="mr-1">🔑</span>
-                        {t('auth.forgotPassword')}
-                      </Link>
-                    </div>
                     <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                      Secure Login
+                      Secure Admin Login
                     </div>
                   </motion.div>
 

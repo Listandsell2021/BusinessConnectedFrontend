@@ -17,10 +17,16 @@ export default function ForgotPassword() {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [formData, setFormData] = useState({
     email: '',
+    service: 'moving', // Default service
     otp: '',
     newPassword: '',
     confirmPassword: ''
   });
+
+  const availableServices = [
+    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' },
+    { id: 'cleaning', name: { en: 'Cleaning Services', de: 'Reinigungsservice' }, icon: '🧽' }
+  ];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [otpId, setOtpId] = useState('');
@@ -62,6 +68,11 @@ export default function ForgotPassword() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = isGerman ? 'E-Mail ist ungültig' : 'Email is invalid';
     }
+
+    if (!formData.service) {
+      newErrors.service = isGerman ? 'Service-Auswahl ist erforderlich' : 'Service selection is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -104,7 +115,10 @@ export default function ForgotPassword() {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({
+          email: formData.email,
+          service: formData.service
+        })
       });
 
       const data = await response.json();
@@ -224,7 +238,10 @@ export default function ForgotPassword() {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({
+          email: formData.email,
+          service: formData.service
+        })
       });
 
       const data = await response.json();
@@ -393,10 +410,67 @@ export default function ForgotPassword() {
                 {/* Step 1: Email Form */}
                 {step === 1 && (
                   <form onSubmit={handleSendOTP} className="space-y-4 sm:space-y-6">
+                    {/* Service Selection */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 }}
+                    >
+                      <label
+                        htmlFor="service"
+                        className="block text-sm font-semibold mb-3"
+                        style={{ color: 'var(--theme-text)' }}
+                      >
+                        🎯 {isGerman ? 'Service auswählen' : 'Select Service'}
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="service"
+                          name="service"
+                          value={formData.service}
+                          onChange={handleChange}
+                          className={`
+                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                            backdrop-blur-sm transition-all duration-300
+                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                            ${errors.service ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
+                          `}
+                          style={{
+                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                            borderColor: errors.service ? '#EF4444' : 'var(--theme-border)',
+                            color: 'var(--theme-text)',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        >
+                          {availableServices.map((service) => (
+                            <option key={service.id} value={service.id}>
+                              {service.icon} {service.name[isGerman ? 'de' : 'en']}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Custom dropdown arrow */}
+                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                            <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                      {errors.service && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 text-sm text-red-400 flex items-center"
+                        >
+                          <span className="mr-1">❌</span>
+                          {errors.service}
+                        </motion.p>
+                      )}
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8 }}
                     >
                       <label
                         htmlFor="email"
@@ -406,64 +480,28 @@ export default function ForgotPassword() {
                         📧 {isGerman ? 'E-Mail-Adresse' : 'Email Address'}
                       </label>
 
-                      {/* Email and Send OTP Button on same line */}
-                      <div className="flex gap-3">
-                        <input
-                          id="email"
-                          name="email"
-                          type="email"
-                          autoComplete="email"
-                          required
-                          value={formData.email}
-                          onChange={handleChange}
-                          className={`
-                            appearance-none relative block flex-1 px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
-                          `}
-                          style={{
-                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
-                          }}
-                          placeholder={isGerman ? 'E-Mail eingeben' : 'Enter email'}
-                        />
-
-                        <motion.button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className={`
-                            group relative flex justify-center items-center py-3 px-4 sm:py-4 sm:px-6 border-0
-                            text-sm sm:text-base font-bold rounded-xl text-white focus:outline-none focus:ring-4
-                            focus:ring-orange-500/30 transition-all duration-300 whitespace-nowrap
-                            bg-gradient-to-r from-orange-600 via-red-600 to-pink-600
-                            hover:from-orange-700 hover:via-red-700 hover:to-pink-700
-                            ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-orange-500/25 hover:scale-105'}
-                          `}
-                          whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center">
-                              <motion.div
-                                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              />
-                              <span className="hidden sm:inline">{isGerman ? 'Senden...' : 'Sending...'}</span>
-                              <span className="sm:hidden">...</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <span className="mr-2">📤</span>
-                              <span className="hidden sm:inline">{isGerman ? 'OTP senden' : 'Send OTP'}</span>
-                              <span className="sm:hidden">{isGerman ? 'Senden' : 'Send'}</span>
-                            </div>
-                          )}
-                        </motion.button>
-                      </div>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`
+                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                          backdrop-blur-sm transition-all duration-300
+                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                          ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
+                        `}
+                        style={{
+                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                          borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
+                          color: 'var(--theme-text)',
+                          backdropFilter: 'blur(10px)'
+                        }}
+                        placeholder={isGerman ? 'E-Mail eingeben' : 'Enter email'}
+                      />
 
                       {errors.email && (
                         <motion.p
@@ -475,6 +513,43 @@ export default function ForgotPassword() {
                           {errors.email}
                         </motion.p>
                       )}
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.9 }}
+                    >
+                      <motion.button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`
+                          group relative w-full flex justify-center items-center py-3 px-4 sm:py-3 sm:px-5 border-0
+                          text-sm font-semibold rounded-xl text-white focus:outline-none focus:ring-4
+                          focus:ring-orange-500/30 transition-all duration-300
+                          bg-gradient-to-r from-orange-600 via-red-600 to-pink-600
+                          hover:from-orange-700 hover:via-red-700 hover:to-pink-700
+                          ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg hover:shadow-orange-500/25 hover:scale-102'}
+                        `}
+                        whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center">
+                            <motion.div
+                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <span>{isGerman ? 'Senden...' : 'Sending...'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <span className="mr-2">📤</span>
+                            <span>{isGerman ? 'OTP senden' : 'Send OTP'}</span>
+                          </div>
+                        )}
+                      </motion.button>
                     </motion.div>
                   </form>
                 )}
@@ -630,9 +705,25 @@ export default function ForgotPassword() {
                           onClick={() => setShowPasswords(prev => ({...prev, newPassword: !prev.newPassword}))}
                           tabIndex={-1}
                         >
-                          <span className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            {showPasswords.newPassword ? '👁️' : '🙈'}
-                          </span>
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                            style={{ color: 'var(--theme-muted)' }}
+                          >
+                            {showPasswords.newPassword ? (
+                              // Eye Slash (Hide password)
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                              </svg>
+                            ) : (
+                              // Eye (Show password)
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </motion.div>
                         </button>
                       </div>
                       {errors.newPassword && (
@@ -687,9 +778,25 @@ export default function ForgotPassword() {
                           onClick={() => setShowPasswords(prev => ({...prev, confirmPassword: !prev.confirmPassword}))}
                           tabIndex={-1}
                         >
-                          <span className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            {showPasswords.confirmPassword ? '👁️' : '🙈'}
-                          </span>
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                            style={{ color: 'var(--theme-muted)' }}
+                          >
+                            {showPasswords.confirmPassword ? (
+                              // Eye Slash (Hide password)
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                              </svg>
+                            ) : (
+                              // Eye (Show password)
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </motion.div>
                         </button>
                       </div>
                       {errors.confirmPassword && (
@@ -786,8 +893,8 @@ export default function ForgotPassword() {
                   {
                     step: 1,
                     icon: '📧',
-                    title: isGerman ? 'E-Mail eingeben' : 'Enter Email',
-                    desc: isGerman ? 'Ihre registrierte E-Mail-Adresse' : 'Your registered email address',
+                    title: isGerman ? 'Service & E-Mail' : 'Service & Email',
+                    desc: isGerman ? 'Service wählen & E-Mail eingeben' : 'Select service & enter email',
                     active: step === 1,
                     completed: step > 1
                   },
