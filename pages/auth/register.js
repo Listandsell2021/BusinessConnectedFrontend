@@ -381,11 +381,11 @@ export default function PartnerRequest() {
                 ? 'Ein Partner mit dieser E-Mail-Adresse existiert bereits.' 
                 : 'A partner with this email address already exists.' 
             });
-          } else if (result.message?.includes('company name already exists')) {
-            setErrors({ 
-              company: isGerman 
-                ? 'Ein Partner mit diesem Firmenname existiert bereits.' 
-                : 'A partner with this company name already exists.' 
+          } else if (result.message?.includes('company name already exists') || result.message?.includes('Company') && result.message?.includes('already offers')) {
+            setErrors({
+              company: isGerman
+                ? 'Ein Partner mit diesem Firmennamen bietet bereits diesen Service an.'
+                : 'A partner with this company name already offers this service.'
             });
           } else {
             setErrors({ 

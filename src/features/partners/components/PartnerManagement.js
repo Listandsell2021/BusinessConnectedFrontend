@@ -515,10 +515,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   };
 
   const handleApprovePartner = async (partnerId, partnerName) => {
-    // Get current service filter to determine which service to approve
-    const currentService = filters.serviceType || 'moving'; // Default to moving if no filter
+    // Get partner details to use their actual service type for the dialog
+    const partner = partners.find(p => p.id === partnerId);
+    const actualServiceType = partner?.serviceType || 'moving'; // Use partner's actual service type
 
-    const serviceText = currentService === 'moving'
+    const serviceText = actualServiceType === 'moving'
       ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
       : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
 
@@ -534,9 +535,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       type: 'success',
       onConfirm: async () => {
         try {
-          // Get partner details to use their actual service type
-          const partner = partners.find(p => p.id === partnerId);
-          const serviceTypeToApprove = partner?.serviceType || currentService;
+          // Use the actual service type we already determined
+          const serviceTypeToApprove = actualServiceType;
 
           const adminLanguage = isGerman ? 'de' : 'en';
           const response = await partnersAPI.approveService(partnerId, serviceTypeToApprove, adminLanguage);
@@ -553,7 +553,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               })
             );
 
-            const serviceText = currentService === 'moving'
+            const serviceText = actualServiceType === 'moving'
               ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
               : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
             const successMessage = isGerman
