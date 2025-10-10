@@ -246,19 +246,6 @@ const DashboardStats = ({ className = "" }) => {
           >
             {stat.icon}
           </motion.div>
-          <div className="text-right">
-            <motion.div
-              className={`text-xs px-3 py-1 rounded-full font-bold ${
-                stat.trend === 'up' ? 'bg-green-500/20 text-green-300' :
-                stat.trend === 'down' ? 'bg-red-500/20 text-red-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {stat.change}
-            </motion.div>
-          </div>
         </div>
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-white/80">

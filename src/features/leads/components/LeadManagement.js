@@ -672,8 +672,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       });
 
       // Update state with new API response structure
-      setPartnerTabs(data.partnerTabs || { basic: { partners: [], count: 0 }, exclusive: { partners: [], count: 0 } });
-      setShowTabs(data.showTabs !== false);
+      const partnerTabsData = data.partnerTabs || { basic: { partners: [], count: 0 }, exclusive: { partners: [], count: 0 } };
+      setPartnerTabs(partnerTabsData);
+
+      // Hide tabs if there are no suggested partners (both basic and exclusive counts are 0)
+      const hasPartners = (partnerTabsData.basic?.count || 0) > 0 || (partnerTabsData.exclusive?.count || 0) > 0;
+      setShowTabs(data.showTabs !== false && hasPartners);
       setDefaultTab(data.defaultTab || 'basic');
       setAvailablePartners(data.availablePartners || []);
 
@@ -868,23 +872,44 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
   };
 
-  // Handle partner selection
+  // Handle partner selection with mutual exclusion logic
   const handlePartnerSelect = (partner) => {
     const isExclusive = partner.partnerType === 'exclusive';
-    
-    if (isExclusive) {
-      // For exclusive partners, only allow single selection
-      setSelectedPartners([partner._id]);
-    } else {
-      // For basic partners, allow multiple selection
-      setSelectedPartners(prev => {
+
+    setSelectedPartners(prev => {
+      if (isExclusive) {
+        // If selecting an exclusive partner, clear all previous selections
+        // and only allow this exclusive partner
         if (prev.includes(partner._id)) {
-          return prev.filter(id => id !== partner._id);
+          // If already selected, deselect it
+          return [];
         } else {
-          return [...prev, partner._id];
+          // Select only this exclusive partner, clear all others
+          return [partner._id];
         }
-      });
-    }
+      } else {
+        // For basic partners
+        // First check if any exclusive partners are currently selected
+        const hasExclusiveSelected = prev.some(selectedId => {
+          // Find the partner by ID to check its type
+          const selectedPartner = [...(partnerTabs.basic.partners || []), ...(partnerTabs.exclusive.partners || []), ...(allActivePartners || [])]
+            .find(p => p._id === selectedId);
+          return selectedPartner && selectedPartner.partnerType === 'exclusive';
+        });
+
+        if (hasExclusiveSelected) {
+          // If exclusive partner is already selected, clear all and select this basic partner
+          return [partner._id];
+        } else {
+          // Normal basic partner multiple selection
+          if (prev.includes(partner._id)) {
+            return prev.filter(id => id !== partner._id);
+          } else {
+            return [...prev, partner._id];
+          }
+        }
+      }
+    });
   };
 
   // Handle lead assignment
@@ -4023,13 +4048,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       <AnimatePresence>
         {showAssignModal && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="rounded-xl shadow-2xl w-full max-w-4xl min-h-0 overflow-hidden border flex flex-col"
+              className="rounded-xl shadow-2xl w-full max-w-4xl min-h-0 overflow-hidden border flex flex-col mx-6"
               style={{
                 backgroundColor: 'var(--theme-bg-secondary)',
                 color: 'var(--theme-text)',
@@ -4105,14 +4130,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       placeholder="Search partners..."
                       value={partnerSearchQuery}
                       onChange={handleSearchInputChange}
-                      className="w-full px-4 py-2 pl-11 text-sm rounded-md border focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                      className="w-full px-4 py-2 pl-12 text-sm rounded-md border focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-colors"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
                         borderColor: 'var(--theme-border)',
                         color: 'var(--theme-text)'
                       }}
                     />
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                       <svg className="h-4 w-4" style={{ color: 'var(--theme-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
@@ -4161,7 +4186,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </div>
                 ) : !showTabs && !partnerSearchQuery.trim() ? (
                   // When no suggested partners and no search query, show message to search
-                  <div className="text-center py-12">
+                  <div className="text-center h-[300px] flex flex-col justify-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                       <svg className="w-8 h-8" style={{ color: 'var(--theme-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -4175,7 +4200,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </p>
                   </div>
                 ) : filteredPartners.length === 0 ? (
-                  <div className="text-center py-12">
+                  <div className="text-center h-[300px] flex flex-col justify-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                       <svg className="w-8 h-8" style={{ color: 'var(--theme-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -4189,7 +4214,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                  <div className="space-y-4 h-[300px] overflow-y-auto pr-2">
                     {filteredPartners.map((partner) => {
                       const isSelected = selectedPartners.includes(partner._id);
                       const isExclusive = partner.partnerType === 'exclusive';
@@ -4302,26 +4327,24 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </div>
                 )}
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-between items-center mt-4">
-                <div className="text-sm space-y-1" style={{ color: 'var(--theme-text)' }}>
-                  <div>
-                    <span style={{ color: 'var(--theme-text)' }}>
-                      Basic partners - multiple selection allowed
-                    </span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--theme-text)' }}>
-                      Exclusive partners - single selection
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 pr-6 pb-6">
-                  <button
+                <div className="flex justify-between items-center space-x-3 pb-8 pt-4 px-6">
+                  <div className="text-sm space-y-1 mb-4" style={{ color: 'var(--theme-text)' }}>
+                    <div>
+                      <span style={{ color: 'var(--theme-text)' }}>
+                        Basic partners - multiple selection allowed
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--theme-text)' }}>
+                        Exclusive partners - single selection
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-3 mb-4">
+                    <button
                     onClick={handleCloseAssignModal}
                     className="px-4 py-2 border rounded-lg font-medium hover:opacity-80"
                     style={{ 
@@ -4337,7 +4360,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     disabled={selectedPartners.length === 0 || assigningLead}
                     className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                       selectedPartners.length === 0 || assigningLead
-                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                   >
@@ -4350,8 +4373,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       `Assign to ${selectedPartners.length} Partner${selectedPartners.length !== 1 ? 's' : ''}`
                     )}
                   </button>
+                  </div>
                 </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
