@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
-import { dashboardAPI } from '../../lib/api/api';
+import { dashboardAPI, partnersAPI } from '../../lib/api/api';
 
 const PartnerPerformance = ({ className = "" }) => {
   const router = useRouter();
@@ -11,7 +11,7 @@ const PartnerPerformance = ({ className = "" }) => {
   const { currentService } = useService();
   const [partnerData, setPartnerData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('revenue');
+  const [sortBy, setSortBy] = useState('registered');
 
   useEffect(() => {
     fetchPartnerData();
@@ -21,28 +21,31 @@ const PartnerPerformance = ({ className = "" }) => {
     try {
       setLoading(true);
       // Use partners API to get real partner data
-      const response = await dashboardAPI.getSuperadminData(currentService);
+      const filters = { status: 'active', limit: 10 };
+      if (currentService && currentService !== 'all') {
+        filters.serviceType = currentService;
+      }
 
-      if (response.data && response.data.success && response.data.data.charts.topPartners && response.data.data.charts.topPartners.length > 0) {
-        setPartnerData(response.data.data.charts.topPartners.map(partner => ({
+      const response = await partnersAPI.getAll(filters);
+
+      if (response.data && response.data.success && response.data.partners && response.data.partners.length > 0) {
+        setPartnerData(response.data.partners.map(partner => ({
           ...partner,
           id: partner._id || partner.id,
-          serviceType: partner.serviceType || (currentService === 'all' ? 'moving' : currentService),
           totalRevenue: partner.metrics?.totalRevenue || 0,
           totalLeadsReceived: partner.metrics?.totalLeadsReceived || 0,
           totalLeadsAccepted: partner.metrics?.totalLeadsAccepted || 0,
-          totalLeadsCancelled: Math.max(0, (partner.metrics?.totalLeadsReceived || 0) - (partner.metrics?.totalLeadsAccepted || 0)),
-          rating: partner.rating || 4.5,
-          status: partner.status || 'active',
-          partnerType: partner.partnerType || 'basic'
+          totalLeadsCancelled: partner.metrics?.totalLeadsCancelled || 0,
+          rating: partner.metrics?.rating || 4.5,
+          registeredAt: partner.registeredAt || partner.createdAt
         })));
       } else {
-        // If no partners from API, show empty array instead of mock data
+        // If no partners from API, show empty array
         setPartnerData([]);
       }
     } catch (error) {
       console.error('Error fetching partner data:', error);
-      // Show empty array instead of mock data on error
+      // Show empty array on error
       setPartnerData([]);
     } finally {
       setLoading(false);
@@ -69,12 +72,18 @@ const PartnerPerformance = ({ className = "" }) => {
   }
 
   const sortOptions = [
+    { id: 'registered', label: isGerman ? 'Registriert' : 'Registered' },
     { id: 'revenue', label: isGerman ? 'Umsatz' : 'Revenue' },
     { id: 'acceptanceRate', label: isGerman ? 'Akzeptanzrate' : 'Acceptance Rate' }
   ];
 
   const sortedPartners = partnerData ? [...partnerData].sort((a, b) => {
     switch (sortBy) {
+      case 'registered':
+        // Sort by registration date (newest first)
+        const aDate = new Date(a.registeredAt || a.createdAt || 0);
+        const bDate = new Date(b.registeredAt || b.createdAt || 0);
+        return bDate - aDate;
       case 'revenue':
         return (b.totalRevenue || 0) - (a.totalRevenue || 0);
       case 'acceptanceRate':
@@ -112,8 +121,8 @@ const PartnerPerformance = ({ className = "" }) => {
       transition={{ delay: 0.5 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold flex items-center mr-8" style={{ color: 'var(--theme-text)' }}>
+      <div className="flex items-center justify-between mb-6 gap-8">
+        <h3 className="text-xl font-bold flex items-center" style={{ color: 'var(--theme-text)' }}>
           <motion.span
             className="mr-2 text-2xl"
             animate={{ rotate: [0, 10, -10, 0] }}
@@ -125,7 +134,7 @@ const PartnerPerformance = ({ className = "" }) => {
         </h3>
 
         {/* Sort Selector */}
-        <div className="flex space-x-2">
+        <div className="flex-shrink-0">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -147,7 +156,7 @@ const PartnerPerformance = ({ className = "" }) => {
 
       {/* Partners List */}
       <div className="space-y-4">
-        {sortedPartners && sortedPartners.length > 0 ? sortedPartners.slice(0, 5).map((partner, index) => {
+        {sortedPartners && sortedPartners.length > 0 ? sortedPartners.slice(0, 3).map((partner, index) => {
           return (
             <motion.div
               key={partner.id}
@@ -183,9 +192,6 @@ const PartnerPerformance = ({ className = "" }) => {
                       <h4 className="font-bold text-lg" style={{ color: 'var(--theme-text)' }}>
                         {partner.companyName}
                       </h4>
-                      <span className="text-sm px-2 py-1 rounded-full bg-green-100 text-green-700">
-                        #{index + 1}
-                      </span>
                     </div>
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
@@ -194,12 +200,11 @@ const PartnerPerformance = ({ className = "" }) => {
                           (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
                         }
                       </span>
-                      <span className="flex items-center space-x-1">
-                        <span>⭐</span>
-                        <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                          {partner.rating}
+                      {sortBy !== 'registered' && (
+                        <span className="text-sm px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                          #{index + 1}
                         </span>
-                      </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -219,7 +224,7 @@ const PartnerPerformance = ({ className = "" }) => {
                   {/* Acceptance Rate */}
                   <div className="text-center">
                     <div className="text-lg font-bold" style={{ color: 'var(--theme-text)' }}>
-                      {Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100)}%
+                      {partner.totalLeadsReceived > 0 ? Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) : 0}%
                     </div>
                     <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
                       {isGerman ? 'Akzeptanz' : 'Acceptance'}
@@ -234,20 +239,20 @@ const PartnerPerformance = ({ className = "" }) => {
               <div className="mt-3">
                 <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--theme-muted)' }}>
                   <span>{isGerman ? 'Leads angenommen' : 'Leads accepted'}: {partner.totalLeadsAccepted}/{partner.totalLeadsReceived}</span>
-                  <span>{Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100)}%</span>
+                  <span>{partner.totalLeadsReceived > 0 ? Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) : 0}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <motion.div
                     className="h-2 rounded-full"
                     style={{
-                      background: Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) >= 80 ?
+                      background: partner.totalLeadsReceived > 0 && Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) >= 80 ?
                         'linear-gradient(90deg, #10b981, #059669)' :
-                        Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) >= 60 ?
+                        partner.totalLeadsReceived > 0 && Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) >= 60 ?
                         'linear-gradient(90deg, #f59e0b, #d97706)' :
                         'linear-gradient(90deg, #ef4444, #dc2626)'
                     }}
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100)}%` }}
+                    animate={{ width: `${partner.totalLeadsReceived > 0 ? Math.round((partner.totalLeadsAccepted / partner.totalLeadsReceived) * 100) : 0}%` }}
                     transition={{ delay: index * 0.1, duration: 1 }}
                   />
                 </div>

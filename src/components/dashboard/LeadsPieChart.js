@@ -38,9 +38,7 @@ const LeadsPieChart = ({ className = "" }) => {
     // Include ALL status types, even if count is 0 - only filter for pie display
     const allByStatus = [
       { status: 'pending', count: stats.pendingLeads || 0, color: '#f59e0b' },
-      { status: 'assigned', count: (stats.assignedLeads || 0), color: '#8b5cf6' },
-      { status: 'accepted', count: stats.acceptedLeads || 0, color: '#10b981' },
-      { status: 'cancelled', count: stats.cancelledLeads || 0, color: '#ef4444' }
+      { status: 'assigned', count: (stats.assignedLeads || 0) + (stats.partialAssignedLeads || 0), color: '#8b5cf6' }
     ];
 
     // For pie chart display, only show statuses with leads > 0
@@ -69,9 +67,7 @@ const LeadsPieChart = ({ className = "" }) => {
   const getDefaultLeadData = () => ({
     byStatus: [
       { status: 'pending', count: 0, color: '#f59e0b' },
-      { status: 'assigned', count: 0, color: '#8b5cf6' },
-      { status: 'accepted', count: 0, color: '#10b981' },
-      { status: 'cancelled', count: 0, color: '#ef4444' }
+      { status: 'assigned', count: 0, color: '#8b5cf6' }
     ],
     byStatusForDisplay: [],
     byService: [
@@ -282,9 +278,7 @@ const LeadsPieChart = ({ className = "" }) => {
                   <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                     {data.status === 'pending' ? (isGerman ? 'Wartend' : 'Pending') :
                      data.status === 'assigned' ? (isGerman ? 'Zugewiesen' : 'Assigned') :
-                     data.status === 'accepted' ? (isGerman ? 'Angenommen' : 'Accepted') :
-                     data.status === 'cancelled' ? (isGerman ? 'Storniert' : 'Cancelled') :
-                     (isGerman ? 'Abgelehnt' : 'Rejected')}
+                     (isGerman ? 'Andere' : 'Other')}
                   </span>
                 </div>
                 <div className="text-right">
