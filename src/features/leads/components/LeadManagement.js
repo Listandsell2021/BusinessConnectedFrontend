@@ -173,50 +173,70 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     let sourcePartners = [];
 
     if (partnerFilter === 'search') {
-      // Use all active partners for search
-      sourcePartners = allActivePartners || [];
-      console.log('Using search mode, sourcePartners count:', sourcePartners.length);
+      // For search, use allActivePartners to allow searching ALL partners, not just suggested ones
+      // However, we'll enrich the data: if a partner exists in suggested partners, use that version (with correct stats)
+      const combinedSuggestedPartners = [
+        ...(partnerTabs.basic.partners || []),
+        ...(partnerTabs.exclusive.partners || [])
+      ];
+
+      // Create a map of suggested partners by ID for quick lookup
+      const suggestedPartnersMap = new Map();
+      combinedSuggestedPartners.forEach(partner => {
+        suggestedPartnersMap.set(partner._id?.toString() || partner.partnerId, partner);
+      });
+
+      // Use allActivePartners for search, but replace with suggested partner data if available
+      sourcePartners = (allActivePartners || []).map(partner => {
+        const partnerId = partner._id?.toString() || partner.partnerId;
+        // If this partner is in suggested list, use the suggested version (has correct stats)
+        return suggestedPartnersMap.get(partnerId) || partner;
+      });
+
+      console.log('Using search mode, sourcePartners count:', sourcePartners.length,
+                  '(from allActive:', (allActivePartners || []).length,
+                  ', enriched from suggested:', suggestedPartnersMap.size, ')');
+
+      // Apply search query for search tab only
+      if (partnerSearchQuery.trim()) {
+        const query = partnerSearchQuery.toLowerCase().trim();
+
+        sourcePartners = sourcePartners.filter(partner => {
+          const companyMatch = partner.companyName?.toLowerCase().includes(query);
+          const partnerIdMatch = partner.partnerId?.toLowerCase().includes(query);
+          const firstNameMatch = partner.contactPerson?.firstName?.toLowerCase().includes(query);
+          const lastNameMatch = partner.contactPerson?.lastName?.toLowerCase().includes(query);
+          const emailMatch = partner.contactPerson?.email?.toLowerCase().includes(query);
+          const fullNameMatch = `${partner.contactPerson?.firstName || ''} ${partner.contactPerson?.lastName || ''}`.toLowerCase().includes(query);
+
+          const matches = companyMatch || partnerIdMatch || firstNameMatch || lastNameMatch || emailMatch || fullNameMatch;
+
+          // Debug logging for search issues
+          if (query.includes('abc') && partner.companyName?.toLowerCase().includes('abc')) {
+            console.log('Search Debug:', {
+              query,
+              partner: partner.companyName,
+              partnerId: partner.partnerId,
+              companyMatch,
+              matches
+            });
+          }
+
+          return matches;
+        });
+      }
     } else if (partnerFilter === 'basic') {
-      // Use suggested basic partners from API
+      // Use suggested basic partners from API - NO search filtering
       sourcePartners = partnerTabs.basic.partners || [];
       console.log('Using basic tab, sourcePartners count:', sourcePartners.length);
     } else if (partnerFilter === 'exclusive') {
-      // Use suggested exclusive partners from API
+      // Use suggested exclusive partners from API - NO search filtering
       sourcePartners = partnerTabs.exclusive.partners || [];
       console.log('Using exclusive tab, sourcePartners count:', sourcePartners.length);
     } else {
       // Fallback to legacy availablePartners if needed
       sourcePartners = availablePartners || [];
       console.log('Using fallback, sourcePartners count:', sourcePartners.length);
-    }
-
-    // Apply search query if provided
-    if (partnerSearchQuery.trim()) {
-      const query = partnerSearchQuery.toLowerCase().trim();
-
-      sourcePartners = sourcePartners.filter(partner => {
-        const companyMatch = partner.companyName?.toLowerCase().includes(query);
-        const partnerIdMatch = partner.partnerId?.toLowerCase().includes(query);
-        const firstNameMatch = partner.contactPerson?.firstName?.toLowerCase().includes(query);
-        const lastNameMatch = partner.contactPerson?.lastName?.toLowerCase().includes(query);
-        const emailMatch = partner.contactPerson?.email?.toLowerCase().includes(query);
-        const fullNameMatch = `${partner.contactPerson?.firstName || ''} ${partner.contactPerson?.lastName || ''}`.toLowerCase().includes(query);
-
-        const matches = companyMatch || partnerIdMatch || firstNameMatch || lastNameMatch || emailMatch || fullNameMatch;
-
-        // Debug logging for search issues
-        if (query.includes('abc') && partner.companyName?.toLowerCase().includes('abc')) {
-          console.log('Search Debug:', {
-            query,
-            partner: partner.companyName,
-            partnerId: partner.partnerId,
-            companyMatch,
-            matches
-          });
-        }
-
-        return matches;
-      });
     }
 
     // For search partners, filter by service type AND partner type based on selected tab
@@ -651,6 +671,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       return;
     }
 
+    console.log('🔍 LEAD ASSIGNMENTS DEBUG on open:', {
+      leadId: lead.id,
+      leadNumber: lead.leadNumber,
+      partnerAssignments: lead.partnerAssignments,
+      assignmentCount: lead.partnerAssignments?.length || 0
+    });
+
     try {
       setSelectedLead(lead);
       setPartnersLoading(true);
@@ -681,14 +708,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       setDefaultTab(data.defaultTab || 'basic');
       setAvailablePartners(data.availablePartners || []);
 
-      // Use allActivePartners for search fallback
+      // Always fetch allActivePartners for search functionality
+      // This is especially important when there are no suggested partners
       if (data.allActivePartners) {
         setAllActivePartners(data.allActivePartners);
-      } else {
-        // If no allActivePartners from API, fetch them for search functionality
-        console.log('No allActivePartners from API, fetching for search...');
-        fetchAllActivePartners();
       }
+
+      // Always fetch allActivePartners to ensure search works even with 0 suggested partners
+      console.log('Fetching all active partners for search functionality...');
+      fetchAllActivePartners();
 
       // Fetch admin settings for weekly leads calculation
       fetchAdminSettings();
@@ -847,7 +875,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Handle partner filter tab change
   const handlePartnerFilterChange = (filter) => {
     setPartnerFilter(filter);
-    setPartnerSearchQuery(''); // Clear search when switching tabs
+    // Don't clear search query when switching to search tab
+    if (filter !== 'search') {
+      setPartnerSearchQuery(''); // Clear search when switching to Basic/Exclusive tabs
+    }
     setSelectedPartners([]); // Clear selected partners when switching tabs
     if (filter === 'search' && allActivePartners.length === 0) {
       fetchAllActivePartners();
@@ -859,13 +890,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     const value = e.target.value;
     setPartnerSearchQuery(value);
 
-    // Auto-switch to search mode when user starts typing
+    // Fetch all active partners when user starts typing for search functionality
     if (value.trim().length > 0) {
-      setPartnerFilter('search');
       // Fetch all active partners if not already loaded
       if (allActivePartners.length === 0) {
         fetchAllActivePartners();
       }
+      // Auto-switch to search tab when user starts typing
+      setPartnerFilter('search');
     } else {
       // Switch back to default tab when search is cleared
       setPartnerFilter(defaultTab);
@@ -879,7 +911,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     setSelectedPartners(prev => {
       if (isExclusive) {
         // If selecting an exclusive partner, clear all previous selections
-        // and only allow this exclusive partner
+        // and only allow this exclusive partner (single selection only)
         if (prev.includes(partner._id)) {
           // If already selected, deselect it
           return [];
@@ -4150,30 +4182,49 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </div>
                 </div>
 
-                {/* Partner Filter Tabs - Only show if there are suggested partners */}
-                {showTabs && (
+                {/* Partner Filter Tabs - Show suggested partners tabs and searched partners tab */}
+                {(showTabs || partnerSearchQuery.trim()) && (
                   <div className="mb-4">
                     <div className="flex border-b" style={{ borderColor: 'var(--theme-border)' }}>
-                      <button
-                        onClick={() => handlePartnerFilterChange('basic')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                          partnerFilter === 'basic'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        Basic ({partnerTabs.basic.count})
-                      </button>
-                      <button
-                        onClick={() => handlePartnerFilterChange('exclusive')}
-                        className={`px-6 py-3 font-medium transition-colors ${
-                          partnerFilter === 'exclusive'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        Exclusive ({partnerTabs.exclusive.count})
-                      </button>
+                      {/* Show Basic and Exclusive tabs only if there are suggested partners */}
+                      {showTabs && (
+                        <>
+                          <button
+                            onClick={() => handlePartnerFilterChange('basic')}
+                            className={`px-6 py-3 font-medium transition-colors ${
+                              partnerFilter === 'basic'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            Basic ({partnerTabs.basic.count})
+                          </button>
+                          <button
+                            onClick={() => handlePartnerFilterChange('exclusive')}
+                            className={`px-6 py-3 font-medium transition-colors ${
+                              partnerFilter === 'exclusive'
+                                ? 'border-b-2 border-blue-500 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            Exclusive ({partnerTabs.exclusive.count})
+                          </button>
+                        </>
+                      )}
+
+                      {/* Show Searched Partners tab when there's a search query */}
+                      {partnerSearchQuery.trim() && (
+                        <button
+                          onClick={() => handlePartnerFilterChange('search')}
+                          className={`px-6 py-3 font-medium transition-colors ${
+                            partnerFilter === 'search'
+                              ? 'border-b-2 border-blue-500 text-blue-600'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Searched Partners ({filteredPartners.length})
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -4220,38 +4271,92 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       const isExclusive = partner.partnerType === 'exclusive';
                       const isAtCapacity = partner.hasCapacity === false; // Check backend capacity status
 
+                      // Check if partner has existing assignment for this lead
+                      // Try multiple comparison methods as the assignment might use different ID formats
+                      const hasExistingAssignment = selectedLead?.partnerAssignments?.some(assignment => {
+                        const statusMatch = ['accepted', 'pending', 'cancel requested'].includes(assignment.status);
+                        const idMatch = assignment.partnerId === partner._id ||
+                                       assignment.partnerId === partner.partnerId ||
+                                       String(assignment.partnerId) === String(partner._id) ||
+                                       String(assignment.partnerId) === String(partner.partnerId);
+                        return idMatch && statusMatch;
+                      });
+
+                      // Enhanced debug logging for assignment checking
+                      if (partner.companyName === 'List&Sell' || partner.partnerId === 'PTRMOVZ12') {
+                        console.log('🔍 ASSIGNMENT DEBUG for List&Sell:', {
+                          companyName: partner.companyName,
+                          partnerId: partner.partnerId,
+                          partner_id: partner._id,
+                          partner_id_type: typeof partner._id,
+                          selectedLeadId: selectedLead?.id,
+                          selectedLeadNumber: selectedLead?.leadNumber,
+                          selectedLeadStructure: selectedLead,
+                          partnerAssignments: selectedLead?.partnerAssignments,
+                          partnerAssignmentsExists: !!selectedLead?.partnerAssignments,
+                          partnerAssignmentsLength: selectedLead?.partnerAssignments?.length,
+                          hasExistingAssignment,
+                          assignmentCheck: selectedLead?.partnerAssignments?.map(assignment => ({
+                            assignmentPartnerId: assignment.partnerId,
+                            assignmentPartnerIdType: typeof assignment.partnerId,
+                            status: assignment.status,
+                            matches_id: assignment.partnerId === partner._id,
+                            matches_partnerId: assignment.partnerId === partner.partnerId,
+                            matches_string_id: String(assignment.partnerId) === String(partner._id),
+                            matches_string_partnerId: String(assignment.partnerId) === String(partner.partnerId),
+                            statusMatches: ['accepted', 'pending', 'cancel requested'].includes(assignment.status)
+                          }))
+                        });
+                      }
+
+                      // Also log all partners to see data structure
+                      if (partner.companyName) {
+                        console.log(`Partner ${partner.companyName}:`, {
+                          hasExistingAssignment,
+                          partnerId: partner.partnerId,
+                          _id: partner._id
+                        });
+                      }
+
                       // Debug logging for partner data
                       console.log('Partner weekly data:', {
                         companyName: partner.companyName,
                         currentWeekLeads: partner.currentWeekLeads,
                         averageLeadsPerWeek: partner.averageLeadsPerWeek,
                         weeklyLimit: partner.weeklyLimit,
-                        customPricing: partner.customPricing
+                        customPricing: partner.customPricing,
+                        hasExistingAssignment
                       });
 
                       return (
                         <div
                           key={partner._id}
                           className={`p-4 rounded-lg border transition-all duration-200 ${
-                            isSelected
-                              ? 'border-blue-500 shadow-md cursor-pointer'
-                              : 'hover:border-gray-400 hover:shadow-sm cursor-pointer'
+                            hasExistingAssignment
+                              ? 'opacity-60 cursor-not-allowed'
+                              : isSelected
+                                ? 'border-blue-500 shadow-md cursor-pointer'
+                                : 'hover:border-gray-400 hover:shadow-sm cursor-pointer'
                           } ${isExclusive ? 'ring-2 ring-yellow-400' : ''} ${
                             isAtCapacity ? 'ring-2 ring-orange-400' : ''
-                          }`}
+                          } ${hasExistingAssignment ? 'ring-2 ring-gray-400' : ''}`}
                           style={{
-                            backgroundColor: isSelected
-                              ? 'rgba(59, 130, 246, 0.1)'
-                              : isAtCapacity
-                                ? 'rgba(249, 115, 22, 0.1)' // Light orange background for no capacity
-                                : 'var(--theme-bg-secondary)',
-                            borderColor: isSelected
-                              ? '#3b82f6'
-                              : isAtCapacity
-                                ? '#f97316' // Orange border for no capacity
-                                : 'var(--theme-border)'
+                            backgroundColor: hasExistingAssignment
+                              ? 'rgba(107, 114, 128, 0.1)' // Gray background for existing assignment
+                              : isSelected
+                                ? 'rgba(59, 130, 246, 0.1)'
+                                : isAtCapacity
+                                  ? 'rgba(249, 115, 22, 0.1)' // Light orange background for no capacity
+                                  : 'var(--theme-bg-secondary)',
+                            borderColor: hasExistingAssignment
+                              ? '#6b7280' // Gray border for existing assignment
+                              : isSelected
+                                ? '#3b82f6'
+                                : isAtCapacity
+                                  ? '#f97316' // Orange border for no capacity
+                                  : 'var(--theme-border)'
                           }}
-                          onClick={() => handlePartnerSelect(partner)}
+                          onClick={() => !hasExistingAssignment && handlePartnerSelect(partner)}
                         >
                           {/* Company Header */}
                           <div className="flex items-center justify-between mb-3">
@@ -4276,6 +4381,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               {isAtCapacity && (
                                 <span className="px-2 py-1 bg-orange-500 text-white rounded-full text-xs font-medium">
                                   AT CAPACITY
+                                </span>
+                              )}
+                              {hasExistingAssignment && (
+                                <span className="px-2 py-1 bg-gray-500 text-white rounded-full text-xs font-medium">
+                                  ALREADY ASSIGNED
                                 </span>
                               )}
                             </div>
@@ -4306,7 +4416,52 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               <div className="text-center">
                                 <div className={`font-bold text-sm ${isAtCapacity ? 'text-orange-600' : ''}`}
                                      style={{ color: isAtCapacity ? '#ea580c' : 'var(--theme-text)' }}>
-                                  {partner.currentWeekLeads || 0}/{partner.averageLeadsPerWeek || 0}
+                                  {partner.currentWeekLeads || 0}/{(() => {
+                                    const customValue = partner.customPricing?.leadsPerWeek;
+                                    const adminValue = adminSettings?.leadDistribution?.[selectedLead?.serviceType]?.[partner.partnerType]?.leadsPerWeek;
+
+                                    // Temporary fix: Use known admin settings if adminValue is undefined
+                                    let fallbackValue;
+                                    if (selectedLead?.serviceType === 'moving') {
+                                      fallbackValue = partner.partnerType === 'exclusive' ? 5 : 3; // moving: exclusive=5, basic=3
+                                    } else {
+                                      fallbackValue = partner.partnerType === 'exclusive' ? 8 : 5; // cleaning: exclusive=8, basic=5
+                                    }
+
+                                    // Only use averageLeadsPerWeek if it's a valid positive number
+                                    const hasValidAverageLeads = partner.averageLeadsPerWeek && partner.averageLeadsPerWeek > 0;
+
+                                    // Proper fallback logic with temporary admin settings
+                                    let finalValue;
+                                    if (hasValidAverageLeads) {
+                                      finalValue = partner.averageLeadsPerWeek;
+                                    } else if (customValue) {
+                                      finalValue = customValue;
+                                    } else if (adminValue) {
+                                      finalValue = adminValue;
+                                    } else {
+                                      // Use fallback admin settings values
+                                      finalValue = fallbackValue;
+                                    }
+
+                                    // Debug logging for all partners in search results
+                                    if (partner.companyName === 'Alpha') {
+                                      console.log(`🔍 ${partner.companyName} capacity calc:`, {
+                                        averageLeadsPerWeek: partner.averageLeadsPerWeek,
+                                        hasValidAverageLeads,
+                                        customValue,
+                                        adminValue,
+                                        serviceType: selectedLead?.serviceType,
+                                        partnerType: partner.partnerType,
+                                        adminSettingsPath: `${selectedLead?.serviceType}.${partner.partnerType}.leadsPerWeek`,
+                                        adminSettingsAvailable: !!adminSettings,
+                                        adminSettingsStructure: adminSettings?.leadDistribution,
+                                        finalValue
+                                      });
+                                    }
+
+                                    return finalValue;
+                                  })()}
                                 </div>
                                 <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
                                   {isAtCapacity ? 'At Capacity' : 'Weekly'}
