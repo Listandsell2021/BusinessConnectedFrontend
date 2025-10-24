@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -13,7 +14,7 @@ export default function Login() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
 
   // Redirect to partner login page by default
   useEffect(() => {
@@ -141,7 +142,7 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{t('auth.login')} - Leadform CRM</title>
+        <title>{t('auth.login')} - ProvenHub</title>
         <meta name="description" content={t('auth.loginDescription')} />
       </Head>
 
@@ -206,21 +207,7 @@ const handleSubmit = async (e) => {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center space-x-3 hover:opacity-75 transition-opacity">
-                <motion.div
-                  className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <span className="text-white text-xl">📋</span>
-                </motion.div>
-                <div>
-                  <h1 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
-                    Leadform CRM
-                  </h1>
-                  <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                    Professional Edition
-                  </p>
-                </div>
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={150} height={42} priority />
               </Link>
               <div className="flex items-center space-x-3">
                 <LanguageToggle />
@@ -246,22 +233,21 @@ const handleSubmit = async (e) => {
               <div className="relative z-10">
                 <div className="text-center mb-10">
                   <motion.div
-                    className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg"
+                    className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center"
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 200, 
+                    transition={{
+                      type: "spring",
+                      stiffness: 200,
                       damping: 15,
-                      delay: 0.4 
+                      delay: 0.4
                     }}
-                    whileHover={{ 
-                      scale: 1.1, 
-                      rotate: 10,
-                      boxShadow: "0 10px 25px rgba(99, 102, 241, 0.4)"
+                    whileHover={{
+                      scale: 1.1,
+                      rotate: 10
                     }}
                   >
-                    <span className="text-3xl text-white">🏢</span>
+                    <Image src="/logo-sm.png" alt="ProvenHub" width={80} height={80} />
                   </motion.div>
                   <motion.h2
                     className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"

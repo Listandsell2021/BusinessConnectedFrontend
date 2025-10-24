@@ -2709,7 +2709,7 @@ const exportLeadsToPDF = async (req, res) => {
       size: 'A4',
       info: {
         Title: 'Leads Export Report',
-        Author: 'Leadform CRM'
+        Author: 'ProvenHub'
       }
     });
 
@@ -2725,8 +2725,18 @@ const exportLeadsToPDF = async (req, res) => {
 
     // Basic document header (title + meta)
     const addDocHeader = () => {
-      doc.fillColor('#2563eb').fontSize(20).font('Helvetica-Bold').text('Leadform CRM', { align: 'left' });
-      doc.moveDown(0.15);
+      // Add logo
+      const path = require('path');
+      const logoPath = path.join(__dirname, '../public/logo.png');
+      try {
+        doc.image(logoPath, doc.page.margins.left, doc.y, { width: 100 });
+        doc.moveDown(2.5);
+      } catch (error) {
+        console.error('Error loading logo for PDF:', error);
+        // Fallback to text if logo fails
+        doc.fillColor('#2563eb').fontSize(20).font('Helvetica-Bold').text('ProvenHub', { align: 'left' });
+        doc.moveDown(0.15);
+      }
       doc.fillColor('#1e40af').fontSize(14).font('Helvetica').text('Leads Export Report', { align: 'left' });
       doc.moveDown(0.2);
       doc.fillColor('#6b7280').fontSize(9).font('Helvetica')

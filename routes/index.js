@@ -31,7 +31,7 @@ router.use('/cancel-requests', cancelRequestRoutes);
 router.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    message: 'Leadform CRM API is running',
+    message: 'ProvenHub API is running',
     version: '1.0.0',
     timestamp: new Date().toISOString()
   });

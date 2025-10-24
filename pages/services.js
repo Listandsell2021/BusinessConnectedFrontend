@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -9,7 +10,7 @@ import LanguageToggle from '../src/components/ui/LanguageToggle';
 
 export default function Services() {
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
 
   const services = [
     {
@@ -55,7 +56,7 @@ export default function Services() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Services - Angebot anfordern' : 'Services - Request Quote'} - Leadform CRM</title>
+        <title>{isGerman ? 'Services - Angebot anfordern' : 'Services - Request Quote'} - ProvenHub</title>
         <meta name="description" content={isGerman ? 'Fordern Sie kostenlose Angebote für Umzug oder Reinigung an' : 'Request free quotes for moving or cleaning services'} />
       </Head>
 
@@ -83,14 +84,14 @@ export default function Services() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-20">
               {/* Logo */}
-              <motion.div 
+              <motion.div
                 className="flex items-center space-x-4"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <Link href="/" className="text-3xl font-bold hover:opacity-75 transition-opacity">
-                  ✨ Leadform CRM
+                <Link href="/" className="hover:opacity-75 transition-opacity">
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={180} height={50} priority />
                 </Link>
               </motion.div>
 
@@ -385,7 +386,7 @@ export default function Services() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="text-center">
               <p className="text-sm mb-4" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 Leadform CRM. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </p>
               <div className="flex items-center justify-center space-x-6 text-sm">
                 <Link href="/privacy" className="hover:opacity-75 transition-opacity" style={{ color: 'var(--theme-muted)' }}>

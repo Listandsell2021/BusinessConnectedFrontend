@@ -413,7 +413,7 @@ ${isGerman ? 'Rechnungsdetails:' : 'Invoice Details:'}
 - ${isGerman ? 'Fälligkeitsdatum:' : 'Due Date:'} ${formatDate(invoice.dueAt)}
 
 ${isGerman ? 'Mit freundlichen Grüßen' : 'Best regards'},
-${isGerman ? 'Ihr Leadform Team' : 'Your Leadform Team'}`;
+${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
 
       // For now, we'll create a mailto link - in production this would be an API call
       const mailtoLink = `mailto:${partnerEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;

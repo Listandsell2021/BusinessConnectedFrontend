@@ -1,7 +1,7 @@
 {
-  "name": "leadform-client",
+  "name": "provenhub-client",
   "version": "1.0.0",
-  "description": "Frontend client for Leadform CRM",
+  "description": "Frontend client for ProvenHub",
   "private": true,
   "scripts": {
     "dev": "next dev",

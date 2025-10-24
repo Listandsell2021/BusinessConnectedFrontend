@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMultiStepForm } from '../../hooks/useMultiStepForm';
@@ -17,7 +18,7 @@ import FormFieldsStep from './steps/FormFieldsStep';
 
 const EnhancedMultiStepForm = ({ formType }) => {
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   const [showSummary, setShowSummary] = useState(false);
   
   const {
@@ -133,7 +134,7 @@ const EnhancedMultiStepForm = ({ formType }) => {
   return (
     <>
       <Head>
-        <title>{getFormTitle()} - Leadform CRM</title>
+        <title>{getFormTitle()} - ProvenHub</title>
         <meta name="description" content={getFormDescription()} />
       </Head>
 
@@ -192,8 +193,8 @@ const EnhancedMultiStepForm = ({ formType }) => {
             <div className="flex items-center justify-between h-20">
               {/* Logo and Progress */}
               <div className="flex items-center space-x-6">
-                <Link href="/" className="text-3xl font-bold hover:opacity-75 transition-opacity">
-                  ✨ Leadform CRM
+                <Link href="/" className="hover:opacity-75 transition-opacity">
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={160} height={45} priority />
                 </Link>
                 
                 <div className="flex items-center space-x-2 md:space-x-4">

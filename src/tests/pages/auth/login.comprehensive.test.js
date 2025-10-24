@@ -102,7 +102,7 @@ describe('Login Page - Comprehensive Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Leadform CRM')).toBeInTheDocument();
+        expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
         expect(screen.getByText('Professional Edition')).toBeInTheDocument();
         expect(screen.getByText('Business Portal')).toBeInTheDocument();
         expect(screen.getByText('Anmelden')).toBeInTheDocument(); // Login button
@@ -173,7 +173,7 @@ describe('Login Page - Comprehensive Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('Leadform CRM')).toBeInTheDocument();
+        expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
         expect(screen.getByText('Professional Edition')).toBeInTheDocument();
         expect(screen.getByText('Business Portal')).toBeInTheDocument();
         expect(screen.getByText('Sign In')).toBeInTheDocument(); // Login button

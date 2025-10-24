@@ -31,7 +31,7 @@ async function testEmailConfiguration() {
     // Test with a simple email
     const testEmail = {
       to: 'info@reinigungsfirma-vergleich.de', // Send to same email for testing
-      subject: 'Email Configuration Test - Leadform System',
+      subject: 'Email Configuration Test - ProvenHub System',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #28a745; color: white; padding: 20px; text-align: center;">
@@ -39,7 +39,7 @@ async function testEmailConfiguration() {
           </div>
           <div style="padding: 20px;">
             <p><strong>Congratulations!</strong></p>
-            <p>Your Leadform email system is now properly configured and working!</p>
+            <p>Your ProvenHub email system is now properly configured and working!</p>
 
             <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3>Configuration Details:</h3>
@@ -55,7 +55,7 @@ async function testEmailConfiguration() {
             <strong>${process.env.COMPANY_TEAM}</strong></p>
           </div>
           <div style="background: #f0f0f0; padding: 10px; text-align: center; font-size: 12px;">
-            This is an automated test message from the Leadform email system.
+            This is an automated test message from the ProvenHub email system.
           </div>
         </div>
       `

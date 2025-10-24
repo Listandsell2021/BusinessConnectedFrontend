@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -16,7 +17,7 @@ export default function PartnerLogin() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   const { switchService } = useService();
   
   const [formData, setFormData] = useState({
@@ -246,8 +247,8 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Partner-Anmeldung' : 'Partner Login'} - Leadform CRM</title>
-        <meta name="description" content={isGerman ? 'Partner-Anmeldung für Leadform CRM' : 'Partner login for Leadform CRM'} />
+        <title>{isGerman ? 'Partner-Anmeldung' : 'Partner Login'} - ProvenHub</title>
+        <meta name="description" content={isGerman ? 'Partner-Anmeldung für ProvenHub' : 'Partner login for ProvenHub'} />
       </Head>
 
       <div 
@@ -310,22 +311,8 @@ const handleSubmit = async (e) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-75 transition-opacity">
-                <motion.div
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <span className="text-white text-sm sm:text-xl">📋</span>
-                </motion.div>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
-                    Leadform CRM
-                  </h1>
-                  <p className="text-xs hidden sm:block" style={{ color: 'var(--theme-muted)' }}>
-                    Partner Edition
-                  </p>
-                </div>
+              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />

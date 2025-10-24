@@ -46,8 +46,8 @@ app.prepare().then(() => {
     }
 
     console.log(`✅ Next.js server running on http://${host}:${port}`);
-    console.log(`🌐 Frontend should be accessible at: https://leadform.listandsell.de`);
-    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://api.leadform.listandsell.de/'}`);
+    console.log(`🌐 Frontend should be accessible at: https://dv-app-provenhub.listandsell.eu`);
+    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://dv-api-provenhub.listandsell.eu/'}`);
   });
 
   // Graceful shutdown

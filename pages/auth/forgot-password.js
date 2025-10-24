@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -12,7 +13,7 @@ import LanguageToggle from '../../src/components/ui/LanguageToggle';
 export default function ForgotPassword() {
   const router = useRouter();
   const { isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [formData, setFormData] = useState({
@@ -279,7 +280,7 @@ export default function ForgotPassword() {
     <>
       <Head>
         <title>
-          {isGerman ? 'Passwort vergessen - Leadform CRM' : 'Forgot Password - Leadform CRM'}
+          {isGerman ? 'Passwort vergessen - ProvenHub' : 'Forgot Password - ProvenHub'}
         </title>
         <meta name="description" content={isGerman ? 'Setzen Sie Ihr Passwort zurück' : 'Reset your password'} />
       </Head>
@@ -319,22 +320,8 @@ export default function ForgotPassword() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-75 transition-opacity">
-                <motion.div
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <span className="text-white text-sm sm:text-xl">📋</span>
-                </motion.div>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
-                    Leadform CRM
-                  </h1>
-                  <p className="text-xs hidden sm:block" style={{ color: 'var(--theme-muted)' }}>
-                    Professional Edition
-                  </p>
-                </div>
+              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />

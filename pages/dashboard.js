@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
@@ -25,7 +26,7 @@ export default function Dashboard({ initialData = {} }) {
   const router = useRouter();
   const { user, isAuthenticated, logout, loading, isSuperAdmin, isPartner } = useAuth();
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   const { currentService } = useService();
   const { 
     notifications, 
@@ -1225,7 +1226,7 @@ export default function Dashboard({ initialData = {} }) {
           {activeTab === 'overview' 
             ? (isGerman ? 'CRM Dashboard' : 'CRM Dashboard')
             : getMenuItems().find(item => item.id === activeTab)?.label || 'Dashboard'
-          } - Leadform CRM
+          } - ProvenHub
         </title>
         <meta name="description" content="Advanced CRM system for managing leads, partners, and business operations with stunning UI" />
       </Head>
@@ -1261,22 +1262,8 @@ export default function Dashboard({ initialData = {} }) {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <Link href="/" className="flex items-center space-x-3">
-                    <motion.span
-                      className="text-2xl"
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    >
-                      📋
-                    </motion.span>
-                    <div>
-                      <h1 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
-                        Leadform CRM
-                      </h1>
-                      <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                        {isGerman ? 'Verwaltung' : 'Management'}
-                      </p>
-                    </div>
+                  <Link href="/" className="flex items-center">
+                    <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
                   </Link>
                 </motion.div>
               )}

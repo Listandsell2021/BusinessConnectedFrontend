@@ -70,7 +70,7 @@ describe('Login Page', () => {
     expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
-    expect(screen.getByText('📋 Leadform CRM')).toBeInTheDocument();
+    expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
   });
 
   it('should display validation errors for empty fields', async () => {
@@ -302,7 +302,7 @@ describe('Login Page', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('📋 Leadform CRM')).toBeInTheDocument();
+      expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
     });
 
     expect(screen.getByText('🎯')).toBeInTheDocument();

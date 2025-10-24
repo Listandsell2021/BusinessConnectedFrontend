@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -16,7 +17,7 @@ export default function PartnerRequest() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -489,9 +490,9 @@ export default function PartnerRequest() {
     <>
       <Head>
         <title>
-          {isGerman ? 'Registrieren - Leadform CRM' : 'Register - Leadform CRM'}
+          {isGerman ? 'Registrieren - ProvenHub' : 'Register - ProvenHub'}
         </title>
-        <meta name="description" content={isGerman ? 'Erstellen Sie Ihr kostenloses Leadform CRM Konto' : 'Create your free Leadform CRM account'} />
+        <meta name="description" content={isGerman ? 'Erstellen Sie Ihr kostenloses ProvenHub Konto' : 'Create your free ProvenHub account'} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
       </Head>
 
@@ -543,22 +544,8 @@ export default function PartnerRequest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-75 transition-opacity">
-                <motion.div
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
-                  whileHover={{ scale: 1.1, rotate: 10 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <span className="text-white text-sm sm:text-base">📋</span>
-                </motion.div>
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold" style={{ color: 'var(--theme-text)' }}>
-                    Leadform CRM
-                  </h1>
-                  <p className="text-xs hidden sm:block" style={{ color: 'var(--theme-muted)' }}>
-                    Professional Edition
-                  </p>
-                </div>
+              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />
@@ -640,8 +627,8 @@ export default function PartnerRequest() {
                     transition={{ delay: 0.6 }}
                   >
                     {isGerman 
-                      ? 'Erstellen Sie Ihr Leadform CRM Konto'
-                      : 'Create your Leadform CRM Partner account'
+                      ? 'Erstellen Sie Ihr ProvenHub Konto'
+                      : 'Create your ProvenHub Partner account'
                     }
                   </motion.p>
                 </div>

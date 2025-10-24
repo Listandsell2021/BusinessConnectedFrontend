@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { useLanguage } from '../src/contexts/LanguageContext';
@@ -12,7 +13,7 @@ export default function ThankYou() {
   const router = useRouter();
   const { service } = router.query;
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
 
   const getServiceName = () => {
     if (service === 'cleaning') {
@@ -30,7 +31,7 @@ export default function ThankYou() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - Leadform CRM</title>
+        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - ProvenHub</title>
         <meta name="description" content={isGerman ? 'Ihre Anfrage wurde erfolgreich gesendet' : 'Your request has been sent successfully'} />
       </Head>
 
@@ -46,14 +47,14 @@ export default function ThankYou() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
-              <motion.div 
+              <motion.div
                 className="flex items-center space-x-4"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <Link href="/" className="text-2xl font-bold hover:opacity-75 transition-opacity">
-                  📋 Leadform CRM
+                <Link href="/" className="hover:opacity-75 transition-opacity">
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={160} height={45} priority />
                 </Link>
               </motion.div>
 
@@ -227,7 +228,7 @@ export default function ThankYou() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="text-center">
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 Leadform CRM. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </p>
             </div>
           </div>

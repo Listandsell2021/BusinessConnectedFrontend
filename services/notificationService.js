@@ -15,8 +15,8 @@ class NotificationService {
         recipient: partnerId,
         recipientRole: 'partner',
         type: 'partner_welcome',
-        title: 'Welcome to Leadform CRM!',
-        message: `Welcome to Leadform CRM! You are now a verified ${serviceDisplayName} partner. Start receiving leads in your area!`,
+        title: 'Welcome to ProvenHub!',
+        message: `Welcome to ProvenHub! You are now a verified ${serviceDisplayName} partner. Start receiving leads in your area!`,
         priority: 'high',
         metadata: {
           service: service

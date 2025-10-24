@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMultiStepForm } from '../../hooks/useMultiStepForm';
@@ -14,7 +15,7 @@ import { toast } from 'react-hot-toast';
 
 const MultiStepForm = ({ formType }) => {
   const { t, isGerman } = useLanguage();
-  const { mounted } = useTheme();
+  const { mounted, isDark } = useTheme();
   
   const {
     formConfig,
@@ -107,7 +108,7 @@ const MultiStepForm = ({ formType }) => {
   return (
     <>
       <Head>
-        <title>{getFormTitle()} - Leadform CRM</title>
+        <title>{getFormTitle()} - ProvenHub</title>
         <meta name="description" content={getFormDescription()} />
       </Head>
 
@@ -129,8 +130,8 @@ const MultiStepForm = ({ formType }) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <Link href="/" className="text-2xl font-bold hover:opacity-75 transition-opacity">
-                  📋 Leadform CRM
+                <Link href="/" className="hover:opacity-75 transition-opacity">
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
                 </Link>
                 
                 <div className="hidden md:block text-sm" style={{ color: 'var(--theme-muted)' }}>
@@ -213,7 +214,7 @@ const MultiStepForm = ({ formType }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <div className="text-sm mb-4 md:mb-0" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 Leadform CRM. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </div>
               
               <div className="flex items-center space-x-6 text-sm">

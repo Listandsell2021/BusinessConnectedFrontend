@@ -26,8 +26,8 @@ const getApiBaseUrl = () => {
   }
 
   // Staging/Production environment
-  if (hostname === 'leadform.listandsell.de') {
-    return 'https://api.leadform.listandsell.de/api';
+  if (hostname === 'dv-app-provenhub.listandsell.eu') {
+    return 'https://dv-api-provenhub.listandsell.eu/api';
   }
 
   // Fallback: construct based on current domain for other production environments
