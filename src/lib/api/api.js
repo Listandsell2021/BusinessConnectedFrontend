@@ -136,7 +136,8 @@ export const authAPI = {
   refreshToken: () => api.post('/auth/refresh'),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
-  verifyEmail: (token) => api.post('/auth/verify-email', { token })
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  changePartnerPassword: (data) => api.post('/auth/change-partner-password', data)
 };
 
 export const leadsAPI = {

@@ -1590,9 +1590,19 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           >
             ← {t('common.back')}
           </button>
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Partner Details' : 'Partner Details'}
-          </h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Partner Details' : 'Partner Details'}
+            </h2>
+            {partnerForDetails && partnerForDetails.companyName && (
+              <>
+                <span className="text-2xl" style={{ color: 'var(--theme-muted)' }}>-</span>
+                <h3 className="text-xl font-semibold" style={{ color: 'var(--theme-text)' }}>
+                  {partnerForDetails.companyName}
+                </h3>
+              </>
+            )}
+          </div>
           {partnerForDetails && (
             <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partnerForDetails.status)}`}>
               {partnerForDetails.status}

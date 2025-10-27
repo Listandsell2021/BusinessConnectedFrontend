@@ -1532,7 +1532,26 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             }
 
             // Check if this partner assignment has or had a cancellation request
-            if (assignment.cancellationRequestedAt || assignment.cancellationRequested === true) {
+            const hasCancellationRequest =
+              assignment.cancellationRequestedAt ||
+              assignment.cancellationRequested === true ||
+              assignment.status === 'cancellationRequested' ||
+              assignment.status === 'cancel_requested';
+
+            // Debug logging for MOVE-1993
+            if (lead.leadId === 'MOVE-1993') {
+              console.log('MOVE-1993 Partner Assignment:', {
+                partner: assignment.partner,
+                status: assignment.status,
+                cancellationRequested: assignment.cancellationRequested,
+                cancellationRequestedAt: assignment.cancellationRequestedAt,
+                cancellationApproved: assignment.cancellationApproved,
+                cancellationRejected: assignment.cancellationRejected,
+                hasCancellationRequest: hasCancellationRequest
+              });
+            }
+
+            if (hasCancellationRequest) {
               // Determine the status of this cancellation request
               let requestStatus = 'pending';
 
@@ -1541,12 +1560,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               } else if (assignment.cancellationRejected === true) {
                 // Admin explicitly rejected the cancellation request
                 requestStatus = 'cancellation_rejected';
-              } else if (assignment.cancellationRequested === true && assignment.status === 'cancellationRequested') {
-                // Still pending if cancellationRequested is true and not yet processed
+              } else {
+                // If there's a cancellation request and it's not approved/rejected, it's pending
                 requestStatus = 'pending';
-              } else if (assignment.cancellationRequestedAt && !assignment.cancellationApproved && !assignment.cancellationRejected) {
-                // If we have a request date but no explicit approval/rejection, it might be pending or processed differently
-                requestStatus = assignment.cancellationRequested === true ? 'pending' : 'rejected';
               }
 
               // Apply status filter
@@ -3272,11 +3288,25 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
                       const statusToShow = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
+                      // Count only active partners (not rejected or cancelled)
+                      const activePartnerCount = lead.partnerAssignments?.filter(
+                        assignment => assignment.status !== 'rejected' && assignment.status !== 'cancelled'
+                      ).length || 0;
+                      const showPartnerCount = !isPartner && (statusToShow === 'partial_assigned' || statusToShow === 'assigned') && activePartnerCount > 0;
+                      const statusColorClass = getStatusColor(statusToShow);
+
                       console.log('Lead ID:', lead.leadId, 'Status to show:', statusToShow, 'partnerStatus:', lead.partnerStatus, 'status:', lead.status, 'isPartner:', isPartner, 'partnerAssignments:', lead.partnerAssignments, 'userId:', user?.id);
                       return (
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(statusToShow)}`}>
-                          {translateStatus(statusToShow)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColorClass}`}>
+                            {translateStatus(statusToShow)}
+                          </span>
+                          {showPartnerCount && (
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${statusColorClass}`}>
+                              {activePartnerCount}
+                            </span>
+                          )}
+                        </div>
                       );
                     })()}
                   </td>
