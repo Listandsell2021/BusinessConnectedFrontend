@@ -2715,6 +2715,12 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     color: 'red'
                   },
                   {
+                    label: isGerman ? 'Stornierungsanfragen' : 'Cancel Requests',
+                    value: partnerLeadsStats.cancel_requested || 0,
+                    icon: '🔄',
+                    color: 'orange'
+                  },
+                  {
                     label: translateStatus('cancelled'),
                     value: partnerLeadsStats.cancelled || 0,
                     icon: '🚫',
@@ -2735,9 +2741,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
-                        <p className="text-2xl font-bold text-yellow-600">
-                          {stat.value}
-                        </p>
+                        <p className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{stat.value}</p>
                       </div>
                       <div className="text-2xl">{stat.icon}</div>
                     </div>
@@ -2829,7 +2833,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 lead.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                 lead.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                 lead.status === 'cancelled' || lead.status === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
-                                lead.status === 'cancel_requested' || lead.status === 'cancellationRequested' ? 'bg-orange-100 text-orange-800' :
+                                lead.status === 'cancel_requested' || lead.status === 'cancellationRequested' ? 'bg-purple-100 text-purple-800' :
                                 lead.status === 'cancellation_rejected' ? 'bg-red-100 text-red-800' :
                                 lead.status === 'completed' ? 'bg-gray-100 text-gray-800' :
                                 'bg-gray-100 text-gray-800'

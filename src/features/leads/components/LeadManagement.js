@@ -524,32 +524,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       return;
     }
 
-    // Block view for partners if lead is not accepted
-    if (isPartner) {
-      const partnerStatus = getPartnerAssignmentStatus(lead);
-
-      console.log('handleViewLead - Partner status check:', {
-        leadId: lead.leadId || lead.id,
-        partnerStatus: partnerStatus,
-        isAccepted: partnerStatus?.isAccepted,
-        isCancellationRequested: partnerStatus?.isCancellationRequested,
-        isRejected: partnerStatus?.isRejected,
-        status: partnerStatus?.status
-      });
-
-      if (!partnerStatus?.isAccepted || partnerStatus?.isCancellationRequested) {
-        if (partnerStatus?.isCancellationRequested) {
-          toast.error(isGerman ? 'Details nicht verfügbar - Stornierung beantragt' : 'Details unavailable - Cancellation requested');
-        } else if (partnerStatus?.isRejected) {
-          toast.error(isGerman ? 'Details nicht verfügbar - Lead abgelehnt' : 'Details unavailable - Lead rejected');
-        } else {
-          console.log('Showing Accept first message - partnerStatus:', partnerStatus);
-          toast.error(isGerman ? 'Zuerst akzeptieren um Details zu sehen' : 'Accept first to see details');
-        }
-        return;
-      }
-    }
-
     try {
       setLoading(true);
       const response = await leadsAPI.getById(lead.id);
@@ -577,17 +551,16 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         acceptedPartner: leadData.acceptedPartner,
         partnerAssignments: leadData.partnerAssignments
       };
-      
+
       setLeadForDetails(transformedLead);
       setShowLeadDetails(true);
     } catch (error) {
       console.error('Error loading lead details:', error);
-      // Show a clearer message for access denied errors, avoid duplicates
-      if (error.response?.status === 403 || error.response?.data?.message?.toLowerCase().includes('access denied')) {
-        toast.error(isGerman ? 'Zuerst akzeptieren um Details zu sehen' : 'Accept first to see details');
+      // Show appropriate error message
+      if (error.response?.status === 403) {
+        toast.error(isGerman ? 'Zugriff verweigert - Sie haben keine Berechtigung für diesen Lead' : 'Access denied - You do not have permission for this lead');
       } else if (!error.response?.data?.message) {
-        // Only show generic message if API interceptor didn't already show one
-        toast.error('Failed to load lead details');
+        toast.error(isGerman ? 'Fehler beim Laden der Lead-Details' : 'Failed to load lead details');
       }
     } finally {
       setLoading(false);
@@ -3455,29 +3428,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             );
 
                           case 'rejected':
+                            // Rejected: Show only status badge, no View button
+                            return (
+                              <span className="text-xs px-3 py-1 rounded bg-red-100 text-red-800">
+                                ❌ {isGerman ? 'Abgelehnt' : 'Rejected'}
+                              </span>
+                            );
+
                           case 'cancellationRequested':
                           case 'cancel_requested':
-                          default:
-                            // Rejected, Cancelled, or Cancel Requested: Show only View button and status
+                            // Cancellation Requested: Show only status badges, no View button
                             return (
                               <>
-                                <button
-                                  onClick={() => handleViewLead(lead)}
-                                  className="text-xs px-3 py-1 rounded transition-colors"
-                                  style={{
-                                    backgroundColor: 'var(--theme-bg-secondary)',
-                                    color: 'var(--theme-text)',
-                                    border: '1px solid var(--theme-border)'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = 'var(--theme-hover)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
-                                  }}
-                                >
-                                  👁️ {isGerman ? 'Anzeigen' : 'View'}
-                                </button>
                                 {partnerStatus?.isCancellationRequested && lead.status !== 'cancelled' && (
                                   <span className="text-xs px-3 py-1 rounded bg-purple-100 text-purple-800">
                                     🔄 {isGerman ? 'Stornierung angefragt' : 'Cancel Pending'}
@@ -3499,6 +3461,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                   </span>
                                 )}
                               </>
+                            );
+
+                          default:
+                            // Other status: Show only status text, no View button
+                            return (
+                              <span className="text-xs px-3 py-1 rounded" style={{ color: 'var(--theme-muted)' }}>
+                                {isGerman ? 'Keine Aktion verfügbar' : 'No action available'}
+                              </span>
                             );
                         }
                       })()}

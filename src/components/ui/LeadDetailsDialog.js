@@ -277,23 +277,32 @@ const LeadDetailsDialog = ({
                   <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                     {leadData.leadId}
                   </span>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    leadData.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    leadData.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                    leadData.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    leadData.status === 'partial_assigned' ? 'bg-blue-100 text-blue-800' :
-                    leadData.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
-                    leadData.status === 'cancelled' || leadData.status === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {leadData.status === 'pending' ? (isGerman ? 'Ausstehend' : 'Pending') :
-                     leadData.status === 'accepted' ? (isGerman ? 'Akzeptiert' : 'Accepted') :
-                     leadData.status === 'rejected' ? (isGerman ? 'Abgelehnt' : 'Rejected') :
-                     leadData.status === 'partial_assigned' ? (isGerman ? 'Teilweise zugewiesen' : 'Partially Assigned') :
-                     leadData.status === 'assigned' ? (isGerman ? 'Zugewiesen' : 'Assigned') :
-                     leadData.status === 'cancelled' || leadData.status === 'cancellation_approved' ? (isGerman ? 'Storniert' : 'Cancelled') :
-                     leadData.status}
-                  </span>
+                  {(() => {
+                    // For partners, show partner-specific status; for admins, show general lead status
+                    const displayStatus = isPartner ? (leadData.partnerStatus || leadData.status) : leadData.status;
+
+                    return (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        displayStatus === 'accepted' ? 'bg-green-100 text-green-800' :
+                        displayStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                        displayStatus === 'partial_assigned' ? 'bg-blue-100 text-blue-800' :
+                        displayStatus === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                        displayStatus === 'cancelled' || displayStatus === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
+                        displayStatus === 'cancellationRequested' || displayStatus === 'cancel_requested' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {displayStatus === 'pending' ? (isGerman ? 'Ausstehend' : 'Pending') :
+                         displayStatus === 'accepted' ? (isGerman ? 'Akzeptiert' : 'Accepted') :
+                         displayStatus === 'rejected' ? (isGerman ? 'Abgelehnt' : 'Rejected') :
+                         displayStatus === 'partial_assigned' ? (isGerman ? 'Teilweise zugewiesen' : 'Partially Assigned') :
+                         displayStatus === 'assigned' ? (isGerman ? 'Zugewiesen' : 'Assigned') :
+                         displayStatus === 'cancelled' || displayStatus === 'cancellation_approved' ? (isGerman ? 'Storniert' : 'Cancelled') :
+                         displayStatus === 'cancellationRequested' || displayStatus === 'cancel_requested' ? (isGerman ? 'Stornierung angefragt' : 'Cancellation Requested') :
+                         displayStatus}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
