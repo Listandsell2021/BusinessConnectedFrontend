@@ -1582,7 +1582,7 @@ const PartnerSettingsNew = () => {
                           🌍 {getCountryNameFromCode(countryName)}
                         </span>
                         <button
-                          onClick={() => handleCountryToggle(countryCode, false, 'pickup')}
+                          onClick={() => handleCountryToggle(countryName, false, 'pickup')}
                           className="text-red-500 hover:text-red-700 text-sm"
                         >
                           {isGerman ? 'Entfernen' : 'Remove'}
@@ -1837,7 +1837,7 @@ const PartnerSettingsNew = () => {
                           🌍 {getCountryNameFromCode(countryName)}
                         </span>
                         <button
-                          onClick={() => handleCountryToggle(countryCode, false, 'destination')}
+                          onClick={() => handleCountryToggle(countryName, false, 'destination')}
                           className="text-red-500 hover:text-red-700 text-sm"
                         >
                           {isGerman ? 'Entfernen' : 'Remove'}

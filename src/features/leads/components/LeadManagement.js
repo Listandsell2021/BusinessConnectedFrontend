@@ -926,26 +926,26 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     try {
       setAssigningLead(true);
-      
+
       // For now, assign to the first selected partner (API supports single assignment)
       const partnerId = selectedPartners[0];
       const response = await leadsAPI.assign(selectedLead.id, partnerId);
-      
+
       if (response.data.success) {
         toast.success('Lead assigned successfully');
-        
+
         // Show capacity warning if exists
         if (response.data.warning) {
           toast.warning(response.data.warning, { duration: 4000 });
         }
-        
-        // Refresh leads data
-        await loadLeads();
-        
-        // Close modal
+
+        // Close modal first for immediate feedback
         setShowAssignModal(false);
         setSelectedLead(null);
         setSelectedPartners([]);
+
+        // Refresh leads data immediately
+        await loadLeads();
       }
     } catch (error) {
       console.error('Error assigning lead:', error);
@@ -957,13 +957,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         toast.error(error.response.data.rule, { duration: 5000 });
       }
 
-      // Close modal and clear state even on error to prevent dialog staying open
+      // Close modal and clear state
       setShowAssignModal(false);
       setSelectedLead(null);
       setSelectedPartners([]);
       setAvailablePartners([]);
     } finally {
       setAssigningLead(false);
+      // Always reload the table to ensure it's in sync with server state
+      await loadLeads();
     }
   };
 
