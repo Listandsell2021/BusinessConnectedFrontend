@@ -20,6 +20,12 @@ const DashboardStats = ({ className = "" }) => {
       setLoading(true);
       const response = await dashboardAPI.getStats(currentService);
 
+      console.log('🎯 Dashboard API Response:', response.data);
+      console.log('🎯 Stats Data:', response.data?.data);
+      console.log('🎯 Total Leads:', response.data?.data?.totalLeads);
+      console.log('🎯 Accepted Leads:', response.data?.data?.acceptedLeads);
+      console.log('🎯 Cancelled Leads:', response.data?.data?.cancelledLeads);
+
       if (response.data && response.data.success) {
         setStats(response.data.data);
       } else {

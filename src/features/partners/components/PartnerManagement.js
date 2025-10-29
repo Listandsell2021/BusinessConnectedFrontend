@@ -1293,6 +1293,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
       console.log('Partner Details - Loading leads for partner:', partnerForDetails.id);
       console.log('Partner Details - Total leads from API:', leadsData.length);
+      console.log('Partner Details - Sample lead data structure:', leadsData.length > 0 ? leadsData[0] : null);
+      console.log('Partner Details - assignmentId check:', leadsData.length > 0 ? leadsData[0].assignmentId : null);
+      console.log('Partner Details - partnerStatus check:', leadsData.length > 0 ? leadsData[0].partnerStatus : null);
 
       // Transform leads data - create separate row for EACH assignment
       const transformedLeads = [];
@@ -1343,16 +1346,23 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           pickupDate: pickupDate,
         };
 
-        if (lead.partnerAssignments) {
-          // partnersAPI.getLeads returns a SINGLE OBJECT (not array) for THIS specific partner
-          // So we just use it directly
-          transformedLeads.push({
-            ...baseLeadData,
-            status: lead.partnerAssignments.status || 'pending',
-            partnerStatus: lead.partnerAssignments.status || 'pending',
-            assignedAt: lead.partnerAssignedAt || lead.assignedAt
-          });
-        }
+        // Backend has already unwound partnerAssignments and provided fields at root level
+        // Use assignmentId for uniqueness, partnerStatus for status display
+        console.log('Transforming lead:', {
+          leadId: lead.leadId,
+          assignmentId: lead.assignmentId,
+          partnerStatus: lead.partnerStatus,
+          partnerAssignedAt: lead.partnerAssignedAt
+        });
+
+        transformedLeads.push({
+          ...baseLeadData,
+          assignmentId: lead.assignmentId, // Use _id from partnerAssignments for uniqueness
+          status: lead.partnerStatus || 'pending', // Use partnerStatus from backend
+          partnerStatus: lead.partnerStatus || 'pending',
+          assignedAt: lead.partnerAssignedAt || lead.assignedAt,
+          partnerAssignedAt: lead.partnerAssignedAt
+        });
       });
 
       // Keep ALL assignments (including duplicates) - do NOT deduplicate
@@ -2923,7 +2933,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       ) : (
                         window.paginatedPartnerLeads.map((lead, index) => (
                           <motion.tr
-                            key={lead.id}
+                            key={lead.assignmentId || lead.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
@@ -2966,7 +2976,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString() : '-'}
+                              {(lead.partnerAssignedAt || lead.assignedAt) ? new Date(lead.partnerAssignedAt || lead.assignedAt).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button

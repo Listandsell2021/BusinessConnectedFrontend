@@ -108,25 +108,30 @@ export default function Dashboard({ initialData = {} }) {
         });
 
         if (lead.partnerAssignments) {
-          const partnerAssignment = lead.partnerAssignments.find(pa =>
+          // Use filter() instead of find() to get ALL assignments for this partner
+          // (handles duplicate assignments to same lead)
+          const partnerAssignments = lead.partnerAssignments.filter(pa =>
             pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
           );
 
-          console.log(`  Partner assignment for ${user.id}:`, partnerAssignment);
+          console.log(`  Partner assignments for ${user.id} in lead ${lead.leadId}:`, partnerAssignments.length);
 
-          if (partnerAssignment) {
-            totalLeads++;
-            console.log(`  ✅ Counting lead ${lead.leadId}, status: ${partnerAssignment.status}`);
+          if (partnerAssignments.length > 0) {
+            // Count EACH assignment separately (not just the lead)
+            partnerAssignments.forEach((assignment, idx) => {
+              totalLeads++;
+              console.log(`  ✅ [${idx + 1}/${partnerAssignments.length}] Counting assignment for lead ${lead.leadId}, status: ${assignment.status}, _id: ${assignment._id}`);
 
-            if (partnerAssignment.status === 'accepted') {
-              accepted++;
-              console.log(`    → Accepted count: ${accepted}`);
-            } else if (partnerAssignment.status === 'rejected' || partnerAssignment.status === 'cancelled') {
-              rejectedCancelled++;
-              console.log(`    → Rejected/Cancelled count: ${rejectedCancelled}`);
-            }
+              if (assignment.status === 'accepted') {
+                accepted++;
+                console.log(`    → Accepted count: ${accepted}`);
+              } else if (assignment.status === 'rejected' || assignment.status === 'cancelled') {
+                rejectedCancelled++;
+                console.log(`    → Rejected/Cancelled count: ${rejectedCancelled}`);
+              }
+            });
           } else {
-            console.log(`  ❌ No matching partner assignment for ${user.id}`);
+            console.log(`  ❌ No matching partner assignments for ${user.id}`);
           }
         }
       });

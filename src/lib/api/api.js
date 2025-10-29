@@ -148,8 +148,8 @@ export const leadsAPI = {
   delete: (id) => api.delete(`/leads/${id}`),
   getAvailablePartners: (id) => api.get(`/leads/${id}/available-partners`),
   assign: (id, partnerId) => api.put(`/leads/${id}/assign`, { partnerId }),
-  accept: (id) => api.put(`/leads/${id}/accept`),
-  reject: (id, reason) => api.post(`/leads/${id}/reject`, { reason }),
+  accept: (id, _id) => api.put(`/leads/${id}/accept`, { _id }),
+  reject: (id, reason, _id) => api.post(`/leads/${id}/reject`, { reason, _id }),
   updateStatus: (id, status) => api.patch(`/leads/${id}/status`, { status }),
   export: (format, filters) => api.get(`/leads/export/${format}`, { 
     params: filters,

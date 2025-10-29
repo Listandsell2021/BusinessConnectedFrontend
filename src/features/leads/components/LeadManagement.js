@@ -920,6 +920,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Handle lead assignment
   const handleConfirmAssignment = async () => {
+    // Prevent multiple simultaneous assignment attempts
+    if (assigningLead) {
+      return;
+    }
+
     if (selectedPartners.length === 0) {
       toast.error('Please select at least one partner');
       return;
@@ -935,9 +940,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       if (response.data.success) {
         toast.success('Lead assigned successfully');
 
-        // Show capacity warning if exists
+        // Show capacity warning if exists (using toast() since toast.warning doesn't exist)
         if (response.data.warning) {
-          toast.warning(response.data.warning, { duration: 4000 });
+          toast(response.data.warning, {
+            duration: 4000,
+            icon: '⚠️'
+          });
         }
 
         // Close modal first for immediate feedback
@@ -945,8 +953,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         setSelectedLead(null);
         setSelectedPartners([]);
 
-        // Refresh leads data immediately
-        await loadLeads();
+        // Refresh leads data immediately - wrap in try-catch to prevent error toast after success
+        try {
+          await loadLeads();
+        } catch (loadError) {
+          console.error('Error reloading leads:', loadError);
+          // Silently fail - assignment was successful, just reload failed
+        }
       }
     } catch (error) {
       console.error('Error assigning lead:', error);
@@ -963,10 +976,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       setSelectedLead(null);
       setSelectedPartners([]);
       setAvailablePartners([]);
+      // Don't reload on error since no changes were made on the server
     } finally {
       setAssigningLead(false);
-      // Always reload the table to ensure it's in sync with server state
-      await loadLeads();
     }
   };
 
@@ -2243,18 +2255,20 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     return icons[status] || icons.pending;
   };
 
-  const handleAcceptLead = async (leadId, partnerId) => {
+  const handleAcceptLead = async (leadId, partnerId, _id = null) => {
     if (!leadId || !user?.id) {
       toast.error(isGerman ? 'Fehler: Ungültige Parameter' : 'Error: Invalid parameters');
       return;
     }
 
-    console.log('handleAcceptLead called with:', { leadId, partnerId, userId: user?.id });
+    console.log('🔵 handleAcceptLead called with:', { leadId, partnerId, userId: user?.id, _id });
+    console.log('🔵 _id value:', _id, 'Type:', typeof _id, 'Is null?', _id === null, 'Is undefined?', _id === undefined);
 
     setLoading(true);
     try {
-      const response = await leadsAPI.accept(leadId);
-      console.log('Accept API response:', response);
+      console.log('🔵 Calling leadsAPI.accept with leadId:', leadId, '_id:', _id);
+      const response = await leadsAPI.accept(leadId, _id);
+      console.log('🔵 Accept API response:', response);
 
       // Reload leads from backend to ensure consistency with new assignment structure
       await loadLeads();
@@ -2320,8 +2334,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     setLoading(true);
     try {
       const leadIdToReject = selectedRejectLead.originalLeadId || selectedRejectLead.id;
-      console.log('Rejecting lead with ID:', leadIdToReject);
-      await leadsAPI.reject(leadIdToReject, rejectionReason.trim());
+      const assignmentId = selectedRejectLead.currentAssignment?._id;
+      console.log('Rejecting lead with ID:', leadIdToReject, 'assignment _id:', assignmentId);
+      await leadsAPI.reject(leadIdToReject, rejectionReason.trim(), assignmentId);
 
       // Remove all duplicate rows with the same original lead ID
       setLeads(prev => prev.filter(lead =>
@@ -3531,7 +3546,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                       currentAssignment: lead.currentAssignment,
                                       assignmentId: lead.currentAssignment?._id
                                     });
-                                    handleAcceptLead(lead.originalLeadId || lead.id, user?.id);
+                                    handleAcceptLead(lead.originalLeadId || lead.id, user?.id, lead.currentAssignment?._id);
                                   }}
                                   className="text-xs px-3 py-1 rounded transition-colors"
                                   style={{
