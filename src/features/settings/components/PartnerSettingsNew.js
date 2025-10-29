@@ -15,6 +15,7 @@ const PartnerSettingsNew = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [partnerData, setPartnerData] = useState(null);
+  const [remountKey, setRemountKey] = useState(0);
 
   //Password change dialog state
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -183,11 +184,15 @@ const PartnerSettingsNew = () => {
       const processAddressType = (addressData, addressType) => {
         let countries = [];
         let citySettings = {};
+        let serviceArea = {};
 
         if (addressData?.serviceArea) {
           const serviceAreaObj = addressData.serviceArea instanceof Map
             ? Object.fromEntries(addressData.serviceArea)
             : addressData.serviceArea;
+
+          // Keep a copy of serviceArea for state
+          serviceArea = JSON.parse(JSON.stringify(serviceAreaObj));
 
           countries = Object.keys(serviceAreaObj).map(key => {
             if (key.length === 2) {
@@ -198,6 +203,13 @@ const PartnerSettingsNew = () => {
 
           Object.entries(serviceAreaObj).forEach(([countryKey, config]) => {
             const countryName = countryKey.length === 2 ? getCountryNameFromCode(countryKey) : countryKey;
+
+            // Also update the serviceArea with proper country names
+            if (countryKey.length === 2) {
+              serviceArea[countryName] = serviceArea[countryKey];
+              delete serviceArea[countryKey];
+            }
+
             if (config.type === 'cities' && config.cities) {
               const citiesObj = config.cities instanceof Map
                 ? Object.fromEntries(config.cities)
@@ -235,25 +247,46 @@ const PartnerSettingsNew = () => {
               citySettings[cityKey] = cityConfig;
             }
           });
+
+          // Build serviceArea from citySettings for backwards compatibility
+          serviceArea = {};
+          countries.forEach(countryName => {
+            const countryCities = {};
+            Object.entries(citySettings).forEach(([key, config]) => {
+              if (key.startsWith(`${countryName}-`)) {
+                const cityName = key.split('-')[1];
+                countryCities[cityName] = { radius: config.radius || 0 };
+              }
+            });
+
+            serviceArea[countryName] = {
+              type: Object.keys(countryCities).length > 0 ? 'cities' : 'country',
+              cities: countryCities
+            };
+          });
         }
 
-        return { countries, citySettings };
+        return { countries, citySettings, serviceArea };
       };
 
       // Process pickup preferences (directly under preferences)
+      let pickupServiceArea = {};
       if (partner.preferences?.pickup) {
         const pickupData = processAddressType(partner.preferences.pickup, 'pickup');
         pickupCountries = pickupData.countries;
         pickupCitySettings = pickupData.citySettings;
+        pickupServiceArea = pickupData.serviceArea;
       }
 
       // Process destination preferences (directly under preferences)
+      let destinationServiceArea = {};
       if (partner.preferences?.destination) {
         const destinationData = processAddressType(partner.preferences.destination, 'destination');
         destinationCountries = destinationData.countries;
         destinationCitySettings = destinationData.citySettings;
+        destinationServiceArea = destinationData.serviceArea;
       }
-      
+
       setSettings({
         companyName: partner.companyName || '',
         contactPerson: partner.contactPerson || {
@@ -271,25 +304,30 @@ const PartnerSettingsNew = () => {
         preferences: {
           pickup: {
             countries: pickupCountries,
-            citySettings: pickupCitySettings
+            citySettings: pickupCitySettings,
+            serviceArea: pickupServiceArea
           },
           destination: {
             countries: destinationCountries,
-            citySettings: destinationCitySettings
+            citySettings: destinationCitySettings,
+            serviceArea: destinationServiceArea
           },
           serviceArea: (() => {
             let serviceAreaCountries = [];
             let serviceAreaCitySettings = {};
+            let cleaningServiceArea = {};
 
             if (partner.preferences?.cleaning?.serviceArea) {
               const cleaningData = processAddressType(partner.preferences.cleaning, 'cleaning');
               serviceAreaCountries = cleaningData.countries;
               serviceAreaCitySettings = cleaningData.citySettings;
+              cleaningServiceArea = cleaningData.serviceArea;
             }
 
             return {
               countries: serviceAreaCountries,
-              citySettings: serviceAreaCitySettings
+              citySettings: serviceAreaCitySettings,
+              serviceArea: cleaningServiceArea
             };
           })()
         }
@@ -521,25 +559,7 @@ const PartnerSettingsNew = () => {
       const response = await partnersAPI.update(user.id, updateData);
       console.log('Save response:', response.data);
 
-      // Don't update settings state manually - just reload from server
-      console.log('Reloading partner data after save...');
-      await loadPartnerData();
-      console.log('Partner data reloaded successfully');
-
-      // Force a small delay to ensure state updates are complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Also reload service type states to ensure they match the reloaded data
-      console.log('Current settings after reload:', settings);
-      console.log('Current pickup service types:', pickupCountryServiceTypes);
-      console.log('Current destination service types:', destinationCountryServiceTypes);
-
-      // Update user context with saved data
-      updateUser({
-        ...user,
-        ...response.data.partner
-      });
-
+      // Show success message
       toast.success(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -651,42 +671,65 @@ const PartnerSettingsNew = () => {
     } else if (service === 'moving' && addressType) {
       // For moving service, update both serviceArea AND citySettings (nested structure)
       setSettings(prev => {
-        const currentPrefs = prev.preferences[addressType];
+        console.log(`🔍 BEFORE UPDATE - Full prev state for ${addressType}:`, JSON.stringify(prev.preferences[addressType], null, 2));
+
+        const currentPrefs = prev.preferences[addressType] || {};
         const currentServiceArea = currentPrefs.serviceArea || {};
         const currentCitySettings = currentPrefs.citySettings || {};
-        const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+
+        console.log(`📋 Current serviceArea for ${country}:`, currentServiceArea[country] ? Object.keys(currentServiceArea[country].cities || {}) : 'not found');
 
         // Create city key for citySettings
         const cityKey = `${country}-${city}`;
 
-        let newServiceArea = { ...currentServiceArea };
-        let newCitySettings = { ...currentCitySettings };
+        // TRUE DEEP COPY using JSON parse/stringify to avoid any reference issues
+        const newServiceArea = JSON.parse(JSON.stringify(currentServiceArea));
+        const newCitySettings = JSON.parse(JSON.stringify(currentCitySettings));
+
+        // MIGRATION: If serviceArea for this country doesn't exist, migrate all cities from citySettings
+        if (!newServiceArea[country]) {
+          newServiceArea[country] = { type: 'cities', cities: {} };
+
+          // Find all cities for this country in citySettings and add them to serviceArea
+          Object.keys(currentCitySettings).forEach(key => {
+            if (key.startsWith(`${country}-`)) {
+              const cityName = key.split('-')[1];
+              const cityData = currentCitySettings[key];
+              newServiceArea[country].cities[cityName] = { radius: cityData.radius || 0 };
+              console.log(`🔄 Migrated ${cityName} from citySettings to serviceArea`);
+            }
+          });
+        }
+
+        // Ensure cities object exists
+        if (!newServiceArea[country].cities) {
+          newServiceArea[country].cities = {};
+        }
 
         if (checked) {
           // Add city to serviceArea
-          countryData.cities = {
-            ...countryData.cities,
-            [city]: { radius: 0 }
-          };
-          newServiceArea[country] = countryData;
-
+          newServiceArea[country].cities[city] = { radius: 0 };
           // Also add to citySettings for save function compatibility
           newCitySettings[cityKey] = { radius: 0 };
+          console.log(`✅ Added ${city} to ${country} in ${addressType}`);
+          console.log(`📊 All cities after add:`, Object.keys(newServiceArea[country].cities));
         } else {
           // Remove city from serviceArea
-          const newCities = { ...countryData.cities };
-          delete newCities[city];
-          countryData.cities = newCities;
-          newServiceArea[country] = countryData;
-
+          delete newServiceArea[country].cities[city];
           // Also remove from citySettings
           delete newCitySettings[cityKey];
+          console.log(`❌ Removed ${city} from ${country} in ${addressType}`);
+
+          // If no cities left in country, optionally remove the country
+          if (Object.keys(newServiceArea[country].cities).length === 0) {
+            delete newServiceArea[country];
+            console.log(`🗑️ Removed empty country ${country} from ${addressType}`);
+          } else {
+            console.log(`📊 Remaining cities after remove:`, Object.keys(newServiceArea[country].cities));
+          }
         }
 
-        console.log(`Updated ${addressType} for ${country}-${city}: checked=${checked}`);
-        console.log('New citySettings:', newCitySettings);
-
-        return {
+        const newState = {
           ...prev,
           preferences: {
             ...prev.preferences,
@@ -697,6 +740,10 @@ const PartnerSettingsNew = () => {
             }
           }
         };
+
+        console.log(`🔍 AFTER UPDATE - New state for ${addressType}:`, JSON.stringify(newState.preferences[addressType], null, 2));
+
+        return newState;
       });
     } else {
       // For legacy cleaning service, use old logic
@@ -788,7 +835,11 @@ const PartnerSettingsNew = () => {
         const currentPrefs = prev.preferences[addressType];
         const currentServiceArea = currentPrefs.serviceArea || {};
         const currentCitySettings = currentPrefs.citySettings || {};
-        const countryData = currentServiceArea[country] || { type: 'cities', cities: {} };
+
+        // Create a DEEP COPY of countryData to avoid mutation
+        const countryData = currentServiceArea[country]
+          ? { ...currentServiceArea[country], cities: { ...currentServiceArea[country].cities } }
+          : { type: 'cities', cities: {} };
 
         // Update serviceArea
         countryData.cities = {
@@ -1472,16 +1523,16 @@ const PartnerSettingsNew = () => {
   );
 
   const renderServicesTab = () => (
-    <div className="space-y-6">
+    <div key={`services-tab-${remountKey}`} className="space-y-6">
 
       {/* Moving Service Settings */}
       {(!currentService || currentService === 'moving') && (
-        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        <div key={`moving-${remountKey}`} className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
             🚛 {isGerman ? 'Umzugs-Einstellungen' : 'Moving Settings'}
           </h3>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
             <h4 className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
               {isGerman ? 'ℹ️ Radius-Erklärung:' : 'ℹ️ Radius Explanation:'}
             </h4>
@@ -1494,13 +1545,13 @@ const PartnerSettingsNew = () => {
           <div className="space-y-8">
 
             {/* Pickup Address Configuration */}
-            <div className="bg-green-50 border-l-4 border-green-400 p-6 rounded-lg">
-              <h4 className="text-lg font-semibold mb-4 text-green-800">
+            <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#10b981' }}>
+              <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
                 📦 {isGerman ? 'Abholungsadresse-Konfiguration' : 'Pickup Address Configuration'}
               </h4>
-              
+
               {/* Country Dropdown for Pickup */}
-              <div className="bg-white rounded-lg border p-4 max-w-md mb-6" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="rounded-lg border p-4 max-w-md mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--theme-text)' }}>
                     {isGerman ? 'Land hinzufügen:' : 'Add Country:'}
@@ -1590,7 +1641,7 @@ const PartnerSettingsNew = () => {
                       </div>
                       
                       {/* Service Type Toggle */}
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                         <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Service-Bereich:' : 'Service Area:'}
                         </label>
@@ -1687,55 +1738,6 @@ const PartnerSettingsNew = () => {
                                       ✕
                                     </button>
                                   </div>
-                                  
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`pickup-${cityKey}-type`}
-                                          checked={isCityOnly}
-                                          onChange={() => handleCityRadiusChange(cityKey, 0, 'pickup')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Nur Stadt' : 'City only'}
-                                        </span>
-                                      </label>
-                                      
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`pickup-${cityKey}-type`}
-                                          checked={!isCityOnly}
-                                          onChange={() => handleCityRadiusChange(cityKey, radius > 0 ? radius : 10, 'pickup')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Außerhalb der Stadt' : 'Outside the city'}
-                                        </span>
-                                      </label>
-                                    </div>
-                                    
-                                    {!isCityOnly && (
-                                      <div className="flex items-center">
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          max="200"
-                                          value={radius}
-                                          onChange={(e) => handleCityRadiusChange(cityKey, e.target.value, 'pickup')}
-                                          className="w-16 px-2 py-1 border rounded text-center text-sm"
-                                          style={{
-                                            backgroundColor: 'var(--theme-input-bg)',
-                                            borderColor: 'var(--theme-border)',
-                                            color: 'var(--theme-text)'
-                                          }}
-                                        />
-                                        <span className="ml-2 text-sm font-medium" style={{ color: 'var(--theme-muted)' }}>km</span>
-                                      </div>
-                                    )}
-                                  </div>
                                 </div>
                               );
                             })}
@@ -1750,13 +1752,13 @@ const PartnerSettingsNew = () => {
             </div>
             
             {/* Destination Address Configuration */}
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-lg">
-              <h4 className="text-lg font-semibold mb-4 text-blue-800">
+            <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
+              <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
                 🎯 {isGerman ? 'Zieladresse-Konfiguration' : 'Destination Address Configuration'}
               </h4>
-              
+
               {/* Country Dropdown for Destination */}
-              <div className="bg-white rounded-lg border p-4 max-w-md mb-6" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="rounded-lg border p-4 max-w-md mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--theme-text)' }}>
                     {isGerman ? 'Land hinzufügen:' : 'Add Country:'}
@@ -1845,7 +1847,7 @@ const PartnerSettingsNew = () => {
                       </div>
                       
                       {/* Service Type Toggle */}
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                         <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Service-Bereich:' : 'Service Area:'}
                         </label>
@@ -1942,55 +1944,6 @@ const PartnerSettingsNew = () => {
                                       ✕
                                     </button>
                                   </div>
-                                  
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`destination-${cityKey}-type`}
-                                          checked={isCityOnly}
-                                          onChange={() => handleCityRadiusChange(cityKey, 0, 'destination')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Nur Stadt' : 'City only'}
-                                        </span>
-                                      </label>
-                                      
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`destination-${cityKey}-type`}
-                                          checked={!isCityOnly}
-                                          onChange={() => handleCityRadiusChange(cityKey, radius > 0 ? radius : 10, 'destination')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Außerhalb der Stadt' : 'Outside the city'}
-                                        </span>
-                                      </label>
-                                    </div>
-                                    
-                                    {!isCityOnly && (
-                                      <div className="flex items-center">
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          max="200"
-                                          value={radius}
-                                          onChange={(e) => handleCityRadiusChange(cityKey, e.target.value, 'destination')}
-                                          className="w-16 px-2 py-1 border rounded text-center text-sm"
-                                          style={{
-                                            backgroundColor: 'var(--theme-input-bg)',
-                                            borderColor: 'var(--theme-border)',
-                                            color: 'var(--theme-text)'
-                                          }}
-                                        />
-                                        <span className="ml-2 text-sm font-medium" style={{ color: 'var(--theme-muted)' }}>km</span>
-                                      </div>
-                                    )}
-                                  </div>
                                 </div>
                               );
                             })}
@@ -2009,10 +1962,20 @@ const PartnerSettingsNew = () => {
              (settings.preferences.destination?.countries?.length || 0) > 0 ||
              Object.keys(settings.preferences.pickup?.citySettings || {}).length > 0 ||
              Object.keys(settings.preferences.destination?.citySettings || {}).length > 0) && (
-              <div className="text-sm p-4 bg-gray-50 rounded-lg" style={{ color: 'var(--theme-muted)' }}>
+              <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
                 <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
-                📦 {isGerman ? 'Abholung:' : 'Pickup:'} {settings.preferences.pickup?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {Object.keys(settings.preferences.pickup?.citySettings || {}).length} {isGerman ? 'Städte' : 'cities'}<br/>
-                🎯 {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {Object.keys(settings.preferences.destination?.citySettings || {}).length} {isGerman ? 'Städte' : 'cities'}
+                📦 {isGerman ? 'Abholung:' : 'Pickup:'} {settings.preferences.pickup?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
+                  Object.keys(settings.preferences.pickup?.serviceArea || {}).reduce((total, country) => {
+                    const countryData = settings.preferences.pickup?.serviceArea?.[country];
+                    return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
+                  }, 0)
+                } {isGerman ? 'Städte' : 'cities'}<br/>
+                🎯 {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
+                  Object.keys(settings.preferences.destination?.serviceArea || {}).reduce((total, country) => {
+                    const countryData = settings.preferences.destination?.serviceArea?.[country];
+                    return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
+                  }, 0)
+                } {isGerman ? 'Städte' : 'cities'}
               </div>
             )}
 
@@ -2022,12 +1985,12 @@ const PartnerSettingsNew = () => {
 
       {/* Cleaning Service Settings */}
       {(!currentService || currentService === 'cleaning') && (
-        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        <div key={`cleaning-${remountKey}`} className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
             🧽 {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Settings'}
           </h3>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
             <h4 className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
               {isGerman ? 'ℹ️ Radius-Erklärung:' : 'ℹ️ Radius Explanation:'}
             </h4>
@@ -2040,13 +2003,13 @@ const PartnerSettingsNew = () => {
           <div className="space-y-8">
 
             {/* Service Area Configuration */}
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-lg">
-              <h4 className="text-lg font-semibold mb-4 text-blue-800">
+            <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
+              <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
                 🧽 {isGerman ? 'Service-Bereich-Konfiguration' : 'Service Area Configuration'}
               </h4>
 
               {/* Country Dropdown for Cleaning */}
-              <div className="bg-white rounded-lg border p-4 max-w-md mb-6" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="rounded-lg border p-4 max-w-md mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--theme-text)' }}>
                     {isGerman ? 'Land hinzufügen:' : 'Add Country:'}
@@ -2143,7 +2106,7 @@ const PartnerSettingsNew = () => {
                       </div>
 
                       {/* Service Type Toggle */}
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                         <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Service-Bereich:' : 'Service Area:'}
                         </label>
@@ -2307,10 +2270,10 @@ const PartnerSettingsNew = () => {
 
                       {/* Whole Country Info - Only show when "Whole Country" is selected */}
                       {!getCountryServiceType(countryName, 'serviceArea') && (
-                        <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: '#10b981' }}>
                           <div className="flex items-center">
-                            <span className="text-green-600 mr-2">✓</span>
-                            <span className="text-sm text-green-700">
+                            <span className="mr-2" style={{ color: '#10b981' }}>✓</span>
+                            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
                               {isGerman ?
                                 `Service im gesamten ${getCountryNameFromCode(countryName)} verfügbar` :
                                 `Service available throughout ${getCountryNameFromCode(countryName)}`
@@ -2344,7 +2307,7 @@ const PartnerSettingsNew = () => {
 
             {/* Summary */}
             {getConfiguredCountries('serviceArea').length > 0 && (
-              <div className="text-sm p-4 bg-gray-50 rounded-lg" style={{ color: 'var(--theme-muted)' }}>
+              <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
                 <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
                 🧽 {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('serviceArea').length} {isGerman ? 'Länder' : 'countries'}, {
                   Object.keys(settings.preferences.serviceArea.serviceArea || {}).reduce((total, country) => {
@@ -2370,18 +2333,16 @@ const PartnerSettingsNew = () => {
         <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
           {isGerman ? 'Partner-Einstellungen' : 'Partner Settings'}
         </h2>
-        <motion.button
+        <button
           onClick={handleSave}
           disabled={saving}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             saving ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
           }`}
-          style={{ 
-            backgroundColor: 'var(--theme-button-bg)', 
-            color: 'var(--theme-button-text)' 
+          style={{
+            backgroundColor: 'var(--theme-button-bg)',
+            color: 'var(--theme-button-text)'
           }}
-          whileHover={!saving ? { scale: 1.02 } : {}}
-          whileTap={!saving ? { scale: 0.98 } : {}}
         >
           {saving ? (
             <div className="flex items-center space-x-2">
@@ -2391,7 +2352,7 @@ const PartnerSettingsNew = () => {
           ) : (
             <>💾 {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
           )}
-        </motion.button>
+        </button>
       </div>
 
       {/* Tab Navigation - matching LeadManagement style */}
