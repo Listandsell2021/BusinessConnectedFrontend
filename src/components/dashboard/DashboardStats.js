@@ -204,7 +204,7 @@ const DashboardStats = ({ className = "" }) => {
   const StatCard = ({ stat, index }) => (
     <motion.div
       key={stat.id}
-      className="relative p-6 rounded-2xl border backdrop-blur-xl overflow-hidden group cursor-pointer flex-1 min-w-[240px] max-w-[280px]"
+      className="relative p-6 rounded-2xl border backdrop-blur-xl overflow-hidden group cursor-pointer"
       style={{
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderColor: 'var(--theme-border)',
@@ -283,7 +283,7 @@ const DashboardStats = ({ className = "" }) => {
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
           {isGerman ? 'Lead-Statistiken' : 'Lead Statistics'}
         </h3>
-        <div className="flex flex-wrap gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {leadCards.map((stat, index) => (
             <StatCard key={stat.id} stat={stat} index={index} />
           ))}
@@ -295,7 +295,7 @@ const DashboardStats = ({ className = "" }) => {
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
           {isGerman ? 'Partner-Statistiken' : 'Partner Statistics'}
         </h3>
-        <div className="flex flex-wrap gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {partnerCards.map((stat, index) => (
             <StatCard key={stat.id} stat={stat} index={index + 4} />
           ))}

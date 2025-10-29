@@ -35,6 +35,11 @@ const EnhancedIncomeInvoices = () => {
   });
   const [totalRevenue, setTotalRevenue] = useState(0);
 
+  // Cancel Request Dialog
+  const [showCancelRequestDialog, setShowCancelRequestDialog] = useState(false);
+  const [cancelRequestedLeads, setCancelRequestedLeads] = useState([]);
+  const [rejectingCancelRequest, setRejectingCancelRequest] = useState(false);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -149,9 +154,10 @@ const EnhancedIncomeInvoices = () => {
       };
 
       // Get partner's leads for the period
+      // Include both accepted and cancel_requested leads, but exclude cancelled leads
       const leadsResponse = await partnersAPI.getLeads(partnerId, {
-        ...periodParams,
-        status: 'accepted' // Only accepted leads can generate revenue
+        ...periodParams
+        // Don't filter by status here - we'll filter client-side to include accepted and cancel_requested
       });
 
       console.log('=== API RESPONSE ===', {
@@ -166,8 +172,26 @@ const EnhancedIncomeInvoices = () => {
 
       const allLeads = leadsResponse.data.leads || [];
 
+      // Filter to include only leads where this partner's assignment is 'accepted' or lead has 'cancel_requested' status
+      // Exclude rejected and cancelled assignments
+      const filteredLeads = allLeads.filter(lead => {
+        // Find this partner's assignment
+        const partnerAssignment = lead.partnerAssignments?.find(
+          assignment => assignment.partner === partnerId || assignment.partner?._id === partnerId
+        );
+
+        if (!partnerAssignment) return false;
+
+        // Include if: partner assignment is 'accepted' OR 'cancellationRequested'
+        // Exclude if: partner assignment is 'rejected' or 'cancelled'
+        const assignmentStatus = partnerAssignment.status;
+        return (assignmentStatus === 'accepted' || assignmentStatus === 'cancellationRequested') &&
+               assignmentStatus !== 'rejected' &&
+               assignmentStatus !== 'cancelled';
+      });
+
       // Use real partner assignments data from the API response
-      const leadsWithPricing = allLeads.map(lead => {
+      const leadsWithPricing = filteredLeads.map(lead => {
         // If partnerAssignments exist, use them; otherwise create proper structure
         if (!lead.partnerAssignments || lead.partnerAssignments.length === 0) {
           // This means the API didn't return assignments - we should handle this case
@@ -260,13 +284,32 @@ const EnhancedIncomeInvoices = () => {
       // Get all leads for this partner during the billing period
       const leadsResponse = await partnersAPI.getLeads(invoiceData.partnerId._id, {
         startDate: billingPeriod.startDate,
-        endDate: billingPeriod.endDate,
-        status: 'accepted'
+        endDate: billingPeriod.endDate
+        // Don't filter by status - we'll filter client-side
       });
 
       const allLeads = leadsResponse.data.leads || [];
-      const paidLeads = allLeads.filter(lead => lead.paymentStatus === 'paid');
-      const unpaidLeads = allLeads.filter(lead => lead.paymentStatus !== 'paid');
+
+      // Filter to include only leads where this partner's assignment is 'accepted' or lead has 'cancel_requested' status
+      // Exclude rejected and cancelled assignments
+      const filteredLeads = allLeads.filter(lead => {
+        // Find this partner's assignment
+        const partnerAssignment = lead.partnerAssignments?.find(
+          assignment => assignment.partner === invoiceData.partnerId._id || assignment.partner?._id === invoiceData.partnerId._id
+        );
+
+        if (!partnerAssignment) return false;
+
+        // Include if: partner assignment is 'accepted' OR 'cancellationRequested'
+        // Exclude if: partner assignment is 'rejected' or 'cancelled'
+        const assignmentStatus = partnerAssignment.status;
+        return (assignmentStatus === 'accepted' || assignmentStatus === 'cancellationRequested') &&
+               assignmentStatus !== 'rejected' &&
+               assignmentStatus !== 'cancelled';
+      });
+
+      const paidLeads = filteredLeads.filter(lead => lead.paymentStatus === 'paid');
+      const unpaidLeads = filteredLeads.filter(lead => lead.paymentStatus !== 'paid');
 
       setInvoiceTabData({
         paidLeads,
@@ -303,6 +346,21 @@ const EnhancedIncomeInvoices = () => {
         return;
       }
 
+      // Check for leads with cancellationRequested status
+      const cancelRequestedLeads = unpaidLeads.filter(lead => {
+        const partnerAssignment = lead.partnerAssignments?.find(
+          assignment => assignment.partner === partnerId || assignment.partner?._id === partnerId
+        );
+        return partnerAssignment?.status === 'cancellationRequested';
+      });
+
+      if (cancelRequestedLeads.length > 0) {
+        // Show dialog with cancel_requested leads
+        setCancelRequestedLeads(cancelRequestedLeads);
+        setShowCancelRequestDialog(true);
+        return;
+      }
+
       const startDate = new Date(filters.year, filters.month - 1, 1).toISOString();
       const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999).toISOString();
 
@@ -334,6 +392,62 @@ const EnhancedIncomeInvoices = () => {
     } catch (error) {
       console.error('Error creating invoice:', error);
       toast.error(isGerman ? 'Fehler beim Erstellen der Rechnung' : 'Error creating invoice');
+    }
+  };
+
+  // Reject Cancel Request and restore lead to accepted status
+  const rejectCancelRequest = async (leadId) => {
+    setRejectingCancelRequest(true);
+    try {
+      // Call API to reject the cancel request
+      await leadsAPI.rejectCancelRequest(leadId);
+
+      toast.success(isGerman ? 'Stornierungsanfrage abgelehnt' : 'Cancel request rejected');
+
+      // Reload partner details
+      if (selectedPartner) {
+        await loadPartnerDetails(selectedPartner._id);
+      }
+
+      // Update the cancel requested leads list
+      setCancelRequestedLeads(prev => prev.filter(lead => lead._id !== leadId));
+
+      // If no more cancel requests, close the dialog
+      if (cancelRequestedLeads.length <= 1) {
+        setShowCancelRequestDialog(false);
+      }
+    } catch (error) {
+      console.error('Error rejecting cancel request:', error);
+      toast.error(isGerman ? 'Fehler beim Ablehnen der Stornierungsanfrage' : 'Error rejecting cancel request');
+    } finally {
+      setRejectingCancelRequest(false);
+    }
+  };
+
+  // Reject all cancel requests
+  const rejectAllCancelRequests = async () => {
+    setRejectingCancelRequest(true);
+    try {
+      // Reject all cancel requests
+      await Promise.all(
+        cancelRequestedLeads.map(lead => leadsAPI.rejectCancelRequest(lead._id))
+      );
+
+      toast.success(isGerman ? 'Alle Stornierungsanfragen abgelehnt' : 'All cancel requests rejected');
+
+      // Reload partner details
+      if (selectedPartner) {
+        await loadPartnerDetails(selectedPartner._id);
+      }
+
+      // Close dialog
+      setShowCancelRequestDialog(false);
+      setCancelRequestedLeads([]);
+    } catch (error) {
+      console.error('Error rejecting cancel requests:', error);
+      toast.error(isGerman ? 'Fehler beim Ablehnen der Stornierungsanfragen' : 'Error rejecting cancel requests');
+    } finally {
+      setRejectingCancelRequest(false);
     }
   };
 
@@ -1515,7 +1629,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                       {partner._id.slice(-6)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                      {partner.companyName}
+                      {typeof partner.companyName === 'object' ? partner.companyName?.companyName || partner.companyName?._id || 'N/A' : partner.companyName || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                       {partner.contactPerson?.email || 'N/A'}
@@ -1587,6 +1701,97 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
 
       {/* Invoice Detail Sidebar */}
       <InvoiceDetailSidebar />
+
+      {/* Cancel Request Dialog */}
+      {showCancelRequestDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <motion.div
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: 'var(--theme-card-bg)',
+              color: 'var(--theme-text)'
+            }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
+                ⚠️ {isGerman ? 'Stornierungsanfragen ausstehend' : 'Cancel Requests Pending'}
+              </h3>
+              <button
+                onClick={() => setShowCancelRequestDialog(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-4" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman
+                ? 'Die folgenden Leads haben ausstehende Stornierungsanfragen. Bitte lehnen Sie die Stornierungsanfragen ab, bevor Sie eine Rechnung erstellen.'
+                : 'The following leads have pending cancel requests. Please reject the cancel requests before generating an invoice.'}
+            </p>
+
+            <div className="space-y-3 mb-6">
+              {cancelRequestedLeads.map(lead => (
+                <div
+                  key={lead._id}
+                  className="p-4 rounded-lg border flex justify-between items-center"
+                  style={{
+                    backgroundColor: 'var(--theme-bg-secondary)',
+                    borderColor: 'var(--theme-border)'
+                  }}
+                >
+                  <div>
+                    <div className="font-semibold" style={{ color: 'var(--theme-text)' }}>
+                      {isGerman ? 'Lead ID:' : 'Lead ID:'} {lead.leadId}
+                    </div>
+                    <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                      {isGerman ? 'Service:' : 'Service:'} {lead.serviceType}
+                    </div>
+                    <div className="text-sm text-orange-600">
+                      {isGerman ? 'Status: Stornierung angefordert' : 'Status: Cancel Requested'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => rejectCancelRequest(lead._id)}
+                    disabled={rejectingCancelRequest}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rejectingCancelRequest ? '...' : (isGerman ? 'Ablehnen' : 'Reject')}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={rejectAllCancelRequests}
+                disabled={rejectingCancelRequest}
+                className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {rejectingCancelRequest
+                  ? (isGerman ? 'Bearbeitung...' : 'Processing...')
+                  : (isGerman ? 'Alle ablehnen' : 'Reject All')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowCancelRequestDialog(false);
+                  // Navigate to Lead Management - Cancelled Requests tab
+                  window.location.href = '/dashboard?tab=leads&view=cancelled';
+                }}
+                className="flex-1 px-4 py-3 rounded-lg border hover:bg-gray-50 font-medium"
+                style={{
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              >
+                {isGerman ? 'Zur Stornierungsverwaltung' : 'Go to Cancel Management'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

@@ -67,49 +67,29 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Partner Assignment Dialog state
+  const [showPartnerAssignmentDialog, setShowPartnerAssignmentDialog] = useState(false);
+  const [selectedLeadForPartners, setSelectedLeadForPartners] = useState(null);
+
   // Helper function to get current partner's assignment status
   const getPartnerAssignmentStatus = (lead) => {
     if (!isPartner || !user?.id) return null;
 
-    // Safety check: ensure partnerAssignments is an array
+    // IMPORTANT: For duplicate lead rows, we've already set the correct status during transformation
+    // Each row represents a specific assignment, so we use the row's status directly
+    const status = lead.partnerStatus || lead.status || 'pending';
+
+    // Also get the assignment object for cancellation info if available
+    let currentPartnerAssignment = null;
     const assignments = Array.isArray(lead.partnerAssignments) ? lead.partnerAssignments : [];
 
-    const currentPartnerAssignment = assignments.find(assignment =>
-      assignment.partner === user.id ||
-      assignment.partner === user.id.toString() ||
-      assignment.partner?._id === user.id ||
-      assignment.partner?._id === user.id.toString()
-    );
-
-    // Debug logging
-    console.log('getPartnerAssignmentStatus - Lead:', lead.leadId || lead.id);
-    console.log('User ID:', user.id, 'Type:', typeof user.id);
-    console.log('User ID toString:', user.id.toString());
-    console.log('Assignments array:', assignments);
-    console.log('Assignments length:', assignments.length);
-    assignments.forEach((assignment, index) => {
-      console.log(`Assignment ${index}:`, {
-        partner: assignment.partner,
-        partnerType: typeof assignment.partner,
-        status: assignment.status,
-        matchesUserId: assignment.partner === user.id,
-        matchesUserIdAsString: assignment.partner === user.id.toString(),
-        matchesPartner_id: assignment.partner?._id === user.id
-      });
-    });
-    console.log('Current partner assignment found:', currentPartnerAssignment);
-
-    // Fallback: If no assignment found but we have overall lead status, use that
-    let status = currentPartnerAssignment?.status || 'pending';
-
-    // If no partner assignment found, but lead has overall status, use lead status as fallback
-    if (!currentPartnerAssignment && lead.status) {
-      status = lead.status;
-    }
-
-    // Additional fallback: check if lead has partnerStatus field
-    if (!currentPartnerAssignment && lead.partnerStatus) {
-      status = lead.partnerStatus;
+    if (assignments.length > 0) {
+      currentPartnerAssignment = assignments.find(assignment =>
+        assignment.partner === user.id ||
+        assignment.partner === user.id.toString() ||
+        assignment.partner?._id === user.id ||
+        assignment.partner?._id === user.id.toString()
+      );
     }
 
     return {
@@ -526,16 +506,37 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     try {
       setLoading(true);
-      const response = await leadsAPI.getById(lead.id);
+      // Use originalLeadId for duplicate rows, otherwise use regular id
+      const leadIdToFetch = lead.originalLeadId || lead.id;
+      const response = await leadsAPI.getById(leadIdToFetch);
 
       // Handle the response structure from the updated backend
       const leadData = response.data.success ? response.data.lead : response.data;
+
+      // For partners with duplicate leads, always show the ACCEPTED assignment in the dialog
+      let partnerStatusToShow = lead.partnerStatus || leadData.partnerStatus;
+
+      if (isPartner && user?.id && leadData.partnerAssignments && Array.isArray(leadData.partnerAssignments)) {
+        // Find the accepted assignment for this partner
+        const acceptedAssignment = leadData.partnerAssignments.find(assignment =>
+          (assignment.partner === user.id ||
+           assignment.partner === user.id.toString() ||
+           assignment.partner?._id === user.id ||
+           assignment.partner?._id === user.id.toString()) &&
+          assignment.status === 'accepted'
+        );
+
+        // If there's an accepted assignment, use that status
+        if (acceptedAssignment) {
+          partnerStatusToShow = 'accepted';
+        }
+      }
 
       // Add partner-specific status if partner is viewing
       const transformedLead = {
         ...leadData,
         // Pass partner status for proper view access control
-        partnerStatus: lead.partnerStatus || leadData.partnerStatus,
+        partnerStatus: partnerStatusToShow,
         id: leadData._id || leadData.id,
         leadId: leadData.leadId || leadData.id,
         name: leadData.user ?
@@ -1217,21 +1218,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           }
         }
 
-        // For partners, extract their specific assignment status
-        let displayStatus = lead.status || 'pending';
-        if (isPartner && user?.id && lead.partnerAssignments) {
-          const partnerAssignment = lead.partnerAssignments.find(pa =>
-            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
-          );
-          if (partnerAssignment) {
-            displayStatus = partnerAssignment.status;
-          }
-        }
-
-        return {
+        // Base lead data
+        const baseLeadData = {
           ...lead,
-          id: lead._id || lead.id, // Use MongoDB _id for navigation
-          leadId: lead.leadId || lead.id, // Keep leadId for display
+          id: lead._id || lead.id,
+          leadId: lead.leadId || lead.id,
           name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : (lead.name || ''),
           email: lead.user?.email || lead.email || '',
           city: cityDisplay,
@@ -1239,10 +1230,44 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           destinationCity: lead.formData?.destinationAddress?.city || '',
           dateDisplay: dateDisplay,
           pickupDate: pickupDate,
-          status: displayStatus,
-          partnerStatus: displayStatus // Also set partnerStatus for consistency
         };
-      });
+
+        // For partners, create separate row for EACH assignment
+        if (isPartner && user?.id && lead.partnerAssignments && Array.isArray(lead.partnerAssignments)) {
+          const partnerAssignments = lead.partnerAssignments.filter(pa =>
+            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+          );
+
+          // Always use _id for API calls, not the potentially modified id
+          const dbId = lead._id || baseLeadData.id;
+
+          return partnerAssignments.map((assignment, index) => {
+            // Use the assignment's _id from database, or create one if missing (fallback)
+            const assignmentId = assignment._id || `${dbId}_${assignment.assignedAt || index}`;
+
+            return {
+              ...baseLeadData,
+              // Store original database _id for API calls
+              originalLeadId: dbId,
+              // Use unique assignment ID for each row (for React keys and tracking)
+              id: assignmentId,
+              // Store the assignment data
+              currentAssignment: assignment,
+              assignmentId: assignmentId,  // Explicit assignment ID field
+              status: assignment.status || 'pending',
+              partnerStatus: assignment.status || 'pending',
+              assignedAt: assignment.assignedAt
+            };
+          });
+        }
+
+        // For admins or leads without assignments
+        return [{
+          ...baseLeadData,
+          status: lead.status || 'pending',
+          partnerStatus: lead.status || 'pending'
+        }];
+      }).flat(); // Flatten because each lead now returns an array
 
       // Store ALL leads data for filtering and stats
       console.log('Transformed leads sample:', allTransformedLeads[0]);
@@ -1323,18 +1348,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
         }
 
-        // For partners, extract their specific assignment status (current page)
-        let currentPageStatus = lead.status || 'pending';
-        if (isPartner && user?.id && lead.partnerAssignments) {
-          const partnerAssignment = lead.partnerAssignments.find(pa =>
-            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
-          );
-          if (partnerAssignment) {
-            currentPageStatus = partnerAssignment.status;
-          }
-        }
-
-        return {
+        // Base lead data for current page
+        const baseLeadData = {
           ...lead,
           id: lead._id || lead.id,
           leadId: lead.leadId || lead.id,
@@ -1343,17 +1358,60 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           city: cityDisplay,
           dateDisplay: dateDisplay,
           pickupDate: pickupDate,
-          status: currentPageStatus,
-          partnerStatus: currentPageStatus // Also set partnerStatus for consistency
         };
-      });
+
+        // For partners, create separate row for EACH assignment
+        if (isPartner && user?.id && lead.partnerAssignments && Array.isArray(lead.partnerAssignments)) {
+          const partnerAssignments = lead.partnerAssignments.filter(pa =>
+            pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+          );
+
+          // Always use _id for API calls, not the potentially modified id
+          const dbId = lead._id || baseLeadData.id;
+
+          return partnerAssignments.map((assignment, index) => {
+            // Use the assignment's _id from database, or create one if missing (fallback)
+            const assignmentId = assignment._id || `${dbId}_${assignment.assignedAt || index}`;
+
+            return {
+              ...baseLeadData,
+              // Store original database _id for API calls
+              originalLeadId: dbId,
+              // Use unique assignment ID for each row (for React keys and tracking)
+              id: assignmentId,
+              // Store the assignment data
+              currentAssignment: assignment,
+              assignmentId: assignmentId,  // Explicit assignment ID field
+              status: assignment.status || 'pending',
+              partnerStatus: assignment.status || 'pending',
+              assignedAt: assignment.assignedAt
+            };
+          });
+        }
+
+        // For admins or leads without assignments
+        return [{
+          ...baseLeadData,
+          status: lead.status || 'pending',
+          partnerStatus: lead.status || 'pending'
+        }];
+      }).flat(); // Flatten because each lead now returns an array
+
+      // For partners with duplicate assignments, we need to slice to show exactly itemsPerPage rows
+      // Calculate which rows to show for this page
+      const startIdx = (currentPage - 1) * itemsPerPage;
+      const endIdx = startIdx + itemsPerPage;
+      const pageLeadsToShow = isPartner && user?.id
+        ? allTransformedLeads.slice(startIdx, endIdx)  // Use all transformed data and slice for exact page
+        : currentPageTransformed; // For admins, use server-paginated data
 
       // Store paginated leads for table display
-      console.log('Setting leads for table display - page:', currentPage, 'count:', currentPageTransformed.length);
-      console.log('Current page transformed leads:', currentPageTransformed.map(l => l.leadId));
-      console.log('Partner status debug:', currentPageTransformed.map(l => ({ leadId: l.leadId, partnerStatus: l.partnerStatus, status: l.status })));
-      setLeads(currentPageTransformed);
-      setTotalLeads(totalCount);
+      console.log('Setting leads for table display - page:', currentPage, 'count:', pageLeadsToShow.length);
+      console.log('Current page transformed leads:', pageLeadsToShow.map(l => l.leadId));
+      console.log('Partner status debug:', pageLeadsToShow.map(l => ({ leadId: l.leadId, partnerStatus: l.partnerStatus, status: l.status })));
+      setLeads(pageLeadsToShow);
+      // Use allTransformedLeads.length for total (includes duplicates for partners)
+      setTotalLeads(allTransformedLeads.length);
 
       // Calculate stats from ALL leads data (not just paginated)
       const calculatedStats = {
@@ -2151,22 +2209,20 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      partial_assigned: 'bg-blue-100 text-blue-800',
-      assigned: 'bg-blue-100 text-blue-800',
-      accepted: 'bg-green-100 text-green-800',
-      approved: 'bg-green-100 text-green-800',
-      cancel_requested: 'bg-purple-100 text-purple-800',
-      cancellationRequested: 'bg-purple-100 text-purple-800',
-      cancelled: 'bg-red-100 text-red-800',
-      rejected: 'bg-red-100 text-red-800',
-      cancellation_rejected: 'bg-red-100 text-red-800',
-      cancellation_approved: 'bg-green-100 text-green-800',
-      completed: 'bg-gray-100 text-gray-800'
+      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      partial_assigned: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      assigned: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      cancel_requested: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      cancellationRequested: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      cancellation_rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      cancellation_approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      completed: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     };
-    const color = colors[status] || colors.pending;
-    console.log('getStatusColor called with status:', status, 'returning color:', color);
-    return color;
+    return colors[status] || colors.pending;
   };
 
   const getStatusIcon = (status) => {
@@ -2193,9 +2249,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       return;
     }
 
+    console.log('handleAcceptLead called with:', { leadId, partnerId, userId: user?.id });
+
     setLoading(true);
     try {
       const response = await leadsAPI.accept(leadId);
+      console.log('Accept API response:', response);
 
       // Reload leads from backend to ensure consistency with new assignment structure
       await loadLeads();
@@ -2203,11 +2262,16 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       toast.success(isGerman ? 'Lead erfolgreich akzeptiert' : 'Lead accepted successfully');
 
       // Find the accepted lead and open view dialog
-      const acceptedLead = response.data?.lead || leads.find(l => l.id === leadId);
+      // Check both original and modified IDs for duplicate rows
+      const acceptedLead = response.data?.lead || leads.find(l =>
+        l.id === leadId || l.originalLeadId === leadId
+      );
       if (acceptedLead) {
         // Set status to accepted for view access
         const leadForView = {
           ...acceptedLead,
+          id: leadId, // Use original ID for viewing
+          originalLeadId: leadId,
           status: 'accepted',
           partnerStatus: 'accepted'
         };
@@ -2246,12 +2310,23 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       return;
     }
 
+    console.log('confirmRejectLead called with:', {
+      selectedRejectLead,
+      originalLeadId: selectedRejectLead.originalLeadId,
+      id: selectedRejectLead.id,
+      rejectionReason
+    });
+
     setLoading(true);
     try {
-      await leadsAPI.reject(selectedRejectLead.id, rejectionReason.trim());
+      const leadIdToReject = selectedRejectLead.originalLeadId || selectedRejectLead.id;
+      console.log('Rejecting lead with ID:', leadIdToReject);
+      await leadsAPI.reject(leadIdToReject, rejectionReason.trim());
 
-      // Remove the lead from the list since it's now rejected/cancelled
-      setLeads(prev => prev.filter(lead => lead.id !== selectedRejectLead.id));
+      // Remove all duplicate rows with the same original lead ID
+      setLeads(prev => prev.filter(lead =>
+        (lead.originalLeadId || lead.id) !== leadIdToReject
+      ));
 
       // Refresh leads to ensure consistency
       await loadLeads();
@@ -2288,6 +2363,21 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     setCancelReason('');
   };
 
+  // Handle showing partner assignments dialog
+  const handleShowPartnerAssignments = (lead) => {
+    setSelectedLeadForPartners(lead);
+    setShowPartnerAssignmentDialog(true);
+  };
+
+  // Handle navigating to partner details
+  const handleNavigateToPartner = (partnerId) => {
+    // Close the dialog
+    setShowPartnerAssignmentDialog(false);
+
+    // Navigate to partner management with the partner ID
+    router.push(`/dashboard?tab=partners&partnerId=${partnerId}&view=leads`);
+  };
+
   // Handle submitting cancel lead request
   const handleSubmitCancelLead = async () => {
     if (!cancelReason.trim()) {
@@ -2297,20 +2387,25 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     setLoading(true);
     try {
-      await leadsAPI.cancelLead(selectedCancelLead.id, { reason: cancelReason });
+      const leadIdToCancel = selectedCancelLead.originalLeadId || selectedCancelLead.id;
+      await leadsAPI.cancelLead(leadIdToCancel, { reason: cancelReason });
 
-      // Update lead status to show it has a cancellation request
-      setLeads(prev => prev.map(lead =>
-        lead.id === selectedCancelLead.id
-          ? {
-              ...lead,
-              partnerStatus: 'cancel_requested',
-              cancelReason: cancelReason,
-              cancellationRequested: true,
-              cancellationRequestedAt: new Date().toISOString()
-            }
-          : lead
-      ));
+      // Update all duplicate rows with the same original lead ID
+      setLeads(prev => prev.map(lead => {
+        const leadOriginalId = lead.originalLeadId || lead.id;
+        const selectedOriginalId = selectedCancelLead.originalLeadId || selectedCancelLead.id;
+
+        if (leadOriginalId === selectedOriginalId) {
+          return {
+            ...lead,
+            partnerStatus: 'cancel_requested',
+            cancelReason: cancelReason,
+            cancellationRequested: true,
+            cancellationRequestedAt: new Date().toISOString()
+          };
+        }
+        return lead;
+      }));
 
       // Refresh leads to get updated data from server
       await loadLeads();
@@ -3183,8 +3278,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 <SortableHeader sortKey="status">
                   {t('common.status')}
                 </SortableHeader>
+                {!isPartner && (
+                  <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+                    {isGerman ? 'Partner' : 'Partners'}
+                  </th>
+                )}
                 <SortableHeader sortKey="pickupDate">
-                  {currentService === 'moving' 
+                  {currentService === 'moving'
                     ? (isGerman ? 'Umzugsdatum' : 'Pickup Date')
                     : t('common.date')
                   }
@@ -3197,7 +3297,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
+                  <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       <span style={{ color: 'var(--theme-text)' }}>
@@ -3210,7 +3310,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 <>
                   {console.log('Rendering no leads found - leads array:', leads, 'isPartner:', isPartner, 'loading:', loading)}
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                    <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
                       {t('leads.noLeadsFound') || (isGerman ? 'Keine Leads gefunden' : 'No leads found')}
                     </td>
                   </tr>
@@ -3290,28 +3390,50 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
                       const statusToShow = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
-                      // Count only active partners (not rejected or cancelled)
-                      const activePartnerCount = lead.partnerAssignments?.filter(
-                        assignment => assignment.status !== 'rejected' && assignment.status !== 'cancelled'
-                      ).length || 0;
-                      const showPartnerCount = !isPartner && (statusToShow === 'partial_assigned' || statusToShow === 'assigned') && activePartnerCount > 0;
                       const statusColorClass = getStatusColor(statusToShow);
 
-                      console.log('Lead ID:', lead.leadId, 'Status to show:', statusToShow, 'partnerStatus:', lead.partnerStatus, 'status:', lead.status, 'isPartner:', isPartner, 'partnerAssignments:', lead.partnerAssignments, 'userId:', user?.id);
                       return (
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColorClass}`}>
-                            {translateStatus(statusToShow)}
-                          </span>
-                          {showPartnerCount && (
-                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${statusColorClass}`}>
-                              {activePartnerCount}
-                            </span>
-                          )}
-                        </div>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusColorClass}`}>
+                          {translateStatus(statusToShow)}
+                        </span>
                       );
                     })()}
                   </td>
+                  {!isPartner && (
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {(() => {
+                        const statusToShow = lead.status;
+                        const activePartnerCount = lead.partnerAssignments?.filter(
+                          a => a.status !== 'rejected' && a.status !== 'cancelled'
+                        ).length || 0;
+
+                        const showPartnerCount = (statusToShow === 'partial_assigned' || statusToShow === 'assigned') && activePartnerCount > 0;
+
+                        if (!showPartnerCount) {
+                          return <span style={{ color: 'var(--theme-muted)' }}>-</span>;
+                        }
+
+                        // Determine partner count badge color based on partner type
+                        const hasExclusive = lead.partnerAssignments?.some(
+                          a => (a.status !== 'rejected' && a.status !== 'cancelled') &&
+                               (a.partnerType === 'exclusive' || a.partner?.partnerType === 'exclusive')
+                        );
+                        const countBadgeColor = hasExclusive
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+
+                        return (
+                          <button
+                            onClick={() => handleShowPartnerAssignments(lead)}
+                            className={`inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity ${countBadgeColor}`}
+                            title={isGerman ? 'Partner anzeigen' : 'Show partners'}
+                          >
+                            {activePartnerCount}
+                          </button>
+                        );
+                      })()}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                     {lead.dateDisplay || new Date(lead.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
                   </td>
@@ -3369,7 +3491,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             return (
                               <>
                                 <button
-                                  onClick={() => handleRejectLead(lead)}
+                                  onClick={() => {
+                                    console.log('Reject button clicked - Lead:', {
+                                      id: lead.id,
+                                      originalLeadId: lead.originalLeadId,
+                                      leadId: lead.leadId
+                                    });
+                                    handleRejectLead(lead);
+                                  }}
                                   className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md border"
                                   style={{
                                     backgroundColor: '#f3f4f6',
@@ -3393,7 +3522,17 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                   ✖️ {isGerman ? 'Ablehnen' : 'Reject'}
                                 </button>
                                 <button
-                                  onClick={() => handleAcceptLead(lead.id, user?.id)}
+                                  onClick={() => {
+                                    console.log('Accept button clicked - Lead:', {
+                                      id: lead.id,
+                                      originalLeadId: lead.originalLeadId,
+                                      idToUse: lead.originalLeadId || lead.id,
+                                      leadId: lead.leadId,
+                                      currentAssignment: lead.currentAssignment,
+                                      assignmentId: lead.currentAssignment?._id
+                                    });
+                                    handleAcceptLead(lead.originalLeadId || lead.id, user?.id);
+                                  }}
                                   className="text-xs px-3 py-1 rounded transition-colors"
                                   style={{
                                     backgroundColor: '#10b981',
@@ -4082,13 +4221,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       <AnimatePresence>
         {showAssignModal && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-8"
+            className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-md flex items-center justify-center z-50 p-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={handleCloseAssignModal}
           >
             <motion.div
-              className="rounded-xl shadow-2xl w-full max-w-4xl min-h-0 overflow-hidden border flex flex-col mx-6"
+              className="rounded-xl shadow-2xl w-full max-w-4xl min-h-0 overflow-hidden border-2 flex flex-col mx-6"
               style={{
                 backgroundColor: 'var(--theme-bg-secondary)',
                 color: 'var(--theme-text)',
@@ -4099,6 +4239,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6 pb-4 px-6 pt-6 border-b" style={{ borderColor: 'var(--theme-border)' }}>
                 <div>
@@ -4277,39 +4418,55 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       // Try multiple comparison methods as the assignment might use different ID formats
                       const hasExistingAssignment = selectedLead?.partnerAssignments?.some(assignment => {
                         const statusMatch = ['accepted', 'pending', 'cancel requested'].includes(assignment.status);
-                        const idMatch = assignment.partnerId === partner._id ||
-                                       assignment.partnerId === partner.partnerId ||
-                                       String(assignment.partnerId) === String(partner._id) ||
-                                       String(assignment.partnerId) === String(partner.partnerId);
+
+                        // Helper to check if values are valid for comparison (not null, undefined, or empty string)
+                        const isValidValue = (val) => val !== null && val !== undefined && val !== '';
+
+                        // Check both assignment.partnerId and assignment.partner (if it's an object)
+                        // Only compare if both values are valid (not undefined/null)
+                        const idMatch =
+                          (isValidValue(assignment.partnerId) && isValidValue(partner._id) && assignment.partnerId === partner._id) ||
+                          (isValidValue(assignment.partnerId) && isValidValue(partner.partnerId) && assignment.partnerId === partner.partnerId) ||
+                          (isValidValue(assignment.partnerId) && isValidValue(partner._id) && String(assignment.partnerId) === String(partner._id)) ||
+                          (isValidValue(assignment.partnerId) && isValidValue(partner.partnerId) && String(assignment.partnerId) === String(partner.partnerId)) ||
+                          // Also check if assignment.partner exists as an object
+                          (isValidValue(assignment.partner?._id) && isValidValue(partner._id) && assignment.partner._id === partner._id) ||
+                          (isValidValue(assignment.partner?._id) && isValidValue(partner.partnerId) && assignment.partner._id === partner.partnerId) ||
+                          (isValidValue(assignment.partner?.partnerId) && isValidValue(partner.partnerId) && assignment.partner.partnerId === partner.partnerId) ||
+                          (isValidValue(assignment.partner?.partnerId) && isValidValue(partner._id) && assignment.partner.partnerId === partner._id) ||
+                          (isValidValue(assignment.partner?._id) && isValidValue(partner._id) && String(assignment.partner._id) === String(partner._id)) ||
+                          (isValidValue(assignment.partner?._id) && isValidValue(partner.partnerId) && String(assignment.partner._id) === String(partner.partnerId));
+
                         return idMatch && statusMatch;
                       });
 
-                      // Enhanced debug logging for assignment checking
-                      if (partner.companyName === 'List&Sell' || partner.partnerId === 'PTRMOVZ12') {
-                        console.log('🔍 ASSIGNMENT DEBUG for List&Sell:', {
-                          companyName: partner.companyName,
-                          partnerId: partner.partnerId,
-                          partner_id: partner._id,
-                          partner_id_type: typeof partner._id,
-                          selectedLeadId: selectedLead?.id,
-                          selectedLeadNumber: selectedLead?.leadNumber,
-                          selectedLeadStructure: selectedLead,
-                          partnerAssignments: selectedLead?.partnerAssignments,
-                          partnerAssignmentsExists: !!selectedLead?.partnerAssignments,
-                          partnerAssignmentsLength: selectedLead?.partnerAssignments?.length,
-                          hasExistingAssignment,
-                          assignmentCheck: selectedLead?.partnerAssignments?.map(assignment => ({
-                            assignmentPartnerId: assignment.partnerId,
-                            assignmentPartnerIdType: typeof assignment.partnerId,
-                            status: assignment.status,
-                            matches_id: assignment.partnerId === partner._id,
-                            matches_partnerId: assignment.partnerId === partner.partnerId,
-                            matches_string_id: String(assignment.partnerId) === String(partner._id),
-                            matches_string_partnerId: String(assignment.partnerId) === String(partner.partnerId),
-                            statusMatches: ['accepted', 'pending', 'cancel requested'].includes(assignment.status)
-                          }))
-                        });
-                      }
+                      // Enhanced debug logging for ALL partners - showing actual assignments
+                      console.log(`🔍 CHECKING PARTNER: ${partner.companyName || partner.partnerId}`, {
+                        partnerName: partner.companyName,
+                        partnerId: partner.partnerId,
+                        partner_id: partner._id,
+                        hasExistingAssignment,
+                        leadId: selectedLead?.leadId,
+                        actualAssignments: selectedLead?.partnerAssignments?.map(assignment => ({
+                          status: assignment.status,
+                          assignmentPartnerId: assignment.partnerId,
+                          assignmentPartner: {
+                            _id: assignment.partner?._id,
+                            partnerId: assignment.partner?.partnerId,
+                            companyName: typeof assignment.partner?.companyName === 'object'
+                              ? assignment.partner?.companyName?.companyName
+                              : assignment.partner?.companyName
+                          },
+                          matches: {
+                            partnerId_vs_partner_id: assignment.partnerId === partner._id,
+                            partnerId_vs_partnerId: assignment.partnerId === partner.partnerId,
+                            partner_id_vs_partner_id: assignment.partner?._id === partner._id,
+                            partner_id_vs_partnerId: assignment.partner?._id === partner.partnerId,
+                            partner_partnerId_vs_partner_id: assignment.partner?.partnerId === partner._id,
+                            partner_partnerId_vs_partnerId: assignment.partner?.partnerId === partner.partnerId
+                          }
+                        }))
+                      });
 
                       // Also log all partners to see data structure
                       if (partner.companyName) {
@@ -4369,10 +4526,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               {partnerFilter === 'search' && (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   partner.partnerType === 'exclusive'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-blue-100 text-blue-800'
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                                 }`}>
-                                  {partner.partnerType === 'exclusive' ? 'Exclusive' : 'Basic'}
+                                  {partner.partnerType === 'exclusive' ? 'exclusive' : 'basic'}
                                 </span>
                               )}
                               {partner.locationMatch && (
@@ -4622,6 +4779,173 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   }}
                 >
                   {loading ? (isGerman ? 'Wird gesendet...' : 'Sending...') : (isGerman ? 'Stornieren' : 'Cancel Lead')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Partner Assignment Dialog */}
+      <AnimatePresence>
+        {showPartnerAssignmentDialog && selectedLeadForPartners && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75 backdrop-blur-md"
+            onClick={() => setShowPartnerAssignmentDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden border-2"
+              style={{
+                backgroundColor: 'var(--theme-bg-secondary)',
+                borderColor: 'var(--theme-border)',
+                color: 'var(--theme-text)'
+              }}
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor: 'var(--theme-border)' }}>
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'Zugewiesene Partner' : 'Assigned Partners'}
+                </h3>
+                <button
+                  onClick={() => setShowPartnerAssignmentDialog(false)}
+                  className="p-2 rounded-lg transition-colors hover:bg-opacity-80"
+                  style={{ color: 'var(--theme-muted)', backgroundColor: 'var(--theme-bg)' }}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {/* Lead Info */}
+                <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                  <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                    <span className="font-medium">{isGerman ? 'Lead-ID:' : 'Lead ID:'}</span>{' '}
+                    {selectedLeadForPartners.leadId}
+                  </div>
+                  <div className="text-sm mt-1" style={{ color: 'var(--theme-text)' }}>
+                    <span className="font-medium">{isGerman ? 'Service:' : 'Service:'}</span>{' '}
+                    {selectedLeadForPartners.serviceType === 'moving'
+                      ? (isGerman ? 'Umzug' : 'Moving')
+                      : (isGerman ? 'Reinigung' : 'Cleaning')}
+                  </div>
+                </div>
+
+                {/* Partner Assignments */}
+                <div className="space-y-3">
+                  {selectedLeadForPartners.partnerAssignments
+                    ?.filter(assignment =>
+                      assignment.status !== 'rejected' &&
+                      assignment.status !== 'cancelled'
+                    )
+                    .map((assignment, index) => {
+                      const partner = assignment.partner;
+                      const statusColors = {
+                        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                        accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                        cancellationRequested: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                      };
+                      const statusLabels = {
+                        pending: isGerman ? 'Ausstehend' : 'Pending',
+                        accepted: isGerman ? 'Akzeptiert' : 'Accepted',
+                        cancellationRequested: isGerman ? 'Stornierung angefordert' : 'Cancel Requested'
+                      };
+
+                      return (
+                        <div
+                          key={index}
+                          className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                          style={{
+                            borderColor: 'var(--theme-border)',
+                            backgroundColor: 'var(--theme-card-bg)'
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <button
+                                onClick={() => handleNavigateToPartner(partner._id || partner)}
+                                className="hover:underline font-medium text-sm"
+                                style={{ color: 'var(--theme-button-bg)' }}
+                              >
+                                {partner.partnerId || (typeof partner === 'object' ? (partner._id || 'N/A') : partner)}
+                              </button>
+                              {partner.companyName && (
+                                <div className="text-sm font-medium mt-1" style={{ color: 'var(--theme-text)' }}>
+                                  {typeof partner.companyName === 'object' ? partner.companyName?.companyName || partner.companyName?._id || 'N/A' : partner.companyName}
+                                </div>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[assignment.status] || 'bg-gray-100 text-gray-800'}`}>
+                              {statusLabels[assignment.status] || assignment.status}
+                            </span>
+                          </div>
+
+                          <div className="space-y-1 text-sm" style={{ color: 'var(--theme-text)' }}>
+                            {/* Partner Type Badge */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                (assignment.partnerType === 'exclusive' || partner.partnerType === 'exclusive')
+                                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              }`}>
+                                {(assignment.partnerType === 'exclusive' || partner.partnerType === 'exclusive')
+                                  ? (isGerman ? 'exclusive' : 'exclusive')
+                                  : (isGerman ? 'basic' : 'basic')}
+                              </span>
+                            </div>
+
+                            {partner.contactPerson?.email && (
+                              <div>
+                                <span className="font-medium">{isGerman ? 'E-Mail:' : 'Email:'}</span>{' '}
+                                {partner.contactPerson.email}
+                              </div>
+                            )}
+                            {assignment.price && (
+                              <div>
+                                <span className="font-medium">{isGerman ? 'Preis:' : 'Price:'}</span>{' '}
+                                €{assignment.price}
+                              </div>
+                            )}
+                            {assignment.assignedAt && (
+                              <div className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+                                {isGerman ? 'Zugewiesen am:' : 'Assigned at:'}{' '}
+                                {new Date(assignment.assignedAt).toLocaleString(isGerman ? 'de-DE' : 'en-US')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {(!selectedLeadForPartners.partnerAssignments ||
+                  selectedLeadForPartners.partnerAssignments.filter(a => a.status !== 'rejected' && a.status !== 'cancelled').length === 0) && (
+                  <div className="text-center py-8" style={{ color: 'var(--theme-muted)' }}>
+                    {isGerman ? 'Keine aktiven Partner-Zuweisungen' : 'No active partner assignments'}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t flex justify-end" style={{ borderColor: 'var(--theme-border)' }}>
+                <button
+                  onClick={() => setShowPartnerAssignmentDialog(false)}
+                  className="px-4 py-2 rounded-lg transition-colors hover:opacity-80"
+                  style={{
+                    backgroundColor: 'var(--theme-button-bg)',
+                    color: 'var(--theme-button-text)'
+                  }}
+                >
+                  {isGerman ? 'Schließen' : 'Close'}
                 </button>
               </div>
             </motion.div>

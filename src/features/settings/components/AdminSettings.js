@@ -330,8 +330,7 @@ const AdminSettings = () => {
   const tabs = [
     { id: 'pricing', label: isGerman ? 'Pricing' : 'Pricing' },
     { id: 'leads', label: isGerman ? 'Lead-Verteilung' : 'Lead Distribution' },
-    { id: 'system', label: isGerman ? 'System' : 'System' },
-    { id: 'security', label: isGerman ? 'Sicherheit' : 'Security' }
+    { id: 'system', label: isGerman ? 'System' : 'System' }
   ];
 
   const renderPricingTab = () => (
@@ -1148,8 +1147,6 @@ const AdminSettings = () => {
         return renderLeadDistributionTab();
       case 'system':
         return renderSystemTab();
-      case 'security':
-        return renderSecurityTab();
       default:
         return renderPricingTab();
     }

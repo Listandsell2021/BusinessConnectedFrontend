@@ -369,7 +369,13 @@ const LeadDetailsDialog = ({
                       {leadData.assignedPartner && (
                         <TableRow
                           label={t('leads.assignedPartner')}
-                          value={leadData.assignedPartner.companyName || leadData.assignedPartner}
+                          value={
+                            typeof leadData.assignedPartner === 'object'
+                              ? (typeof leadData.assignedPartner.companyName === 'object'
+                                  ? leadData.assignedPartner.companyName?.companyName || leadData.assignedPartner.companyName?._id || 'N/A'
+                                  : leadData.assignedPartner.companyName || leadData.assignedPartner._id || 'N/A')
+                              : leadData.assignedPartner
+                          }
                         />
                       )}
                     </tbody>

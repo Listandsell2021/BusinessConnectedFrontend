@@ -5,7 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
-import { partnersAPI, settingsAPI } from '../../../lib/api/api';
+import { partnersAPI, settingsAPI, leadsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import Pagination from '../../../components/ui/Pagination';
@@ -140,6 +140,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     cancelled: 0,
     cancel_requested: 0
   });
+
+  // Partner Leads Pagination
+  const [partnerLeadsCurrentPage, setPartnerLeadsCurrentPage] = useState(1);
+  const partnerLeadsPerPage = 8;
   const [adminSettings, setAdminSettings] = useState(null);
   const [weeklyLeadStats, setWeeklyLeadStats] = useState({
     currentWeek: 0,
@@ -268,6 +272,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       direction = 'desc';
     }
     setPartnerLeadsSortConfig({ key, direction });
+    setPartnerLeadsCurrentPage(1); // Reset to page 1 when sorting changes
   };
 
   // Load partner stats from API (independent of pagination)
@@ -748,6 +753,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       
       setPartnerForDetails(transformedPartner);
       setCurrentView('details');
+      setPartnerLeadsCurrentPage(1); // Reset pagination when viewing new partner
     } catch (error) {
       console.error('Error loading partner details:', error);
       toast.error('Failed to load partner details');
@@ -760,6 +766,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const handleBackToTable = () => {
     setCurrentView('table');
     setPartnerForDetails(null);
+    setPartnerLeadsCurrentPage(1); // Reset pagination
   };
 
   // Export partners function
@@ -1200,6 +1207,65 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   // Helper function to render table row for lead details
 
+  // Load partner metrics for Overview tab (simplified)
+  const loadPartnerMetrics = async () => {
+    if (!partnerForDetails || !partnerForDetails.id) return;
+
+    try {
+      // Simple API call to get all leads for this partner for current service
+      const response = await partnersAPI.getLeads(partnerForDetails.id, {
+        service: currentService,
+        limit: 1000
+      });
+
+      const leads = response.data.leads || [];
+
+      // Calculate metrics from all leads by checking specific partner's assignments
+      const metrics = {
+        total: 0,
+        pending: 0,
+        accepted: 0,
+        rejected: 0,
+        cancelled: 0,
+        cancel_requested: 0
+      };
+
+      leads.forEach((lead) => {
+        if (!lead.partnerAssignments) {
+          return;
+        }
+
+        // partnersAPI.getLeads returns a SINGLE OBJECT, not an array
+        // because it already filters to this specific partner
+        const assignment = lead.partnerAssignments;
+        const status = assignment.status || 'pending';
+
+        // Count this lead
+        metrics.total++;
+
+        // Count by status
+        if (status === 'accepted') {
+          metrics.accepted++;
+        } else if (status === 'cancel_requested' || status === 'cancellationRequested') {
+          metrics.cancel_requested++;
+        } else if (status === 'cancelled' || status === 'cancellation_approved' || status === 'cancellationApproved') {
+          metrics.cancelled++;
+        } else if (status === 'rejected') {
+          metrics.rejected++;
+        } else if (status === 'pending') {
+          metrics.pending++;
+        }
+      });
+
+      console.log(`Partner metrics for ${partnerForDetails.companyName || partnerForDetails.id}:`, metrics);
+      setPartnerLeadsStats(metrics);
+    } catch (error) {
+      console.error('Error loading partner metrics:', error);
+      toast.error(isGerman ? 'Fehler beim Laden der Metriken' : 'Error loading metrics');
+      setPartnerLeadsStats({ total: 0, pending: 0, accepted: 0, rejected: 0, cancelled: 0, cancel_requested: 0 });
+    }
+  };
+
   // Load partner leads
   const loadPartnerLeads = async () => {
     if (!partnerForDetails || !partnerForDetails.id) return;
@@ -1208,54 +1274,91 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     try {
       // Get date range based on filter
       const dateParams = getPartnerDateParams(partnerLeadsDateFilter);
-      
-      // Filter by current service only
-      const response = await partnersAPI.getLeads(partnerForDetails.id, {
+
+      // Try using leadsAPI.getAll first (same as partner view)
+      let response;
+      let leadsData = [];
+
+      // Use partnersAPI.getLeads directly (more reliable for admin viewing partner leads)
+      response = await partnersAPI.getLeads(partnerForDetails.id, {
         search: partnerLeadsFilters.search || undefined,
         status: partnerLeadsFilters.status !== 'all' ? partnerLeadsFilters.status : undefined,
         city: partnerLeadsFilters.city || undefined,
-        service: currentService, // Only show leads for the current selected service
+        service: currentService,
+        limit: 1000,
         ...dateParams
       });
+      leadsData = response.data.leads || [];
+      console.log('Successfully loaded leads for partner:', partnerForDetails.id);
 
-      const leadsData = response.data.leads || [];
-      const stats = response.data.stats || {};
-      
-      // Transform leads data similar to LeadManagement
-      const transformedLeads = leadsData.map(lead => {
-        // Helper function to extract string from location object
-        const getLocationString = (location) => {
-          if (!location) return '';
-          if (typeof location === 'string') return location;
-          if (typeof location === 'object') {
-            return location.city || location.address || location.name || '';
+      console.log('Partner Details - Loading leads for partner:', partnerForDetails.id);
+      console.log('Partner Details - Total leads from API:', leadsData.length);
+
+      // Transform leads data - create separate row for EACH assignment
+      const transformedLeads = [];
+
+      leadsData.forEach(lead => {
+        // Extract city display - same as LeadManagement
+        let cityDisplay = lead.location?.city || lead.city || '';
+        if (lead.serviceType === 'moving') {
+          const pickupCity = lead.formData?.pickupAddress?.city ||
+                           lead.pickupLocation?.city ||
+                           lead.formData?.pickupCity ||
+                           lead.pickupCity;
+          const destinationCity = lead.formData?.destinationAddress?.city ||
+                                 lead.destinationLocation?.city ||
+                                 lead.formData?.destinationCity ||
+                                 lead.destinationCity;
+
+          if (pickupCity && destinationCity) {
+            cityDisplay = `${pickupCity} → ${destinationCity}`;
+          } else if (pickupCity) {
+            cityDisplay = pickupCity;
+          } else if (destinationCity) {
+            cityDisplay = destinationCity;
           }
-          return '';
-        };
+        }
 
-        // Use the partner-specific status provided by the backend
-        const partnerStatus = lead.partnerStatus || 'pending';
+        // Extract pickup date - same as LeadManagement
+        let pickupDate = null;
+        let dateDisplay = '';
+        if (lead.formData?.pickupDate) {
+          pickupDate = new Date(lead.formData.pickupDate);
+          if (!isNaN(pickupDate.getTime())) {
+            dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+          }
+        }
 
-        return {
+        // Base lead data
+        const baseLeadData = {
           ...lead,
           id: lead._id || lead.id,
           leadId: lead.leadId || lead.id,
-          name: lead.user ?
-            `${lead.user.firstName} ${lead.user.lastName}`.trim() :
-            (lead.name || ''),
+          name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : (lead.name || ''),
           email: lead.user?.email || lead.email || '',
-          city: getLocationString(lead.location) || lead.city || '',
-          fromLocation: getLocationString(lead.fromLocation) || '',
-          toLocation: getLocationString(lead.toLocation) || '',
-          pickupLocation: getLocationString(lead.pickupLocation) || getLocationString(lead.formData?.pickupAddress) || '',
-          dropoffLocation: getLocationString(lead.dropoffLocation) || '',
-          status: partnerStatus,
-          assignedAt: lead.partnerAssignedAt || lead.assignedAt
+          city: cityDisplay,
+          pickupCity: lead.formData?.pickupAddress?.city || '',
+          destinationCity: lead.formData?.destinationAddress?.city || '',
+          dateDisplay: dateDisplay,
+          pickupDate: pickupDate,
         };
+
+        if (lead.partnerAssignments) {
+          // partnersAPI.getLeads returns a SINGLE OBJECT (not array) for THIS specific partner
+          // So we just use it directly
+          transformedLeads.push({
+            ...baseLeadData,
+            status: lead.partnerAssignments.status || 'pending',
+            partnerStatus: lead.partnerAssignments.status || 'pending',
+            assignedAt: lead.partnerAssignedAt || lead.assignedAt
+          });
+        }
       });
 
+      // Keep ALL assignments (including duplicates) - do NOT deduplicate
       setPartnerLeads(transformedLeads);
-      // Calculate partner-specific stats from transformed leads
+
+      // Calculate partner-specific stats from all assignments (including duplicates)
       const partnerSpecificStats = {
         total: transformedLeads.length,
         pending: transformedLeads.filter(lead => lead.status === 'pending').length,
@@ -1274,6 +1377,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       setPartnerLeadsStats(partnerSpecificStats);
     } catch (error) {
       console.error('Error loading partner leads:', error);
+      toast.error(isGerman ? 'Fehler beim Laden der Partner-Leads' : 'Error loading partner leads');
       setPartnerLeads([]);
       setPartnerLeadsStats({ total: 0, pending: 0, accepted: 0, rejected: 0, cancelled: 0, cancel_requested: 0 });
     } finally {
@@ -1413,10 +1517,19 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     handlePartnerSettingsChange('leadsPerWeek', null); // Set to null to use default
   };
 
-  // Load partner leads when tab changes or filters change or service changes
+  // Load partner metrics for Overview tab
   useEffect(() => {
-    if (partnerForDetails && (partnerDetailsTab === 'leads' || partnerDetailsTab === 'overview')) {
+    if (partnerForDetails && partnerDetailsTab === 'overview') {
+      loadPartnerMetrics();
+      loadWeeklyLeadStats();
+    }
+  }, [partnerDetailsTab, partnerForDetails, currentService]);
+
+  // Load partner leads when Leads tab is active and filters change
+  useEffect(() => {
+    if (partnerForDetails && partnerDetailsTab === 'leads') {
       loadPartnerLeads();
+      setPartnerLeadsCurrentPage(1); // Reset to page 1 when filters change
     }
   }, [partnerDetailsTab, partnerLeadsFilters, partnerLeadsDateFilter.type, partnerLeadsDateFilter.singleDate, partnerLeadsDateFilter.fromDate, partnerLeadsDateFilter.toDate, partnerForDetails, currentService]);
 
@@ -1452,13 +1565,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const currentPartners = partners;
 
   // Pagination reset is now handled in the filter useEffect above
-
-  // Load weekly lead stats when partner details or service changes
-  useEffect(() => {
-    if (partnerForDetails && partnerDetailsTab === 'overview') {
-      loadWeeklyLeadStats();
-    }
-  }, [partnerForDetails, currentService, partnerDetailsTab]);
+  // Weekly lead stats are now loaded in the Overview tab useEffect above
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -2697,6 +2804,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 </div>
               </motion.div>
 
+              {/* Calculate paginated leads */}
+              {(() => {
+                const indexOfLastLead = partnerLeadsCurrentPage * partnerLeadsPerPage;
+                const indexOfFirstLead = indexOfLastLead - partnerLeadsPerPage;
+                window.paginatedPartnerLeads = partnerLeads.slice(indexOfFirstLead, indexOfLastLead);
+              })()}
+
               {/* Statistics Display */}
               <div className="flex flex-wrap gap-4 mt-6 mb-6">
                 {[
@@ -2807,7 +2921,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           </td>
                         </tr>
                       ) : (
-                        partnerLeads.map((lead, index) => (
+                        window.paginatedPartnerLeads.map((lead, index) => (
                           <motion.tr
                             key={lead.id}
                             initial={{ opacity: 0, y: 20 }}
@@ -2881,6 +2995,18 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </table>
                 </div>
               </div>
+
+              {/* Pagination for Partner Leads */}
+              {partnerLeads.length > partnerLeadsPerPage && (
+                <div className="mt-4">
+                  <Pagination
+                    currentPage={partnerLeadsCurrentPage}
+                    totalItems={partnerLeads.length}
+                    itemsPerPage={partnerLeadsPerPage}
+                    onPageChange={setPartnerLeadsCurrentPage}
+                  />
+                </div>
+              )}
             </div>
           )}
 

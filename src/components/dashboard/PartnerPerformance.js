@@ -190,7 +190,7 @@ const PartnerPerformance = ({ className = "" }) => {
                   <div>
                     <div className="flex items-center space-x-2">
                       <h4 className="font-bold text-lg" style={{ color: 'var(--theme-text)' }}>
-                        {partner.companyName}
+                        {typeof partner.companyName === 'object' ? partner.companyName?.companyName || partner.companyName?._id || 'N/A' : partner.companyName || 'N/A'}
                       </h4>
                     </div>
                     <div className="flex items-center space-x-4 mt-1">

@@ -3,6 +3,13 @@ module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx}',
     './components/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}',
+  ],
+  safelist: [
+    'bg-orange-100',
+    'text-orange-800',
+    'dark:bg-orange-900',
+    'dark:text-orange-200',
   ],
   theme: {
     extend: {
