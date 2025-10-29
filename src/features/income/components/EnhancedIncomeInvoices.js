@@ -165,51 +165,78 @@ const EnhancedIncomeInvoices = () => {
         leads: leadsResponse.data.leads?.map(lead => ({
           leadId: lead.leadId,
           hasPartnerAssignments: !!lead.partnerAssignments,
+          partnerAssignmentsIsArray: Array.isArray(lead.partnerAssignments),
           partnerAssignmentsCount: lead.partnerAssignments?.length || 0,
-          firstAssignment: lead.partnerAssignments?.[0]
+          allAssignments: lead.partnerAssignments,
+          paymentStatus: lead.paymentStatus
         }))
       });
 
       const allLeads = leadsResponse.data.leads || [];
 
-      // Filter to include only leads where this partner's assignment is 'accepted' or lead has 'cancel_requested' status
-      // Exclude rejected and cancelled assignments
-      const filteredLeads = allLeads.filter(lead => {
-        // Find this partner's assignment
-        const partnerAssignment = lead.partnerAssignments?.find(
-          assignment => assignment.partner === partnerId || assignment.partner?._id === partnerId
-        );
-
-        if (!partnerAssignment) return false;
-
-        // Include if: partner assignment is 'accepted' OR 'cancellationRequested'
-        // Exclude if: partner assignment is 'rejected' or 'cancelled'
-        const assignmentStatus = partnerAssignment.status;
-        return (assignmentStatus === 'accepted' || assignmentStatus === 'cancellationRequested') &&
-               assignmentStatus !== 'rejected' &&
-               assignmentStatus !== 'cancelled';
+      console.log('=== FILTERING LEADS ===', {
+        partnerId,
+        totalLeads: allLeads.length
       });
 
-      // Use real partner assignments data from the API response
-      const leadsWithPricing = filteredLeads.map(lead => {
-        // If partnerAssignments exist, use them; otherwise create proper structure
-        if (!lead.partnerAssignments || lead.partnerAssignments.length === 0) {
-          // This means the API didn't return assignments - we should handle this case
-          console.warn('Lead without partner assignments:', lead.leadId);
-          return {
-            ...lead,
-            partnerAssignments: []
-          };
+      // IMPORTANT: Create assignment items instead of just filtering leads
+      // Since the same lead can be assigned multiple times to the same partner,
+      // we need to create a separate item for each valid assignment
+      // Valid statuses: ONLY 'accepted' and 'cancellationRequested'
+      const assignmentItems = [];
+
+      allLeads.forEach(lead => {
+        // Handle both cases: partnerAssignments can be an object or an array
+        let partnerAssignments = [];
+        if (Array.isArray(lead.partnerAssignments)) {
+          partnerAssignments = lead.partnerAssignments;
+        } else if (lead.partnerAssignments && typeof lead.partnerAssignments === 'object') {
+          // If it's a single object, convert to array
+          partnerAssignments = [lead.partnerAssignments];
         }
 
-        return {
-          ...lead,
-          partnerAssignments: lead.partnerAssignments
-        };
+        // Find ALL valid assignments for this partner (not just one)
+        const validAssignments = partnerAssignments.filter(assignment => {
+          const matchesPartner = assignment.partner === partnerId ||
+                                assignment.partner?._id === partnerId ||
+                                assignment.partner?.$oid === partnerId;
+          const hasValidStatus = assignment.status === 'accepted' ||
+                                assignment.status === 'cancellationRequested';
+          return matchesPartner && hasValidStatus;
+        });
+
+        // Create an item for each valid assignment
+        validAssignments.forEach(assignment => {
+          assignmentItems.push({
+            ...lead,
+            // Store the specific assignment for this item
+            currentAssignment: assignment,
+            // Keep original partnerAssignments for reference
+            partnerAssignments: partnerAssignments
+          });
+        });
       });
 
-      const paidLeads = leadsWithPricing.filter(lead => lead.paymentStatus === 'paid');
-      const unpaidLeads = leadsWithPricing.filter(lead => lead.paymentStatus !== 'paid');
+      console.log('=== AFTER FILTERING ===', {
+        assignmentItemsCount: assignmentItems.length,
+        assignmentItems: assignmentItems.map(item => ({
+          leadId: item.leadId,
+          assignmentId: item.currentAssignment._id,
+          assignmentStatus: item.currentAssignment.status,
+          leadPrice: item.currentAssignment.leadPrice,
+          paymentStatus: item.paymentStatus
+        }))
+      });
+
+      const paidLeads = assignmentItems.filter(item => item.paymentStatus === 'paid');
+      const unpaidLeads = assignmentItems.filter(item => item.paymentStatus !== 'paid');
+
+      console.log('=== PAID/UNPAID SPLIT ===', {
+        paidCount: paidLeads.length,
+        unpaidCount: unpaidLeads.length,
+        paidLeads: paidLeads.map(l => ({ leadId: l.leadId, assignmentId: l.currentAssignment._id, paymentStatus: l.paymentStatus })),
+        unpaidLeads: unpaidLeads.map(l => ({ leadId: l.leadId, assignmentId: l.currentAssignment._id, paymentStatus: l.paymentStatus }))
+      });
 
       // Get partner's invoices for the period
       const invoicesResponse = await invoicesAPI.getAll({
@@ -290,26 +317,39 @@ const EnhancedIncomeInvoices = () => {
 
       const allLeads = leadsResponse.data.leads || [];
 
-      // Filter to include only leads where this partner's assignment is 'accepted' or lead has 'cancel_requested' status
-      // Exclude rejected and cancelled assignments
-      const filteredLeads = allLeads.filter(lead => {
-        // Find this partner's assignment
-        const partnerAssignment = lead.partnerAssignments?.find(
-          assignment => assignment.partner === invoiceData.partnerId._id || assignment.partner?._id === invoiceData.partnerId._id
-        );
+      // Create assignment items for invoice view
+      const assignmentItems = [];
 
-        if (!partnerAssignment) return false;
+      allLeads.forEach(lead => {
+        // Handle both cases: partnerAssignments can be an object or an array
+        let partnerAssignments = [];
+        if (Array.isArray(lead.partnerAssignments)) {
+          partnerAssignments = lead.partnerAssignments;
+        } else if (lead.partnerAssignments && typeof lead.partnerAssignments === 'object') {
+          // If it's a single object, convert to array
+          partnerAssignments = [lead.partnerAssignments];
+        }
 
-        // Include if: partner assignment is 'accepted' OR 'cancellationRequested'
-        // Exclude if: partner assignment is 'rejected' or 'cancelled'
-        const assignmentStatus = partnerAssignment.status;
-        return (assignmentStatus === 'accepted' || assignmentStatus === 'cancellationRequested') &&
-               assignmentStatus !== 'rejected' &&
-               assignmentStatus !== 'cancelled';
+        // Find ALL valid assignments for this partner
+        const validAssignments = partnerAssignments.filter(assignment => {
+          const matchesPartner = assignment.partner === invoiceData.partnerId._id || assignment.partner?._id === invoiceData.partnerId._id;
+          const hasValidStatus = assignment.status === 'accepted' ||
+                                assignment.status === 'cancellationRequested';
+          return matchesPartner && hasValidStatus;
+        });
+
+        // Create an item for each valid assignment
+        validAssignments.forEach(assignment => {
+          assignmentItems.push({
+            ...lead,
+            currentAssignment: assignment,
+            partnerAssignments: partnerAssignments
+          });
+        });
       });
 
-      const paidLeads = filteredLeads.filter(lead => lead.paymentStatus === 'paid');
-      const unpaidLeads = filteredLeads.filter(lead => lead.paymentStatus !== 'paid');
+      const paidLeads = assignmentItems.filter(item => item.paymentStatus === 'paid');
+      const unpaidLeads = assignmentItems.filter(item => item.paymentStatus !== 'paid');
 
       setInvoiceTabData({
         paidLeads,
@@ -347,11 +387,9 @@ const EnhancedIncomeInvoices = () => {
       }
 
       // Check for leads with cancellationRequested status
-      const cancelRequestedLeads = unpaidLeads.filter(lead => {
-        const partnerAssignment = lead.partnerAssignments?.find(
-          assignment => assignment.partner === partnerId || assignment.partner?._id === partnerId
-        );
-        return partnerAssignment?.status === 'cancellationRequested';
+      const cancelRequestedLeads = unpaidLeads.filter(item => {
+        // Each item now has currentAssignment
+        return item.currentAssignment?.status === 'cancellationRequested';
       });
 
       if (cancelRequestedLeads.length > 0) {
@@ -371,14 +409,14 @@ const EnhancedIncomeInvoices = () => {
           startDate: startDate,
           endDate: endDate
         },
-        items: unpaidLeads.map(lead => ({
-          leadId: lead._id,
-          description: `${currentService} Lead - ${lead.leadId}`,
-          amount: lead.partnerAssignments?.[0]?.leadPrice || 30
+        items: unpaidLeads.map(item => ({
+          leadId: item._id,
+          description: `${currentService} Lead - ${item.leadId}`,
+          amount: item.currentAssignment?.leadPrice || 30
         })),
-        subtotal: unpaidLeads.reduce((total, lead) => total + (lead.partnerAssignments?.[0]?.leadPrice || 30), 0),
-        tax: unpaidLeads.reduce((total, lead) => total + (lead.partnerAssignments?.[0]?.leadPrice || 30), 0) * 0.19,
-        total: unpaidLeads.reduce((total, lead) => total + (lead.partnerAssignments?.[0]?.leadPrice || 30), 0) * 1.19
+        subtotal: unpaidLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0),
+        tax: unpaidLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0) * 0.19,
+        total: unpaidLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0) * 1.19
       };
 
       const response = await invoicesAPI.create(invoiceData);
@@ -718,49 +756,9 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
           </tr>
         </thead>
         <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
-          {leads.map((lead) => {
-            // Ensure partnerAssignments is an array and find the partner assignment for this specific partner
-            const assignments = Array.isArray(lead.partnerAssignments) ? lead.partnerAssignments : [];
-
-            // Since we're viewing a specific partner's leads, use the assignment for this partner
-            // or fallback to the first assignment (they should all be for the same partner in this context)
-            const partnerAssignment = assignments.find(assignment => {
-              // assignment.partner can be:
-              // 1. ObjectId object with $oid: { $oid: "68c33b690eb021d4563906c1" }
-              // 2. Plain ObjectId string: "68c33b690eb021d4563906c1"
-              // 3. Populated object with _id: { _id: "68c33b690eb021d4563906c1", ... }
-              const assignmentPartnerId = assignment.partner?.$oid ||
-                                        assignment.partner?._id?.toString() ||
-                                        assignment.partner?.toString() ||
-                                        assignment.partner;
-              const selectedPartnerId = selectedPartner?._id?.toString();
-              return assignmentPartnerId === selectedPartnerId;
-            }) || assignments[0]; // Fallback to first assignment
-
-            // Log for debugging if leadPrice is 0
-            if (lead.leadId === 'CLEAN-4237' || lead.leadId === 'CLEAN-7453') {
-              console.log(`🔍 DEBUG ${lead.leadId}:`, {
-                leadId: lead.leadId,
-                selectedPartnerId: selectedPartner?._id,
-                assignments: assignments,
-                partnerAssignment: partnerAssignment,
-                leadPrice: partnerAssignment?.leadPrice,
-                actualValue: lead.actualValue,
-                estimatedValue: lead.estimatedValue
-              });
-            }
-
-            // Debug: Check if this lead should have the assignment
-            if (lead.leadId === 'MOV-8879') {
-              console.log('=== MOV-8879 DEBUGGING ===', {
-                leadId: lead.leadId,
-                selectedPartnerId: selectedPartner?._id,
-                fullLead: lead,
-                hasPartnerAssignments: !!lead.partnerAssignments,
-                partnerAssignmentsLength: lead.partnerAssignments?.length,
-                partnerAssignments: lead.partnerAssignments
-              });
-            }
+          {leads.map((item) => {
+            // Each item now has currentAssignment which is the specific assignment for this row
+            const partnerAssignment = item.currentAssignment;
 
             // Helper function to extract city and country from address
             const extractCityCountry = (address) => {
@@ -797,37 +795,37 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
             let pickupDisplay = 'N/A';
             let destinationDisplay = 'N/A';
 
-            if (lead.serviceType === 'moving') {
+            if (item.serviceType === 'moving') {
               // For moving: show city, country for both pickup and destination
-              const pickupAddress = lead.formData?.pickupAddressOriginal ||
-                                  lead.formData?.pickupAddress ||
-                                  lead.pickupLocation;
-              const destinationAddress = lead.formData?.destinationAddressOriginal ||
-                                       lead.formData?.destinationAddress ||
-                                       lead.destinationLocation;
+              const pickupAddress = item.formData?.pickupAddressOriginal ||
+                                  item.formData?.pickupAddress ||
+                                  item.pickupLocation;
+              const destinationAddress = item.formData?.destinationAddressOriginal ||
+                                       item.formData?.destinationAddress ||
+                                       item.destinationLocation;
 
               pickupDisplay = extractCityCountry(pickupAddress);
               destinationDisplay = extractCityCountry(destinationAddress);
-            } else if (lead.serviceType === 'cleaning') {
+            } else if (item.serviceType === 'cleaning') {
               // For cleaning: only destination/service address, no pickup
-              const serviceAddress = lead.serviceLocation?.serviceAddress ||
-                                    lead.formData?.serviceAddress ||
-                                    lead.formData?.address;
+              const serviceAddress = item.serviceLocation?.serviceAddress ||
+                                    item.formData?.serviceAddress ||
+                                    item.formData?.address;
               destinationDisplay = extractCityCountry(serviceAddress);
             }
 
             return (
-              <tr key={lead._id}>
+              <tr key={partnerAssignment?._id || `${item._id}-${Math.random()}`}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                  {lead.leadId || lead._id.slice(-6)}
+                  {item.leadId || item._id.slice(-6)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                      {lead.user?.firstName} {lead.user?.lastName}
+                      {item.user?.firstName} {item.user?.lastName}
                     </div>
                     <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      {lead.user?.email}
+                      {item.user?.email}
                     </div>
                   </div>
                 </td>
@@ -835,7 +833,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 {!isCleaningOnly && (
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                      {lead.serviceType === 'moving' ? pickupDisplay : 'N/A'}
+                      {item.serviceType === 'moving' ? pickupDisplay : 'N/A'}
                     </div>
                   </td>
                 )}
@@ -847,13 +845,13 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
                   {formatCurrency(
                     partnerAssignment?.leadPrice ||
-                    lead.actualValue ||
-                    lead.estimatedValue ||
+                    item.actualValue ||
+                    item.estimatedValue ||
                     30 // Default fallback value
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                  {formatDate(partnerAssignment?.acceptedAt || lead.createdAt)}
+                  {formatDate(partnerAssignment?.acceptedAt || item.createdAt)}
                 </td>
               </tr>
             );
@@ -1136,36 +1134,41 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {leads.map((lead) => (
-              <tr key={lead._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                  {lead.leadId || lead._id.slice(-6)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {lead.user?.firstName} {lead.user?.lastName}
+            {leads.map((item) => {
+              // Each item now has currentAssignment
+              const assignment = item.currentAssignment;
+
+              return (
+                <tr key={assignment?._id || `${item._id}-${Math.random()}`}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                    {item.leadId || item._id.slice(-6)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.user?.firstName} {item.user?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {item.user?.email}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {lead.user?.email}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    lead.serviceType === 'moving' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {lead.serviceType === 'moving' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                  {formatCurrency(lead.partnerAssignments?.[0]?.leadPrice || 0)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(lead.partnerAssignments?.[0]?.acceptedAt)}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      item.serviceType === 'moving' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {item.serviceType === 'moving' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
+                    {formatCurrency(assignment?.leadPrice || 0)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(assignment?.acceptedAt)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
