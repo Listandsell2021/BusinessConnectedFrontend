@@ -1,60 +1,55 @@
-// Theme Toggle Component - Modern Switch
+// Theme Toggle Component - Modern Gradient Button
 import { useTheme } from '../../contexts/ThemeContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import Button from './Button';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme, mounted } = useTheme();
-  const { t } = useLanguage();
 
   if (!mounted) {
-    return <div className="w-12 h-6 bg-gray-200 rounded-full animate-pulse"></div>;
+    return <div className="w-[42px] h-[32px] bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>;
   }
 
   const isDark = theme === 'dark';
 
   return (
-    <Button
+    <button
       onClick={toggleTheme}
-      variant="ghost"
-      size="sm"
-      className={`relative inline-flex h-6 w-12 items-center rounded-full border transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+      className={`relative inline-flex items-center justify-center w-[42px] h-[32px] rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 hover:scale-110 shadow-md ${
         isDark
-          ? 'bg-gray-700 border-gray-600'
-          : 'bg-yellow-100 border-yellow-300'
+          ? 'bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 focus:ring-blue-400'
+          : 'bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 focus:ring-orange-400'
       }`}
-      aria-label={t('common.toggleTheme')}
-      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      title={isDark ? 'Light Mode' : 'Dark Mode'}
     >
-      {/* Toggle Circle */}
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full border transition-all duration-300 shadow-sm ${
-          isDark 
-            ? 'translate-x-6 bg-gray-900 border-gray-700' 
-            : 'translate-x-1 bg-yellow-400 border-yellow-500'
+      {/* Sun Icon - Light Mode */}
+      <svg
+        className={`absolute w-5 h-5 transition-all duration-500 ${
+          isDark
+            ? 'rotate-180 scale-0 opacity-0'
+            : 'rotate-0 scale-100 opacity-100'
         }`}
-      />
-      
-      {/* Icons */}
-      <div className="absolute inset-0 flex items-center justify-between px-1">
-        {/* Sun Icon */}
-        <div className={`text-yellow-500 transition-opacity duration-300 ${
-          !isDark ? 'opacity-0' : 'opacity-100'
-        }`}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
-          </svg>
-        </div>
-        
-        {/* Moon Icon */}
-        <div className={`text-blue-300 transition-opacity duration-300 ${
-          isDark ? 'opacity-0' : 'opacity-100'
-        }`}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-            <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd"/>
-          </svg>
-        </div>
-      </div>
-    </Button>
+        fill="none"
+        stroke="white"
+        viewBox="0 0 24 24"
+        strokeWidth={2.5}
+      >
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+      </svg>
+
+      {/* Moon Icon - Dark Mode */}
+      <svg
+        className={`absolute w-5 h-5 transition-all duration-500 ${
+          isDark
+            ? 'rotate-0 scale-100 opacity-100'
+            : '-rotate-180 scale-0 opacity-0'
+        }`}
+        fill="none"
+        stroke="white"
+        viewBox="0 0 24 24"
+        strokeWidth={2.5}
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    </button>
   );
 }

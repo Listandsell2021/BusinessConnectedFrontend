@@ -14,7 +14,45 @@ export default function ForgotPassword() {
   const router = useRouter();
   const { isGerman } = useLanguage();
   const { mounted, isDark } = useTheme();
-  
+
+  // Error message translations
+  const translateError = (errorMsg) => {
+    if (!isGerman) return errorMsg;
+
+    const translations = {
+      // Network errors
+      'Network error': 'Netzwerkfehler',
+      'Failed to send OTP': 'Fehler beim Senden der OTP',
+      'Failed to resend': 'Fehler beim erneuten Senden',
+
+      // OTP errors
+      'Invalid OTP': 'Ungültige OTP',
+      'OTP already used': 'OTP wurde bereits verwendet',
+      'OTP expired': 'OTP ist abgelaufen',
+      'Maximum attempts exceeded': 'Maximale Anzahl an Versuchen überschritten',
+      'OTP ID and OTP code are required': 'OTP-ID und OTP-Code sind erforderlich',
+      'Invalid OTP request': 'Ungültige OTP-Anfrage',
+      'Failed to verify OTP': 'OTP-Verifizierung fehlgeschlagen',
+
+      // Password reset errors
+      'Failed to reset password': 'Fehler beim Zurücksetzen des Passworts',
+      'Reset token is required': 'Reset-Token ist erforderlich',
+      'Password must be at least 8 characters long': 'Passwort muss mindestens 8 Zeichen lang sein',
+
+      // Email errors
+      'Email is required': 'E-Mail ist erforderlich',
+      'Email is invalid': 'E-Mail ist ungültig',
+      'No user found with this email': 'Kein Benutzer mit dieser E-Mail gefunden',
+      'User not found': 'Benutzer nicht gefunden',
+
+      // Service errors
+      'Service selection is required': 'Service-Auswahl ist erforderlich',
+      'Invalid service type': 'Ungültiger Service-Typ'
+    };
+
+    return translations[errorMsg] || errorMsg;
+  };
+
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [formData, setFormData] = useState({
     email: '',
@@ -129,18 +167,17 @@ export default function ForgotPassword() {
         setStep(2);
         setCountdown(900); // 15 minutes countdown
         toast.success(
-          isGerman 
-            ? 'OTP wurde an Ihre E-Mail gesendet' 
+          isGerman
+            ? 'OTP wurde an Ihre E-Mail gesendet'
             : 'OTP sent to your email'
         );
       } else {
-        const errorMessage = data.message || data.error || 
-          (isGerman ? 'Fehler beim Senden der OTP' : 'Failed to send OTP');
+        const errorMessage = translateError(data.message || data.error || 'Failed to send OTP');
         setErrors({ email: errorMessage });
         toast.error(errorMessage);
       }
     } catch (error) {
-      const errorMessage = isGerman ? 'Netzwerkfehler' : 'Network error';
+      const errorMessage = translateError('Network error');
       setErrors({ email: errorMessage });
       toast.error(errorMessage);
     } finally {
@@ -169,18 +206,17 @@ export default function ForgotPassword() {
         setResetToken(data.resetToken);
         setStep(3);
         toast.success(
-          isGerman 
-            ? 'OTP erfolgreich verifiziert' 
+          isGerman
+            ? 'OTP erfolgreich verifiziert'
             : 'OTP verified successfully'
         );
       } else {
-        const errorMessage = data.message || data.error || 
-          (isGerman ? 'Ungültige OTP' : 'Invalid OTP');
+        const errorMessage = translateError(data.message || data.error || 'Invalid OTP');
         setErrors({ otp: errorMessage });
         toast.error(errorMessage);
       }
     } catch (error) {
-      const errorMessage = isGerman ? 'Netzwerkfehler' : 'Network error';
+      const errorMessage = translateError('Network error');
       setErrors({ otp: errorMessage });
       toast.error(errorMessage);
     } finally {
@@ -207,23 +243,22 @@ export default function ForgotPassword() {
 
       if (response.ok) {
         toast.success(
-          isGerman 
-            ? 'Passwort erfolgreich zurückgesetzt!' 
+          isGerman
+            ? 'Passwort erfolgreich zurückgesetzt!'
             : 'Password reset successfully!'
         );
-        
+
         // Redirect to appropriate login page
         setTimeout(() => {
           router.push('/auth/partner-login');
         }, 2000);
       } else {
-        const errorMessage = data.message || data.error || 
-          (isGerman ? 'Fehler beim Zurücksetzen des Passworts' : 'Failed to reset password');
+        const errorMessage = translateError(data.message || data.error || 'Failed to reset password');
         setErrors({ newPassword: errorMessage });
         toast.error(errorMessage);
       }
     } catch (error) {
-      const errorMessage = isGerman ? 'Netzwerkfehler' : 'Network error';
+      const errorMessage = translateError('Network error');
       setErrors({ newPassword: errorMessage });
       toast.error(errorMessage);
     } finally {
@@ -252,15 +287,15 @@ export default function ForgotPassword() {
         setCountdown(900);
         setFormData(prev => ({ ...prev, otp: '' }));
         toast.success(
-          isGerman 
-            ? 'Neue OTP wurde gesendet' 
+          isGerman
+            ? 'Neue OTP wurde gesendet'
             : 'New OTP sent'
         );
       } else {
-        toast.error(data.message || (isGerman ? 'Fehler beim erneuten Senden' : 'Failed to resend'));
+        toast.error(translateError(data.message || 'Failed to resend'));
       }
     } catch (error) {
-      toast.error(isGerman ? 'Netzwerkfehler' : 'Network error');
+      toast.error(translateError('Network error'));
     } finally {
       setIsSubmitting(false);
     }

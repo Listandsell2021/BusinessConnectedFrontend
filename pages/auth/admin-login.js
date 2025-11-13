@@ -53,29 +53,33 @@ useEffect(() => {
 
       if (isGerman) {
         // Translate to German
-        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials') {
-          newErrors.general = 'Ungültige Anmeldedaten';
+        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials' || generalError === 'Invalid admin credentials') {
+          newErrors.general = 'Ungültige Admin-Anmeldedaten';
         } else if (generalError === 'Validation error' || generalError.toLowerCase().includes('validation error')) {
           newErrors.general = 'Validierungsfehler';
+        } else if (generalError.toLowerCase().includes('access denied') || generalError.toLowerCase().includes('admin privileges')) {
+          newErrors.general = 'Zugriff verweigert. Admin-Berechtigungen erforderlich.';
         } else if (generalError.toLowerCase().includes('login failed') || generalError.toLowerCase().includes('authentication failed')) {
           newErrors.general = 'Anmeldung fehlgeschlagen';
         } else if (generalError.toLowerCase().includes('unexpected error')) {
           newErrors.general = 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
         } else {
-          newErrors.general = 'Ungültige Anmeldedaten';
+          newErrors.general = 'Ungültige Admin-Anmeldedaten';
         }
       } else {
         // Translate to English
-        if (generalError.includes('Ungültige Anmeldedaten')) {
-          newErrors.general = 'Invalid credentials';
+        if (generalError.includes('Ungültige Anmeldedaten') || generalError.includes('Ungültige Admin-Anmeldedaten')) {
+          newErrors.general = 'Invalid admin credentials';
         } else if (generalError.includes('Validierungsfehler')) {
           newErrors.general = 'Validation error';
+        } else if (generalError.includes('Zugriff verweigert') || generalError.includes('Admin-Berechtigungen')) {
+          newErrors.general = 'Access denied. Admin privileges required.';
         } else if (generalError.includes('Anmeldung fehlgeschlagen')) {
           newErrors.general = 'Login failed';
         } else if (generalError.includes('unerwarteter Fehler')) {
           newErrors.general = 'An unexpected error occurred. Please try again.';
         } else {
-          newErrors.general = 'Invalid credentials';
+          newErrors.general = 'Invalid admin credentials';
         }
       }
     }
@@ -136,13 +140,14 @@ useEffect(() => {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
-  
+
   if (!validateForm()) return;
 
   setIsSubmitting(true);
 
   try {
-    const result = await login(formData.email, formData.password);
+    // Pass isAdminLogin=true as the 4th parameter to ensure only admins can log in
+    const result = await login(formData.email, formData.password, null, true);
 
     if (result && result.success) {
       // ✅ Save immediately
@@ -173,10 +178,12 @@ const handleSubmit = async (e) => {
       if (isGerman) {
         if (!errorMessage || errorMessage === 'Login failed' || errorMessage === 'Authentication failed') {
           errorMessage = 'Anmeldung fehlgeschlagen';
-        } else if (errorMessage === 'Invalid credentials') {
-          errorMessage = 'Ungültige Anmeldedaten';
+        } else if (errorMessage === 'Invalid credentials' || errorMessage === 'Invalid admin credentials') {
+          errorMessage = 'Ungültige Admin-Anmeldedaten';
         } else if (errorMessage === 'Validation error') {
           errorMessage = 'Validierungsfehler';
+        } else if (errorMessage.includes('Access denied') || errorMessage.includes('Admin privileges required')) {
+          errorMessage = 'Zugriff verweigert. Admin-Berechtigungen erforderlich.';
         } else if (errorMessage.includes('Invalid credentials')) {
           errorMessage = errorMessage.replace('Invalid credentials', 'Ungültige Anmeldedaten');
         } else if (errorMessage.includes('Validation error')) {

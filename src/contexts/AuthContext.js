@@ -37,11 +37,14 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password, selectedService = null) => {
+  const login = async (email, password, selectedService = null, isAdminLogin = false) => {
     try {
       const requestBody = { email, password };
       if (selectedService) {
         requestBody.selectedService = selectedService;
+      }
+      if (isAdminLogin) {
+        requestBody.isAdminLogin = true;
       }
       const response = await axios.post('/auth/login', requestBody);
       
