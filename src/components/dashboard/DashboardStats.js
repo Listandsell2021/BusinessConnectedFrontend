@@ -172,7 +172,7 @@ const DashboardStats = ({ className = "" }) => {
       change: stats.monthlyGrowth?.partners ? `+${stats.monthlyGrowth.partners}%` : '+0%',
       trend: stats.trends?.partners || 'neutral',
       icon: '🤝',
-      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      gradient: 'linear-gradient(135deg, #56ccf2 0%, #2f80ed 100%)',
       description: isGerman ? 'Registriert' : 'Registered'
     },
     {
@@ -192,7 +192,7 @@ const DashboardStats = ({ className = "" }) => {
       change: stats.monthlyGrowth?.exclusive || '+0%',
       trend: stats.trends?.exclusive || 'neutral',
       icon: '⭐',
-      gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+      gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
       description: isGerman ? 'Premium' : 'Premium'
     },
     {
@@ -202,7 +202,7 @@ const DashboardStats = ({ className = "" }) => {
       change: stats.monthlyGrowth?.basic || '+0%',
       trend: stats.trends?.basic || 'neutral',
       icon: '🔧',
-      gradient: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+      gradient: 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)',
       description: isGerman ? 'Standard' : 'Standard'
     }
   ];

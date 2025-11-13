@@ -346,14 +346,11 @@ export default function PartnerRequest() {
       if (response.ok && result.success) {
         setSubmitSuccess(true);
         console.log('Registration successful:', result);
-        
+
         // Clear any existing errors
         setErrors({});
-        
-        // Show brief success state before redirect
-        setTimeout(() => {
-          router.push('/auth/login?message=partner-registration-success');
-        }, 1000);
+
+        // Do not auto-redirect - let user click the button
       } else {
         // Handle validation errors
         if (result.errors && Array.isArray(result.errors)) {
@@ -467,20 +464,46 @@ export default function PartnerRequest() {
           <h2 className="text-3xl font-bold mb-4">
             {isGerman ? 'Anfrage gesendet!' : 'Request Sent!'}
           </h2>
-          <p className="text-lg mb-6" style={{ color: 'var(--theme-muted)' }}>
-            {isGerman 
+          <p className="text-lg mb-4" style={{ color: 'var(--theme-muted)' }}>
+            {isGerman
               ? 'Vielen Dank für Ihr Interesse! Wir werden uns bald bei Ihnen melden.'
               : 'Thank you for your interest! We will contact you soon.'
             }
           </p>
+
           <motion.div
-            className="text-sm"
+            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-start space-x-3">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                {isGerman
+                  ? 'Eine Bestätigungs-E-Mail wurde an Ihre E-Mail-Adresse gesendet. Bitte überprüfen Sie Ihr Postfach.'
+                  : 'A confirmation email has been sent to your email address. Please check your inbox.'
+                }
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.button
+            onClick={() => router.push('/auth/login')}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 0.6 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {isGerman ? 'Sie werden automatisch weitergeleitet...' : 'You will be redirected automatically...'}
-          </motion.div>
+            <span>{isGerman ? 'Zur Anmeldung' : 'Go to Login'}</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </motion.button>
         </motion.div>
       </div>
     );
