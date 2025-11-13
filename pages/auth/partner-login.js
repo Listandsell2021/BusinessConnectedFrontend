@@ -87,13 +87,45 @@ useEffect(() => {
       newErrors.selectedService = isGerman ? 'Service-Auswahl ist erforderlich' : 'Service selection is required';
     }
 
+    // Translate general error message
+    if (errors.general) {
+      const generalError = errors.general;
+
+      if (isGerman) {
+        // Translate to German
+        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials') {
+          newErrors.general = 'Ungültige Anmeldedaten';
+        } else if (generalError === 'Validation error' || generalError.toLowerCase().includes('validation error')) {
+          newErrors.general = 'Validierungsfehler';
+        } else if (generalError.toLowerCase().includes('login failed') || generalError.toLowerCase().includes('authentication failed')) {
+          newErrors.general = 'Anmeldung fehlgeschlagen';
+        } else if (generalError.includes('not registered for') || generalError.includes('Service not available')) {
+          // Keep service-specific errors as is (they're already translated in handleSubmit)
+          newErrors.general = errors.general;
+        } else {
+          newErrors.general = 'Ungültige Anmeldedaten';
+        }
+      } else {
+        // Translate to English
+        if (generalError.includes('Ungültige Anmeldedaten')) {
+          newErrors.general = 'Invalid credentials';
+        } else if (generalError.includes('Validierungsfehler')) {
+          newErrors.general = 'Validation error';
+        } else if (generalError.includes('Anmeldung fehlgeschlagen')) {
+          newErrors.general = 'Login failed';
+        } else if (generalError.includes('nicht für') || generalError.includes('Service nicht verfügbar')) {
+          // Keep service-specific errors as is
+          newErrors.general = errors.general;
+        } else {
+          newErrors.general = 'Invalid credentials';
+        }
+      }
+    }
+
     // Update errors only if there were existing errors for those fields
     const updatedErrors = {};
     Object.keys(errors).forEach(key => {
-      if (key === 'general') {
-        // Keep general error as is for now
-        updatedErrors[key] = errors[key];
-      } else if (newErrors[key]) {
+      if (newErrors[key]) {
         updatedErrors[key] = newErrors[key];
       }
     });
@@ -195,17 +227,29 @@ const handleSubmit = async (e) => {
     } else {
       // Use backend error message with language support
       let errorMessage = result?.error || result?.message;
-      
+
       // Check if backend provided German translation
       if (result?.messageDE && isGerman) {
         errorMessage = result.messageDE;
       }
-      
-      // If it's a generic login failure or no specific message, use translation
-      if (!errorMessage || errorMessage === 'Login failed' || errorMessage === 'Authentication failed') {
-        errorMessage = isGerman ? 'Anmeldung fehlgeschlagen' : 'Login failed';
+
+      // Translate common error messages to German
+      if (isGerman) {
+        // Comprehensive translation for all error message variations
+        if (!errorMessage) {
+          errorMessage = 'Anmeldung fehlgeschlagen';
+        } else if (errorMessage === 'Validation error' || errorMessage.toLowerCase().includes('validation error')) {
+          errorMessage = 'Validierungsfehler';
+        } else if (errorMessage.toLowerCase().includes('invalid')) {
+          errorMessage = 'Ungültige Anmeldedaten';
+        } else if (errorMessage.toLowerCase().includes('login failed') || errorMessage.toLowerCase().includes('authentication failed')) {
+          errorMessage = 'Anmeldung fehlgeschlagen';
+        } else {
+          // Default fallback for any unknown error
+          errorMessage = 'Ungültige Anmeldedaten';
+        }
       }
-      
+
       setErrors({ general: errorMessage });
       // Toast removed - error is shown in form
     }
@@ -752,24 +796,24 @@ const handleSubmit = async (e) => {
                 </div>
               </motion.div>
               
-              <motion.h3 
+              <motion.h3
                 className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                {isGerman ? 'Partner Dashboard' : 'Partner Dashboard'}
+                {isGerman ? 'Partner-Dashboard' : 'Partner Dashboard'}
               </motion.h3>
               
-              <motion.p 
-                className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" 
+              <motion.p
+                className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed"
                 style={{ color: 'var(--theme-muted)' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                {isGerman 
-                  ? 'Wählen Sie Ihren Service und verwalten Sie Ihre Leads professionell mit unserem CRM.'
+                {isGerman
+                  ? 'Wählen Sie Ihren Service und verwalten Sie Ihre Leads professionell mit unserem CRM-System.'
                   : 'Select your service and manage your leads professionally with our CRM system.'
                 }
               </motion.p>
@@ -784,13 +828,13 @@ const handleSubmit = async (e) => {
                   },
                   {
                     icon: '🔔',
-                    title: isGerman ? 'Live-Benachrichtigungen' : 'Live Notifications',
-                    desc: isGerman ? 'Sofortige Updates' : 'Instant updates'
+                    title: isGerman ? 'Echtzeit-Benachrichtigungen' : 'Live Notifications',
+                    desc: isGerman ? 'Sofortige Aktualisierungen' : 'Instant updates'
                   },
                   {
                     icon: '💰',
-                    title: isGerman ? 'Umsatz-Tracking' : 'Revenue Tracking',
-                    desc: isGerman ? 'Verdienste überwachen' : 'Monitor earnings'
+                    title: isGerman ? 'Umsatzverfolgung' : 'Revenue Tracking',
+                    desc: isGerman ? 'Einnahmen überwachen' : 'Monitor earnings'
                   }
                 ].map((feature, index) => (
                   <motion.div

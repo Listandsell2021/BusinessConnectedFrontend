@@ -12,17 +12,18 @@ export const useLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('en');
-
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('language');
-    if (savedLanguage && ['en', 'de'].includes(savedLanguage)) {
-      setLanguage(savedLanguage);
-    } else {
-      // Default to English for all users
-      setLanguage('en');
+  // Initialize language from localStorage synchronously to prevent flash
+  const getInitialLanguage = () => {
+    if (typeof window !== 'undefined') {
+      const savedLanguage = localStorage.getItem('language');
+      if (savedLanguage && ['en', 'de'].includes(savedLanguage)) {
+        return savedLanguage;
+      }
     }
-  }, []);
+    return 'en'; // Default to English
+  };
+
+  const [language, setLanguage] = useState(getInitialLanguage);
 
   const changeLanguage = (newLanguage) => {
     setLanguage(newLanguage);

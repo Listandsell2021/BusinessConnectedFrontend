@@ -31,6 +31,68 @@ useEffect(() => {
   }
 }, [loading, isAuthenticated, router]);
 
+// Update error messages when language changes
+useEffect(() => {
+  if (Object.keys(errors).length > 0) {
+    const newErrors = {};
+
+    // Re-validate form field errors
+    if (!formData.email) {
+      newErrors.email = isGerman ? 'E-Mail ist erforderlich' : 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = isGerman ? 'E-Mail ist ungültig' : 'Email is invalid';
+    }
+
+    if (!formData.password) {
+      newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
+    }
+
+    // Translate general error message
+    if (errors.general) {
+      const generalError = errors.general;
+
+      if (isGerman) {
+        // Translate to German
+        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials') {
+          newErrors.general = 'Ungültige Anmeldedaten';
+        } else if (generalError === 'Validation error' || generalError.toLowerCase().includes('validation error')) {
+          newErrors.general = 'Validierungsfehler';
+        } else if (generalError.toLowerCase().includes('login failed') || generalError.toLowerCase().includes('authentication failed')) {
+          newErrors.general = 'Anmeldung fehlgeschlagen';
+        } else if (generalError.toLowerCase().includes('unexpected error')) {
+          newErrors.general = 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+        } else {
+          newErrors.general = 'Ungültige Anmeldedaten';
+        }
+      } else {
+        // Translate to English
+        if (generalError.includes('Ungültige Anmeldedaten')) {
+          newErrors.general = 'Invalid credentials';
+        } else if (generalError.includes('Validierungsfehler')) {
+          newErrors.general = 'Validation error';
+        } else if (generalError.includes('Anmeldung fehlgeschlagen')) {
+          newErrors.general = 'Login failed';
+        } else if (generalError.includes('unerwarteter Fehler')) {
+          newErrors.general = 'An unexpected error occurred. Please try again.';
+        } else {
+          newErrors.general = 'Invalid credentials';
+        }
+      }
+    }
+
+    // Update errors
+    const updatedErrors = {};
+    Object.keys(errors).forEach(key => {
+      if (newErrors[key]) {
+        updatedErrors[key] = newErrors[key];
+      }
+    });
+
+    if (Object.keys(updatedErrors).length > 0) {
+      setErrors(updatedErrors);
+    }
+  }
+}, [isGerman, formData.email, formData.password, errors]);
 
   // // Additional useEffect to handle post-login redirect
   // useEffect(() => {
@@ -99,10 +161,40 @@ const handleSubmit = async (e) => {
       router.reload()
       router.replace("/dashboard");
     } else {
-      setErrors({ general: result?.error || 'Login failed. Please try again.' });
+      // Use backend error message with language support
+      let errorMessage = result?.error || result?.message;
+
+      // Check if backend provided German translation
+      if (result?.messageDE && isGerman) {
+        errorMessage = result.messageDE;
+      }
+
+      // Translate common error messages
+      if (isGerman) {
+        if (!errorMessage || errorMessage === 'Login failed' || errorMessage === 'Authentication failed') {
+          errorMessage = 'Anmeldung fehlgeschlagen';
+        } else if (errorMessage === 'Invalid credentials') {
+          errorMessage = 'Ungültige Anmeldedaten';
+        } else if (errorMessage === 'Validation error') {
+          errorMessage = 'Validierungsfehler';
+        } else if (errorMessage.includes('Invalid credentials')) {
+          errorMessage = errorMessage.replace('Invalid credentials', 'Ungültige Anmeldedaten');
+        } else if (errorMessage.includes('Validation error')) {
+          errorMessage = errorMessage.replace('Validation error', 'Validierungsfehler');
+        } else if (errorMessage.includes('Login failed')) {
+          errorMessage = 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.';
+        }
+      } else if (!errorMessage) {
+        errorMessage = 'Login failed. Please try again.';
+      }
+
+      setErrors({ general: errorMessage });
     }
   } catch (error) {
-    setErrors({ general: 'An unexpected error occurred. Please try again.' });
+    const errorMessage = isGerman
+      ? 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.'
+      : 'An unexpected error occurred. Please try again.';
+    setErrors({ general: errorMessage });
   } finally {
     setIsSubmitting(false);
   }
@@ -421,7 +513,7 @@ const handleSubmit = async (e) => {
                     transition={{ delay: 0.9 }}
                   >
                     <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                      Secure Admin Login
+                      {isGerman ? 'Sichere Admin-Anmeldung' : 'Secure Admin Login'}
                     </div>
                   </motion.div>
 
@@ -587,13 +679,13 @@ const handleSubmit = async (e) => {
                 </div>
               </motion.div>
               
-              <motion.h3 
+              <motion.h3
                 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                {isGerman ? 'CRM Dashboard' : 'CRM Dashboard'}
+                {isGerman ? 'CRM-Dashboard' : 'CRM Dashboard'}
               </motion.h3>
               
               <motion.p 
@@ -614,18 +706,18 @@ const handleSubmit = async (e) => {
                 {[
                   {
                     icon: '📊',
-                    title: isGerman ? 'Lead-Analytics' : 'Lead Analytics',
+                    title: isGerman ? 'Lead-Analytik' : 'Lead Analytics',
                     desc: isGerman ? 'Erweiterte Statistiken' : 'Advanced statistics'
                   },
                   {
                     icon: '🔔',
-                    title: isGerman ? 'Live-Updates' : 'Live Updates',
-                    desc: isGerman ? 'Echtzeitbenachrichtigungen' : 'Real-time notifications'
+                    title: isGerman ? 'Echtzeit-Updates' : 'Live Updates',
+                    desc: isGerman ? 'Sofortige Benachrichtigungen' : 'Real-time notifications'
                   },
                   {
                     icon: '💰',
-                    title: isGerman ? 'Revenue-Tracking' : 'Revenue Tracking',
-                    desc: isGerman ? 'Umsatz überwachen' : 'Monitor earnings'
+                    title: isGerman ? 'Umsatzverfolgung' : 'Revenue Tracking',
+                    desc: isGerman ? 'Einnahmen überwachen' : 'Monitor earnings'
                   }
                 ].map((feature, index) => (
                   <motion.div
