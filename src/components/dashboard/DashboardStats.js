@@ -5,7 +5,7 @@ import { useService } from '../../contexts/ServiceContext';
 import { dashboardAPI } from '../../lib/api/api';
 import Button from '../ui/Button';
 
-const DashboardStats = ({ className = "" }) => {
+const DashboardStats = ({ className = "", onNavigate }) => {
   const { isGerman } = useLanguage();
   const { currentService } = useService();
   const [stats, setStats] = useState(null);
@@ -129,7 +129,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.leads || 'neutral',
       icon: '🎯',
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      description: isGerman ? 'Diesen Monat' : 'This Month'
+      description: isGerman ? 'Diesen Monat' : 'This Month',
+      navigateTo: { tab: 'leads' }
     },
     {
       id: 'pending',
@@ -139,7 +140,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.pending || 'neutral',
       icon: '⏳',
       gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-      description: isGerman ? 'In Bearbeitung' : 'Processing'
+      description: isGerman ? 'In Bearbeitung' : 'Processing',
+      navigateTo: { tab: 'leads', filter: 'pending' }
     },
     {
       id: 'accepted',
@@ -149,7 +151,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.accepted || 'neutral',
       icon: '✅',
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      description: isGerman ? 'Bestätigt' : 'Confirmed'
+      description: isGerman ? 'Bestätigt' : 'Confirmed',
+      navigateTo: { tab: 'partners' }
     },
     {
       id: 'cancelled',
@@ -159,7 +162,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.cancelled || 'neutral',
       icon: '❌',
       gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-      description: isGerman ? 'Storniert' : 'Cancelled'
+      description: isGerman ? 'Storniert' : 'Cancelled',
+      navigateTo: { tab: 'leads', filter: 'cancelled' }
     }
   ];
 
@@ -173,7 +177,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.partners || 'neutral',
       icon: '🤝',
       gradient: 'linear-gradient(135deg, #56ccf2 0%, #2f80ed 100%)',
-      description: isGerman ? 'Registriert' : 'Registered'
+      description: isGerman ? 'Registriert' : 'Registered',
+      navigateTo: { tab: 'partners', filter: 'active' }
     },
     {
       id: 'revenue',
@@ -183,7 +188,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.revenue || 'neutral',
       icon: '💎',
       gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      description: isGerman ? 'Diesen Monat' : 'This Month'
+      description: isGerman ? 'Diesen Monat' : 'This Month',
+      navigateTo: { tab: 'income' }
     },
     {
       id: 'exclusive',
@@ -193,7 +199,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.exclusive || 'neutral',
       icon: '⭐',
       gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
-      description: isGerman ? 'Premium' : 'Premium'
+      description: isGerman ? 'Premium' : 'Premium',
+      navigateTo: { tab: 'partners', filter: 'exclusive' }
     },
     {
       id: 'basic',
@@ -203,7 +210,8 @@ const DashboardStats = ({ className = "" }) => {
       trend: stats.trends?.basic || 'neutral',
       icon: '🔧',
       gradient: 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)',
-      description: isGerman ? 'Standard' : 'Standard'
+      description: isGerman ? 'Standard' : 'Standard',
+      navigateTo: { tab: 'partners', filter: 'basic' }
     }
   ];
 
@@ -225,6 +233,11 @@ const DashboardStats = ({ className = "" }) => {
         transition: { duration: 0.2 }
       }}
       whileTap={{ scale: 0.95 }}
+      onClick={() => {
+        if (stat.navigateTo && onNavigate) {
+          onNavigate(stat.navigateTo);
+        }
+      }}
     >
       {/* Animated Background Pattern */}
       <motion.div

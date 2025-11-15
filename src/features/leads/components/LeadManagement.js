@@ -60,8 +60,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const [leadForDetails, setLeadForDetails] = useState(null);
   const [showLeadDetails, setShowLeadDetails] = useState(false);
   
+  // Initialize activeTab based on URL filter
+  const getInitialActiveTab = () => {
+    const urlFilter = router.query.filter;
+    return urlFilter === 'cancelled' ? 'cancelRequests' : 'leads';
+  };
+
   // Add activeTab state for leads and cancelled requests tabs
-  const [activeTab, setActiveTab] = useState('leads');
+  const [activeTab, setActiveTab] = useState(getInitialActiveTab());
   const [selectedCancelRequest, setSelectedCancelRequest] = useState(null);
   const [selectedRejectLead, setSelectedRejectLead] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -123,13 +129,27 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   
+  // Initialize filter states from URL query params
+  const getInitialFilters = () => {
+    const urlFilter = router.query.filter;
+    let initialStatus = 'all';
+
+    if (urlFilter === 'pending') {
+      initialStatus = 'pending';
+    } else if (urlFilter === 'accepted') {
+      initialStatus = 'accepted';
+    }
+
+    return {
+      status: initialStatus,
+      city: '',
+      partner: 'all',
+      searchTerm: ''
+    };
+  };
+
   // Filter states
-  const [filters, setFilters] = useState({
-    status: 'all',
-    city: '',
-    partner: 'all',
-    searchTerm: ''
-  });
+  const [filters, setFilters] = useState(getInitialFilters());
 
   // Date filter state
   const [dateFilter, setDateFilter] = useState({
@@ -147,6 +167,31 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     key: 'createdAt',
     direction: 'desc'
   });
+
+  // Handle URL filter parameters - run this BEFORE data loading
+  useEffect(() => {
+    if (router.query.filter) {
+      const urlFilter = router.query.filter;
+
+      // Map dashboard filter values to lead status values
+      if (urlFilter === 'pending') {
+        setActiveTab('leads'); // Make sure we're on leads tab
+        setFilters(prev => ({ ...prev, status: 'pending' }));
+        setCurrentPage(1); // Reset to page 1
+      } else if (urlFilter === 'accepted') {
+        setActiveTab('leads'); // Make sure we're on leads tab
+        setFilters(prev => ({ ...prev, status: 'accepted' }));
+        setCurrentPage(1); // Reset to page 1
+      } else if (urlFilter === 'cancelled') {
+        // For cancelled, switch to cancel requests tab
+        setActiveTab('cancelRequests');
+      }
+    } else if (router.query.tab === 'leads' && !router.query.filter) {
+      // If navigating to leads tab without filter, reset to 'all'
+      setActiveTab('leads');
+      setFilters(prev => ({ ...prev, status: 'all' }));
+    }
+  }, [router.query.filter, router.query.tab]);
 
   // Filter partners based on selected tab and search query
   const filteredPartners = useMemo(() => {
@@ -1491,16 +1536,25 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
   };
 
+  // Initial data load
   useEffect(() => {
-    // Use initial data first, then load fresh data
-    if (initialLeads.length > 0) {
+    // Use initial data on first mount only
+    if (initialLeads.length > 0 && leads.length === 0) {
       setLeads(initialLeads);
-    } else {
-      loadLeads();
     }
-    // Load partners for filtering
+  }, [initialLeads]);
+
+  // Load partners for filtering on service change
+  useEffect(() => {
     loadPartnersForFilter();
   }, [currentService]);
+
+  // Load leads when filters or service changes - but NOT when on cancelRequests tab
+  useEffect(() => {
+    if (activeTab === 'leads') {
+      loadLeads();
+    }
+  }, [currentService, filters.status, filters.city, filters.partner, filters.searchTerm, dateFilter.type, activeTab]);
 
   // Load partners for filter dropdown
   const loadPartnersForFilter = async () => {
@@ -1637,20 +1691,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 requestStatus = 'pending';
               }
 
-              // Apply status filter
-              if (filters.status !== 'all') {
-                // Map dropdown filter values to internal status values
-                let filterValueToMatch = filters.status;
-                if (filters.status === 'cancel_request_approved') {
-                  filterValueToMatch = 'cancellation_approved';
-                } else if (filters.status === 'cancel_request_rejected') {
-                  filterValueToMatch = 'cancellation_rejected';
-                }
-
-                if (filterValueToMatch !== requestStatus) {
-                  return; // Skip this request if it doesn't match the status filter
-                }
-              }
+              // Skip applying lead status filter to cancellation requests
+              // Cancellation requests have their own status (pending/approved/rejected)
+              // which is separate from lead status (pending/assigned/accepted/etc)
+              // The filters.status is meant for filtering leads, not cancellation requests
 
               // Apply city filter
               if (filters.city && filters.city !== 'all') {
@@ -1952,7 +1996,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Load cancelled requests when activeTab changes to 'cancelled' or filters change
   useEffect(() => {
     console.log('Cancelled requests useEffect - currentService:', currentService, 'activeTab:', activeTab);
-    if (activeTab === 'cancelled') {
+    if (activeTab === 'cancelRequests') {
       loadCancelledRequests();
     }
   }, [activeTab, currentService, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, cancelledCurrentPage, filters.status, filters.city, filters.partner, filters.searchTerm]);

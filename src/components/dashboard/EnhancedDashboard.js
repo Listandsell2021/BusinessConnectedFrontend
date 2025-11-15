@@ -8,7 +8,7 @@ import RevenueChart from './RevenueChart';
 import LeadsPieChart from './LeadsPieChart';
 import PartnerPerformance from './PartnerPerformance';
 
-const EnhancedDashboard = () => {
+const EnhancedDashboard = ({ onNavigate }) => {
   const { isGerman } = useLanguage();
   const { user, isSuperAdmin } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
@@ -157,7 +157,7 @@ const EnhancedDashboard = () => {
       </motion.div>
 
       {/* KPI Stats */}
-      <DashboardStats className="mb-8" />
+      <DashboardStats className="mb-8" onNavigate={onNavigate} />
 
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">

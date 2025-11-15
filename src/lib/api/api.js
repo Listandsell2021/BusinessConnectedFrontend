@@ -195,7 +195,7 @@ export const partnersAPI = {
 
 export const dashboardAPI = {
   getStats: (service) => api.get('/dashboard/stats', { params: { service } }),
-  getSuperadminData: (serviceType) => api.get('/dashboard/superadmin', { params: { serviceType } }),
+  getSuperadminData: (serviceType, timePeriod = 'month', selectedMonth = null, selectedYear = null, weekStart = null) => api.get('/dashboard/superadmin', { params: { serviceType, timePeriod, selectedMonth, selectedYear, weekStart } }),
   getPartnerData: (partnerId) => api.get(`/dashboard/partner/${partnerId}`),
   getOverview: () => api.get('/dashboard/overview'),
   getCharts: (role) => api.get(`/dashboard/charts/${role}`),

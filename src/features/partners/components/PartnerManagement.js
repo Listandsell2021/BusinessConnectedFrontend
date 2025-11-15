@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/router';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useService } from '../../../contexts/ServiceContext';
@@ -13,6 +14,7 @@ import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
 import { API_BASE_URL } from '../../../lib/config';
 
 const PartnerManagement = ({ initialPartners = [] }) => {
+  const router = useRouter();
   const { currentService, setHideServiceFilter } = useService();
   const { t, isGerman } = useLanguage();
   const { user, isSuperAdmin } = useAuth();
@@ -39,13 +41,30 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   
+  // Initialize filter states from URL query params
+  const getInitialFilters = () => {
+    const urlFilter = router.query.filter;
+    let initialType = 'all';
+    let initialStatus = 'all';
+
+    if (urlFilter === 'active') {
+      initialStatus = 'active';
+    } else if (urlFilter === 'exclusive') {
+      initialType = 'exclusive';
+    } else if (urlFilter === 'basic') {
+      initialType = 'basic';
+    }
+
+    return {
+      type: initialType,
+      status: initialStatus,
+      city: '',
+      searchTerm: ''
+    };
+  };
+
   // Filter states
-  const [filters, setFilters] = useState({
-    type: 'all',
-    status: 'all',
-    city: '',
-    searchTerm: ''
-  });
+  const [filters, setFilters] = useState(getInitialFilters());
 
   // Date filter state (for registered date)
   const [dateFilter, setDateFilter] = useState({
@@ -63,6 +82,22 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     key: 'registeredAt',
     direction: 'desc'
   });
+
+  // Handle URL filter parameters
+  useEffect(() => {
+    if (router.query.filter) {
+      const urlFilter = router.query.filter;
+
+      // Map dashboard filter values to partner filter values
+      if (urlFilter === 'active') {
+        setFilters(prev => ({ ...prev, status: 'active' }));
+      } else if (urlFilter === 'exclusive') {
+        setFilters(prev => ({ ...prev, type: 'exclusive', status: 'all' }));
+      } else if (urlFilter === 'basic') {
+        setFilters(prev => ({ ...prev, type: 'basic', status: 'all' }));
+      }
+    }
+  }, [router.query.filter]);
 
   // Confirmation dialog states
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);

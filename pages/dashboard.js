@@ -735,10 +735,20 @@ export default function Dashboard({ initialData = {} }) {
     return icons[type] || '📋';
   };
 
+  const handleCardNavigation = (navigateData) => {
+    const { tab, filter } = navigateData;
+
+    // Build query params if filter is provided
+    const queryParams = filter ? `?filter=${filter}` : '';
+
+    // Navigate to the tab with optional filter
+    router.push(`/dashboard?tab=${tab}${filter ? `&filter=${filter}` : ''}`, undefined, { shallow: true });
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return isSuperAdmin ? <EnhancedDashboard /> : (
+        return isSuperAdmin ? <EnhancedDashboard onNavigate={handleCardNavigation} /> : (
           <motion.div
             key="overview"
             initial={{ opacity: 0, y: 20 }}

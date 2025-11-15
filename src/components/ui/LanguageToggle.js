@@ -5,14 +5,23 @@ const LanguageToggle = () => {
   const { language, changeLanguage, isGerman } = useLanguage();
 
   return (
-    <div className="flex items-center space-x-1 bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-1 border border-gray-200/20">
+    <div
+      className="flex items-center space-x-1 backdrop-blur-sm rounded-lg p-1 border-2"
+      style={{
+        backgroundColor: 'var(--theme-bg-secondary)',
+        borderColor: 'var(--theme-border)'
+      }}
+    >
       <button
         onClick={() => changeLanguage('de')}
         className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md transition-all duration-200 ${
           isGerman
             ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-105'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+            : 'hover:opacity-80'
         }`}
+        style={{
+          color: isGerman ? undefined : 'var(--theme-text)'
+        }}
         title="Deutsch"
       >
         {/* German Flag */}
@@ -29,8 +38,11 @@ const LanguageToggle = () => {
         className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md transition-all duration-200 ${
           !isGerman
             ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-105'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+            : 'hover:opacity-80'
         }`}
+        style={{
+          color: !isGerman ? undefined : 'var(--theme-text)'
+        }}
         title="English (UK)"
       >
         {/* UK Flag */}
