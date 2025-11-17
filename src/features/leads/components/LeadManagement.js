@@ -985,6 +985,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       console.log('Assignment response:', response.data); // Debug log
 
       if (response.data.success) {
+        // Dismiss any previous error toasts before showing success
+        toast.dismiss();
+
         // Show success message
         toast.success(isGerman ? 'Lead erfolgreich zugewiesen' : 'Lead assigned successfully');
 
@@ -3079,11 +3082,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               placeholder={isGerman ? 'Suche nach ID, Name, E-Mail...' : 'Search by ID, name, email...'}
               value={filters.searchTerm}
               onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border theme-input"
               style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)',
                 minWidth: '100%',
                 height: '42px'
               }}
@@ -3098,11 +3098,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 console.log('Status filter changed to:', e.target.value);
                 setFilters(prev => ({ ...prev, status: e.target.value }));
               }}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border theme-input"
               style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)',
                 minWidth: '100%',
                 height: '42px'
               }}
@@ -3146,11 +3143,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               }
               value={filters.city}
               onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border theme-input"
               style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)',
                 minWidth: '100%',
                 height: '42px'
               }}
@@ -3163,11 +3157,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             <select
               value={dateFilter.type}
               onChange={(e) => setDateFilter(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border theme-input"
               style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)',
                 minWidth: '100%',
                 height: '42px'
               }}
@@ -4503,8 +4494,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             className={`px-6 py-3 font-medium transition-colors ${
                               partnerFilter === 'basic'
                                 ? 'border-b-2 border-blue-500 text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                                : 'hover:opacity-80'
                             }`}
+                            style={partnerFilter !== 'basic' ? { color: 'var(--theme-text)', opacity: 0.6 } : {}}
                           >
                             {isGerman ? 'Basis' : 'Basic'} ({partnerTabs.basic.count})
                           </button>
@@ -4513,8 +4505,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             className={`px-6 py-3 font-medium transition-colors ${
                               partnerFilter === 'exclusive'
                                 ? 'border-b-2 border-blue-500 text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                                : 'hover:opacity-80'
                             }`}
+                            style={partnerFilter !== 'exclusive' ? { color: 'var(--theme-text)', opacity: 0.6 } : {}}
                           >
                             {isGerman ? 'Exklusiv' : 'Exclusive'} ({partnerTabs.exclusive.count})
                           </button>
@@ -4731,7 +4724,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                     ? `${partner.contactPerson.firstName} ${partner.contactPerson.lastName}`
                                     : 'Contact not provided'}
                                 </div>
-                                <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+                                <div className="text-xs" style={{ color: 'var(--theme-text)', opacity: 0.8 }}>
                                   {partner.contactPerson?.email || 'Email not provided'}
                                 </div>
                               </div>
@@ -4788,16 +4781,16 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                     return finalValue;
                                   })()}
                                 </div>
-                                <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+                                <div className="text-xs" style={{ color: 'var(--theme-text)', opacity: 0.7 }}>
                                   {isAtCapacity ? 'At Capacity' : 'Weekly'}
                                 </div>
                               </div>
-                              <div className="w-px h-6 bg-gray-200"></div>
+                              <div className="w-px h-6" style={{ backgroundColor: 'var(--theme-border)' }}></div>
                               <div className="text-center">
                                 <div className="font-bold text-sm" style={{ color: 'var(--theme-text)' }}>
                                   {partner.acceptanceRate || 0}%
                                 </div>
-                                <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Accept</div>
+                                <div className="text-xs" style={{ color: 'var(--theme-text)', opacity: 0.7 }}>Accept</div>
                               </div>
                             </div>
                           </div>
@@ -4840,9 +4833,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     disabled={selectedPartners.length === 0 || assigningLead}
                     className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                       selectedPartners.length === 0 || assigningLead
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
+                        ? 'cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
+                    style={selectedPartners.length === 0 || assigningLead ? {
+                      backgroundColor: 'var(--theme-bg)',
+                      color: 'var(--theme-text)',
+                      opacity: 0.5,
+                      border: '1px solid var(--theme-border)'
+                    } : {}}
                   >
                     {assigningLead ? (
                       <span className="flex items-center gap-2">

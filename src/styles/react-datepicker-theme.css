@@ -13,9 +13,14 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid var(--theme-border);
-  background-color: var(--theme-input-bg);
-  color: var(--theme-text);
+  background-color: var(--theme-input-bg) !important;
+  color: var(--theme-text) !important;
   font-size: 0.875rem;
+}
+
+.react-datepicker__input-container input::placeholder {
+  color: var(--theme-muted) !important;
+  opacity: 1 !important;
 }
 
 .react-datepicker__input-container input:focus {

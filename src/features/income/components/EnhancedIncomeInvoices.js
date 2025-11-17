@@ -1480,12 +1480,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
             placeholder={isGerman ? 'Partner ID, Firmenname oder E-Mail suchen...' : 'Search Partner ID, Company Name or Email...'}
             value={filters.search}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           />
         </div>
 
@@ -1495,12 +1490,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
           <select
             value={filters.month || ''}
             onChange={(e) => setFilters(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           >
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
@@ -1515,12 +1505,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
           <select
             value={filters.year}
             onChange={(e) => setFilters(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           >
             {Array.from({ length: 5 }, (_, i) => {
               const year = new Date().getFullYear() - 2 + i;
@@ -1538,12 +1523,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
           <select
             value={filters.invoiceStatus}
             onChange={(e) => setFilters(prev => ({ ...prev, invoiceStatus: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           >
             <option value="all">{isGerman ? 'Alle Status' : 'All Status'}</option>
             <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>

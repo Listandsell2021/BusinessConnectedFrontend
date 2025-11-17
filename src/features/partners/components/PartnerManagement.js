@@ -1839,12 +1839,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             placeholder={t('partners.searchPartners')}
             value={filters.searchTerm}
             onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           />
         </div>
 
@@ -1853,12 +1848,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           <select
             value={filters.type}
             onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           >
             <option value="all">{t('partners.allTypes')}</option>
             <option value="exclusive">{t('partners.exclusive')}</option>
@@ -1871,12 +1861,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           <select
             value={filters.status}
             onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           >
             <option value="all">{t('partners.allStatus')}</option>
             <option value="active">{t('partners.active')}</option>
@@ -1893,12 +1878,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             placeholder={t('partners.cityPlaceholder')}
             value={filters.city}
             onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: 'var(--theme-input-bg)',
-              borderColor: 'var(--theme-border)',
-              color: 'var(--theme-text)'
-            }}
+            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
           />
         </div>
 
@@ -1908,12 +1888,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <select
               value={dateFilter.type}
               onChange={(e) => setDateFilter(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{
-                backgroundColor: 'var(--theme-input-bg)',
-                borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
-              }}
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
             >
               <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
               <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
