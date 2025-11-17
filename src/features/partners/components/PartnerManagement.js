@@ -596,6 +596,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     return labels[type] || (isGerman ? 'Standard' : 'Basic');
   };
 
+  const getServiceLabel = (serviceName) => {
+    const labels = {
+      'Moving Services': isGerman ? 'Umzugsservice' : 'Moving Services',
+      'Cleaning Services': isGerman ? 'Reinigungsservice' : 'Cleaning Services',
+      'moving': isGerman ? 'Umzugsservice' : 'Moving Services',
+      'cleaning': isGerman ? 'Reinigungsservice' : 'Cleaning Services'
+    };
+    return labels[serviceName] || serviceName;
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       active: 'bg-green-100 text-green-800',
@@ -1817,10 +1827,21 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         <div className="flex items-center space-x-4">
           <button
             onClick={handleBackToTable}
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            style={{ color: 'var(--theme-text)' }}
+            className="px-4 py-2 rounded-lg transition-colors font-medium"
+            style={{
+              color: 'var(--theme-text)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+              e.target.style.color = '#3B82F6';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+              e.target.style.color = 'var(--theme-text)';
+            }}
           >
-            ← {t('common.back')}
+            ← {isGerman ? 'Zurück' : 'Back'}
           </button>
           <div className="flex items-center space-x-3">
             <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
@@ -3916,7 +3937,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             ? (isGerman ? 'Service-Typ auswählen' : 'Select service type')
                             : (() => {
                                 const selectedService = servicesData.find(s => s.id === partnerFormData.serviceType);
-                                return selectedService ? selectedService.name : partnerFormData.serviceType;
+                                return selectedService ? getServiceLabel(selectedService.name) : getServiceLabel(partnerFormData.serviceType);
                               })()
                           }
                         </span>
@@ -3947,7 +3968,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                   <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
-                                )} {service.name}
+                                )} {getServiceLabel(service.name)}
                               </span>
                             </label>
                           )) : (

@@ -134,47 +134,238 @@ const LogsModule = () => {
       const transformedLogs = rawLogsData.map(log => {
         // Enhanced action description for better readability
         const getActionDescription = (action, message, actor, leadId, partnerInfo) => {
-          const actorName = actor?.name || actor?.email || 'Unknown';
-          const partnerName = partnerInfo?.companyName || 'Unknown Partner';
-          const leadIdDisplay = leadId?.leadId || leadId || 'Unknown Lead';
+          const actorName = actor?.name || actor?.email || (isGerman ? 'Unbekannt' : 'Unknown');
+          const partnerName = partnerInfo?.companyName || (isGerman ? 'Unbekannter Partner' : 'Unknown Partner');
+          const leadIdDisplay = leadId?.leadId || leadId || (isGerman ? 'Unbekannter Lead' : 'Unknown Lead');
 
-          // Use the message directly if available, otherwise generate description
-          if (message) {
-            return message;
-          }
-
+          // Always generate description based on current language preference
+          // This ensures proper localization regardless of what's stored in DB
           switch (action) {
             case 'lead_created':
-              return `${actorName} created lead ${leadIdDisplay}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} erstellt von ${actorName}`
+                : `${actorName} created lead ${leadIdDisplay}`;
             case 'lead_assigned':
-              return `${actorName} assigned lead ${leadIdDisplay} to ${partnerName}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} zugewiesen an ${partnerName} von ${actorName}`
+                : `${actorName} assigned lead ${leadIdDisplay} to ${partnerName}`;
             case 'lead_reassigned':
-              return `${actorName} reassigned lead ${leadIdDisplay} to ${partnerName}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} neu zugewiesen an ${partnerName} von ${actorName}`
+                : `${actorName} reassigned lead ${leadIdDisplay} to ${partnerName}`;
             case 'lead_accepted':
-              return `${partnerName} accepted lead ${leadIdDisplay}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} akzeptiert von ${partnerName}`
+                : `${partnerName} accepted lead ${leadIdDisplay}`;
             case 'lead_rejected':
-              return `${partnerName} rejected lead ${leadIdDisplay}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} abgelehnt von ${partnerName}`
+                : `${partnerName} rejected lead ${leadIdDisplay}`;
             case 'lead_cancelled':
-              return `${actorName} cancelled lead ${leadIdDisplay}`;
+              return isGerman
+                ? `Lead ${leadIdDisplay} storniert von ${actorName}`
+                : `${actorName} cancelled lead ${leadIdDisplay}`;
             case 'cancellation_requested':
-              return `${actorName} requested cancellation for lead ${leadIdDisplay}`;
+              return isGerman
+                ? `Stornierung beantragt für Lead ${leadIdDisplay} von ${actorName}`
+                : `${actorName} requested cancellation for lead ${leadIdDisplay}`;
             case 'partner_registration':
-              return `${partnerName} registered for service`;
+              return isGerman
+                ? `${partnerName} hat sich für Service registriert`
+                : `${partnerName} registered for service`;
+            case 'partner_created':
+              return isGerman
+                ? `Partner erstellt von ${actorName}: ${partnerName}`
+                : `Partner created by ${actorName}: ${partnerName}`;
             case 'partner_approved':
-              return `${actorName} approved partner ${partnerName}`;
+              return isGerman
+                ? `Partner ${partnerName} genehmigt von ${actorName}`
+                : `${actorName} approved partner ${partnerName}`;
             case 'partner_rejected':
-              return `${actorName} rejected partner ${partnerName}`;
+              return isGerman
+                ? `Partner ${partnerName} abgelehnt von ${actorName}`
+                : `${actorName} rejected partner ${partnerName}`;
             case 'partner_suspended':
-              return `${actorName} suspended partner ${partnerName}`;
+              return isGerman
+                ? `Partner ${partnerName} gesperrt von ${actorName}`
+                : `${actorName} suspended partner ${partnerName}`;
             case 'partner_updated':
-              return `${partnerName} updated profile`;
+              return isGerman
+                ? `${partnerName} hat Profil aktualisiert`
+                : `${partnerName} updated profile`;
+            case 'partner_type_updated':
+              return isGerman
+                ? `Partner-Typ geändert von ${actorName}: ${partnerName}`
+                : `Partner type changed by ${actorName}: ${partnerName}`;
             case 'email_sent':
-              return `Email sent successfully`;
+              return isGerman
+                ? `E-Mail erfolgreich gesendet`
+                : `Email sent successfully`;
             case 'email_failed':
-              return `Email delivery failed`;
+              return isGerman
+                ? `E-Mail-Zustellung fehlgeschlagen`
+                : `Email delivery failed`;
             case 'settings_updated':
-              return `${actorName} updated settings`;
+              return isGerman
+                ? `Einstellungen aktualisiert von ${actorName}`
+                : `${actorName} updated settings`;
+            case 'partner_reactivated':
+              return isGerman
+                ? `Partner ${partnerName} reaktiviert von ${actorName}`
+                : `${actorName} reactivated partner ${partnerName}`;
+            case 'partner_suspend_cancel':
+              return isGerman
+                ? `Sperrung aufgehoben für Partner: ${partnerName}`
+                : `Suspension cancelled for partner: ${partnerName}`;
+            case 'partner_status_updated':
+              return isGerman
+                ? `Partner-Status geändert von ${actorName}: ${partnerName}`
+                : `Partner status changed by ${actorName}: ${partnerName}`;
+            case 'partner_service_status_updated':
+              return isGerman
+                ? `Service-Status aktualisiert für ${partnerName}`
+                : `Service status updated for ${partnerName}`;
+            case 'partner_service_approved':
+              return isGerman
+                ? `Service genehmigt für ${partnerName}`
+                : `Service approved for ${partnerName}`;
+            case 'partner_service_rejected':
+              return isGerman
+                ? `Service abgelehnt für ${partnerName}`
+                : `Service rejected for ${partnerName}`;
+            case 'partner_deleted':
+              return isGerman
+                ? `Partner ${partnerName} gelöscht von ${actorName}`
+                : `Partner ${partnerName} deleted by ${actorName}`;
+            case 'partner_dashboard_accessed':
+              return isGerman
+                ? `${partnerName} hat Dashboard aufgerufen`
+                : `${partnerName} accessed dashboard`;
+            case 'partner_lead_viewed':
+              return isGerman
+                ? `${partnerName} hat Lead ${leadIdDisplay} angesehen`
+                : `${partnerName} viewed lead ${leadIdDisplay}`;
+            case 'partner_lead_contacted':
+              return isGerman
+                ? `${partnerName} hat Lead ${leadIdDisplay} kontaktiert`
+                : `${partnerName} contacted lead ${leadIdDisplay}`;
+            case 'partner_invoice_downloaded':
+              return isGerman
+                ? `${partnerName} hat Rechnung heruntergeladen`
+                : `${partnerName} downloaded invoice`;
+            case 'user_created':
+              return isGerman
+                ? `Benutzer erstellt von ${actorName}`
+                : `User created by ${actorName}`;
+            case 'user_updated':
+              return isGerman
+                ? `Benutzer aktualisiert von ${actorName}`
+                : `User updated by ${actorName}`;
+            case 'user_deleted':
+              return isGerman
+                ? `Benutzer gelöscht von ${actorName}`
+                : `User deleted by ${actorName}`;
+            case 'user_role_changed':
+              return isGerman
+                ? `Benutzerrolle geändert von ${actorName}`
+                : `User role changed by ${actorName}`;
+            case 'login_success':
+              return isGerman
+                ? `${actorName} hat sich erfolgreich angemeldet`
+                : `${actorName} logged in successfully`;
+            case 'login_failed':
+              return isGerman
+                ? `Fehlgeschlagener Anmeldeversuch für ${actorName}`
+                : `Failed login attempt for ${actorName}`;
+            case 'logout':
+              return isGerman
+                ? `${actorName} hat sich abgemeldet`
+                : `${actorName} logged out`;
+            case 'password_reset':
+              return isGerman
+                ? `Passwort zurückgesetzt für ${actorName}`
+                : `Password reset for ${actorName}`;
+            case 'password_reset_request':
+              return isGerman
+                ? `Passwort-Reset beantragt von ${actorName}`
+                : `Password reset requested by ${actorName}`;
+            case 'invoice_generated':
+              return isGerman
+                ? `Rechnung erstellt für ${partnerName}`
+                : `Invoice generated for ${partnerName}`;
+            case 'invoice_sent':
+              return isGerman
+                ? `Rechnung gesendet an ${partnerName}`
+                : `Invoice sent to ${partnerName}`;
+            case 'data_exported':
+              return isGerman
+                ? `Daten exportiert von ${actorName}`
+                : `Data exported by ${actorName}`;
+            case 'system_settings_updated':
+              return isGerman
+                ? `Systemeinstellungen aktualisiert von ${actorName}`
+                : `System settings updated by ${actorName}`;
+            case 'service_config_updated':
+              return isGerman
+                ? `Service-Konfiguration aktualisiert von ${actorName}`
+                : `Service configuration updated by ${actorName}`;
+            case 'webhook_received':
+              return isGerman
+                ? `Webhook empfangen`
+                : `Webhook received`;
+            case 'webhook_failed':
+              return isGerman
+                ? `Webhook-Verarbeitung fehlgeschlagen`
+                : `Webhook processing failed`;
+            case 'scheduled_job':
+              return isGerman
+                ? `Geplanter Job ausgeführt`
+                : `Scheduled job executed`;
+            case 'security_alert':
+              return isGerman
+                ? `Sicherheitswarnung`
+                : `Security alert`;
+            case 'suspicious_activity_detected':
+              return isGerman
+                ? `Verdächtige Aktivität erkannt`
+                : `Suspicious activity detected`;
+            case 'rate_limit_exceeded':
+              return isGerman
+                ? `Rate-Limit überschritten`
+                : `Rate limit exceeded`;
+            case 'database_cleanup':
+              return isGerman
+                ? `Datenbank-Bereinigung abgeschlossen`
+                : `Database cleanup completed`;
+            case 'system_backup_created':
+              return isGerman
+                ? `System-Backup erstellt`
+                : `System backup created`;
             default:
+              // Generate a basic German translation for unknown actions
+              if (isGerman) {
+                const germanWords = {
+                  'lead': 'Lead',
+                  'partner': 'Partner',
+                  'user': 'Benutzer',
+                  'created': 'erstellt',
+                  'updated': 'aktualisiert',
+                  'deleted': 'gelöscht',
+                  'approved': 'genehmigt',
+                  'rejected': 'abgelehnt',
+                  'assigned': 'zugewiesen',
+                  'cancelled': 'storniert',
+                  'sent': 'gesendet',
+                  'failed': 'fehlgeschlagen',
+                  'settings': 'Einstellungen',
+                  'system': 'System',
+                  'service': 'Service',
+                  'status': 'Status',
+                  'type': 'Typ'
+                };
+
+                return action.split('_').map(word => germanWords[word] || word).join(' ');
+              }
               return action.replace(/_/g, ' ').toLowerCase();
           }
         };
@@ -192,8 +383,17 @@ const LogsModule = () => {
           partnerId: log.partnerId?._id || log.partnerId,
           partnerName: log.partnerId?.companyName,
           partnerEmail: log.partnerId?.contactPerson?.email,
-          details: getActionDescription(log.action, log.message, log.actor, log.leadId, log.partnerId),
+          // Always generate description based on current language (for proper translations)
+          // If DB has the message in the selected language, use it; otherwise generate
+          details: isGerman
+            ? (log.message_de && log.message_de.trim() !== '')
+              ? log.message_de
+              : getActionDescription(log.action, null, log.actor, log.leadId, log.partnerId)
+            : (log.message && log.message.trim() !== '')
+              ? log.message
+              : getActionDescription(log.action, null, log.actor, log.leadId, log.partnerId),
           originalMessage: log.message,
+          originalMessage_de: log.message_de,
           fullData: log.details,
           sourceDomain: log.metadata?.domain,
           ipAddress: log.metadata?.ipAddress,
@@ -292,12 +492,12 @@ const LogsModule = () => {
     }
   }, [currentService]);
 
-  // Reload logs when filters, pagination, or active tab change
+  // Reload logs when filters, pagination, active tab, or language change
   useEffect(() => {
     if (currentService) {
       loadLogs();
     }
-  }, [currentPage, filters.actorType, filters.action, filters.dateRange, activeTab]);
+  }, [currentPage, filters.actorType, filters.action, filters.dateRange, activeTab, isGerman]);
 
   // Export functionality removed per user request
 
@@ -351,17 +551,67 @@ const LogsModule = () => {
 
   const getActionColor = (action) => {
     const colors = {
-      'lead_created': 'text-green-600',
-      'lead_assigned': 'text-blue-600',
-      'lead_accepted': 'text-green-600',
-      'lead_cancelled': 'text-red-600',
-      'email_sent': 'text-blue-600',
-      'email_failed': 'text-red-600',
-      'partner_approved': 'text-green-600',
-      'settings_updated': 'text-yellow-600',
-      'data_exported': 'text-purple-600'
+      'lead_created': 'text-green-500',
+      'lead_assigned': 'text-blue-500',
+      'lead_accepted': 'text-emerald-500',
+      'lead_rejected': 'text-red-500',
+      'lead_cancelled': 'text-red-500',
+      'cancellation_requested': 'text-orange-500',
+      'partner_created': 'text-green-500',
+      'partner_approved': 'text-green-500',
+      'partner_rejected': 'text-red-500',
+      'partner_type_updated': 'text-purple-500',
+      'partner_updated': 'text-purple-500',
+      'email_sent': 'text-blue-500',
+      'email_failed': 'text-red-500',
+      'settings_updated': 'text-yellow-500',
+      'data_exported': 'text-purple-500'
     };
-    return colors[action] || 'text-gray-600';
+    return colors[action] || 'text-gray-400';
+  };
+
+  const getRoleLabel = (role) => {
+    if (!isGerman) return role;
+
+    const labels = {
+      'superadmin': 'Administrator',
+      'admin': 'Administrator',
+      'partner': 'Partner',
+      'user': 'Benutzer',
+      'system': 'System'
+    };
+    return labels[role] || role;
+  };
+
+  const getActionLabel = (action) => {
+    if (!isGerman) {
+      return action.replace(/_/g, ' ').toUpperCase();
+    }
+
+    const labels = {
+      'lead_created': 'LEAD ERSTELLT',
+      'lead_assigned': 'LEAD ZUGEWIESEN',
+      'lead_reassigned': 'LEAD NEU ZUGEWIESEN',
+      'lead_accepted': 'LEAD AKZEPTIERT',
+      'lead_rejected': 'LEAD ABGELEHNT',
+      'lead_cancelled': 'LEAD STORNIERT',
+      'cancellation_requested': 'STORNIERUNG BEANTRAGT',
+      'partner_registration': 'PARTNER REGISTRIERUNG',
+      'partner_created': 'PARTNER ERSTELLT',
+      'partner_approved': 'PARTNER GENEHMIGT',
+      'partner_rejected': 'PARTNER ABGELEHNT',
+      'partner_suspended': 'PARTNER GESPERRT',
+      'partner_updated': 'PARTNER AKTUALISIERT',
+      'partner_type_updated': 'PARTNER TYP GEÄNDERT',
+      'partner_status_updated': 'PARTNER STATUS GEÄNDERT',
+      'partner_service_status_updated': 'SERVICE STATUS GEÄNDERT',
+      'email_sent': 'E-MAIL GESENDET',
+      'email_failed': 'E-MAIL FEHLGESCHLAGEN',
+      'settings_updated': 'EINSTELLUNGEN AKTUALISIERT',
+      'data_exported': 'DATEN EXPORTIERT',
+      'password_reset': 'PASSWORT ZURÜCKGESETZT'
+    };
+    return labels[action] || action.replace(/_/g, ' ').toUpperCase();
   };
 
   // Export functionality removed per user request
@@ -871,7 +1121,7 @@ const LogsModule = () => {
                         <div className="flex items-center">
                           <span className="mr-1">{getRoleIcon(log.role)}</span>
                           <span className="text-xs font-medium" style={{ color: 'var(--theme-text)' }}>
-                            {log.role}
+                            {getRoleLabel(log.role)}
                           </span>
                         </div>
                         <span className="text-xs opacity-70 truncate max-w-32" title={log.userEmail}>
@@ -884,7 +1134,7 @@ const LogsModule = () => {
                   {/* Action */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`text-xs font-medium px-2 py-1 rounded ${getActionColor(log.action)}`}>
-                      {log.action.replace(/_/g, ' ').toUpperCase()}
+                      {getActionLabel(log.action)}
                     </span>
                   </td>
 
@@ -946,11 +1196,20 @@ const LogsModule = () => {
                         setSelectedLog(log);
                         setShowLogModal(true);
                       }}
-                      className="text-gray-600 hover:text-gray-900 text-xs px-2 py-1 rounded transition-colors"
-                      style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
+                      className="text-xs px-3 py-1.5 rounded transition-colors font-medium"
+                      style={{
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        color: '#3B82F6'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                      }}
                       title={isGerman ? 'Details anzeigen' : 'View Details'}
                     >
-                      👁️ {isGerman ? 'Details' : 'View'}
+                      👁️ {isGerman ? 'Anzeigen' : 'View'}
                     </button>
                   </td>
                 </motion.tr>
@@ -1056,7 +1315,7 @@ const LogsModule = () => {
                         <div className="flex items-center mt-1">
                           <span className="mr-2">{getRoleIcon(selectedLog.role)}</span>
                           <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                            {selectedLog.role}
+                            {getRoleLabel(selectedLog.role)}
                           </span>
                         </div>
                       </div>
