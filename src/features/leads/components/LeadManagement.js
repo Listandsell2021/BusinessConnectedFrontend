@@ -3277,17 +3277,53 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         <div className="flex flex-wrap gap-4 mt-6">
         {(isPartner ? [
           // Partner-specific stats
-          { label: t('leads.totalLeads'), value: leadStats.total, icon: '📋', color: 'blue' },
-          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: '⏳', color: 'yellow' },
-          { label: translateStatus('accepted'), value: leadStats.accepted || 0, icon: '✅', color: 'green' },
-          { label: translateStatus('rejected'), value: leadStats.rejected || 0, icon: '❌', color: 'red' },
-          { label: isGerman ? 'Stornierungsanfragen' : 'Cancel Requests', value: cancelledRequestStats.total || leadStats.cancelRequests || 0, icon: '🔄', color: 'orange' },
-          { label: translateStatus('cancelled'), value: leadStats.cancelled || 0, icon: '🚫', color: 'gray' }
+          { label: t('leads.totalLeads'), value: leadStats.total, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          ), color: 'blue' },
+          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'yellow' },
+          { label: translateStatus('accepted'), value: leadStats.accepted || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'green' },
+          { label: translateStatus('rejected'), value: leadStats.rejected || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'red' },
+          { label: isGerman ? 'Stornierungsanfragen' : 'Cancel Requests', value: cancelledRequestStats.total || leadStats.cancelRequests || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          ), color: 'orange' },
+          { label: translateStatus('cancelled'), value: leadStats.cancelled || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          ), color: 'gray' }
         ] : [
           // Admin-specific stats (original: All, Pending, Assigned only)
-          { label: t('leads.totalLeads'), value: leadStats.total, icon: '📋', color: 'blue' },
-          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: '⏳', color: 'yellow' },
-          { label: translateStatus('assigned'), value: leadStats.assigned || 0, icon: '🔗', color: 'indigo' }
+          { label: t('leads.totalLeads'), value: leadStats.total, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          ), color: 'blue' },
+          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'yellow' },
+          { label: translateStatus('assigned'), value: leadStats.assigned || 0, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          ), color: 'indigo' }
         ]).map((stat, index) => (
           <motion.div
             key={index}
@@ -3297,12 +3333,30 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 * index }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{stat.value}</p>
+            <div>
+              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className={`text-2xl font-bold ${
+                  stat.color === 'blue' ? 'text-blue-600' :
+                  stat.color === 'green' ? 'text-green-600' :
+                  stat.color === 'yellow' ? 'text-yellow-600' :
+                  stat.color === 'red' ? 'text-red-600' :
+                  stat.color === 'orange' ? 'text-orange-600' :
+                  stat.color === 'gray' ? 'text-gray-600' :
+                  stat.color === 'indigo' ? 'text-indigo-600' :
+                  ''
+                }`}>{stat.value}</p>
+                <div className={`${
+                  stat.color === 'blue' ? 'text-blue-600' :
+                  stat.color === 'green' ? 'text-green-600' :
+                  stat.color === 'yellow' ? 'text-yellow-600' :
+                  stat.color === 'red' ? 'text-red-600' :
+                  stat.color === 'orange' ? 'text-orange-600' :
+                  stat.color === 'gray' ? 'text-gray-600' :
+                  stat.color === 'indigo' ? 'text-indigo-600' :
+                  ''
+                }`}>{stat.icon}</div>
               </div>
-              <div className="text-2xl">{stat.icon}</div>
             </div>
           </motion.div>
         ))}
@@ -3717,10 +3771,26 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       {currentView === 'table' && activeTab === 'cancelled' && (
         <div className="flex flex-wrap gap-4 mt-6">
         {[
-          { label: isGerman ? 'Gesamt Anfragen' : 'Total Requests', value: cancelledRequestStats.total, icon: '📋', color: 'blue' },
-          { label: isGerman ? 'Ausstehend' : 'Pending', value: cancelledRequestStats.pending, icon: '⏳', color: 'yellow' },
-          { label: isGerman ? 'Genehmigt' : 'Approved', value: cancelledRequestStats.approved, icon: '✅', color: 'green' },
-          { label: isGerman ? 'Abgelehnt' : 'Rejected', value: cancelledRequestStats.rejected, icon: '❌', color: 'red' }
+          { label: isGerman ? 'Gesamt Anfragen' : 'Total Requests', value: cancelledRequestStats.total, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          ), color: 'blue' },
+          { label: isGerman ? 'Ausstehend' : 'Pending', value: cancelledRequestStats.pending, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'yellow' },
+          { label: isGerman ? 'Genehmigt' : 'Approved', value: cancelledRequestStats.approved, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'green' },
+          { label: isGerman ? 'Abgelehnt' : 'Rejected', value: cancelledRequestStats.rejected, icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ), color: 'red' }
         ].map((stat, index) => (
           <motion.div
             key={index}
@@ -3739,7 +3809,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   {stat.value}
                 </p>
               </div>
-              <div className="text-2xl">
+              <div style={{ color: 'var(--theme-text)' }}>
                 {stat.icon}
               </div>
             </div>

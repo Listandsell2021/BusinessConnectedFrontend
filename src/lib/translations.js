@@ -158,7 +158,13 @@ export const translations = {
       addCity: 'Stadt hinzufügen',
       removeCountry: 'Land entfernen',
       removeCity: 'Stadt entfernen',
-      optional: 'Optional'
+      optional: 'Optional',
+      // User roles
+      superAdmin: 'Super-Administrator',
+      admin: 'Administrator',
+      adminUser: 'Admin-Benutzer',
+      partner: 'Partner',
+      user: 'Benutzer'
     },
 
     // Services
@@ -313,7 +319,27 @@ export const translations = {
       topPerformers: 'Top-Performer',
       recentLeads: 'Neue Leads',
       upcomingTasks: 'Anstehende Aufgaben',
-      systemHealth: 'System-Status'
+      systemHealth: 'System-Status',
+      partnerPerformance: 'Partnerleistung',
+      leadStatistics: 'Lead-Statistiken',
+      partnerStatistics: 'Partner-Statistiken',
+      totalLeads: 'Gesamte Leads',
+      pendingLeads: 'Wartende Leads',
+      acceptedLeads: 'Angenommene Leads',
+      cancelledLeads: 'Stornierte Leads',
+      activePartners: 'Aktive Partner',
+      totalRevenue: 'Gesamtumsatz',
+      exclusivePartners: 'Exklusive Partner',
+      basicPartners: 'Basis-Partner',
+      thisMonth: 'Diesen Monat',
+      processing: 'In Bearbeitung',
+      confirmed: 'Bestätigt',
+      cancelled: 'Storniert',
+      registered: 'Registriert',
+      premium: 'Premium',
+      standard: 'Standard',
+      refresh: 'Aktualisieren',
+      lastUpdated: 'Zuletzt aktualisiert'
     },
 
     // Forms - Moving Service
@@ -661,7 +687,13 @@ export const translations = {
       addCity: 'Add City',
       removeCountry: 'Remove Country',
       removeCity: 'Remove City',
-      optional: 'Optional'
+      optional: 'Optional',
+      // User roles
+      superAdmin: 'Super Admin',
+      admin: 'Admin',
+      adminUser: 'Admin User',
+      partner: 'Partner',
+      user: 'User'
     },
 
     // Services
@@ -816,7 +848,27 @@ export const translations = {
       topPerformers: 'Top Performers',
       recentLeads: 'Recent Leads',
       upcomingTasks: 'Upcoming Tasks',
-      systemHealth: 'System Health'
+      systemHealth: 'System Health',
+      partnerPerformance: 'Partner Performance',
+      leadStatistics: 'Lead Statistics',
+      partnerStatistics: 'Partner Statistics',
+      totalLeads: 'Total Leads',
+      pendingLeads: 'Pending Leads',
+      acceptedLeads: 'Accepted Leads',
+      cancelledLeads: 'Cancelled Leads',
+      activePartners: 'Active Partners',
+      totalRevenue: 'Total Revenue',
+      exclusivePartners: 'Exclusive Partners',
+      basicPartners: 'Basic Partners',
+      thisMonth: 'This Month',
+      processing: 'Processing',
+      confirmed: 'Confirmed',
+      cancelled: 'Cancelled',
+      registered: 'Registered',
+      premium: 'Premium',
+      standard: 'Standard',
+      refresh: 'Refresh',
+      lastUpdated: 'Last Updated'
     },
 
     // Forms - Moving Service

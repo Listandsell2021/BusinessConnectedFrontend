@@ -8,8 +8,8 @@ const ServiceSelector = ({ className = '' }) => {
   const { isGerman } = useLanguage();
 
   const services = [
-    { id: 'moving', icon: '🚛', domain: 'umzug-anbieter-vergleich.de' },
-    { id: 'cleaning', icon: '🧽', domain: 'reinigungsfirma-vergleich.de' }
+    { id: 'moving', domain: 'umzug-anbieter-vergleich.de' },
+    { id: 'cleaning', domain: 'reinigungsfirma-vergleich.de' }
   ];
 
   // Hide the service selector if hideServiceFilter is true
@@ -38,7 +38,7 @@ const ServiceSelector = ({ className = '' }) => {
           const displayName = getServiceDisplayName(service.id);
           return (
             <option key={service.id} value={service.id}>
-              {service.icon} {displayName[isGerman ? 'de' : 'en']}
+              {displayName[isGerman ? 'de' : 'en']}
             </option>
           );
         })}

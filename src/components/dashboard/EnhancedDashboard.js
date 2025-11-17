@@ -55,6 +55,17 @@ const EnhancedDashboard = ({ onNavigate }) => {
     }
   };
 
+  // Helper function to get translated user display name
+  const getDisplayName = () => {
+    const baseName = user?.name || 'Admin';
+    const nameLower = String(baseName).toLowerCase();
+
+    // Translate "Admin User" to "Admin-Benutzer" in German
+    if (isGerman && nameLower.includes('admin') && nameLower.includes('user')) {
+      return 'Admin-Benutzer';
+    }
+    return baseName;
+  };
 
   if (loading && !dashboardData) {
     return (
@@ -117,7 +128,7 @@ const EnhancedDashboard = ({ onNavigate }) => {
             animate={{ scale: [1, 1.02, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            {isGerman ? `Willkommen zurück, ${user?.name || 'Admin'}!` : `Welcome back, ${user?.name || 'Admin'}!`}
+            {isGerman ? `Willkommen zurück, ${getDisplayName()}!` : `Welcome back, ${getDisplayName()}!`}
           </motion.h1>
 
           {/* Refresh Button */}

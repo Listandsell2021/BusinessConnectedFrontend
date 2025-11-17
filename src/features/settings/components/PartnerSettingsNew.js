@@ -1255,7 +1255,11 @@ const PartnerSettingsNew = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-4xl mb-4">🔒</div>
+          <div className="text-4xl mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>
             {isGerman ? 'Zugriff verweigert' : 'Access Denied'}
           </h3>
@@ -1295,7 +1299,10 @@ const PartnerSettingsNew = () => {
         {/* Company Information */}
         <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            🏢 {isGerman ? 'Unternehmensinformationen' : 'Company Information'}
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            {isGerman ? 'Unternehmensinformationen' : 'Company Information'}
           </h3>
           
           <div className="space-y-4">
@@ -1403,7 +1410,11 @@ const PartnerSettingsNew = () => {
         {/* Address Information */}
         <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            📍 {isGerman ? 'Adressinformationen' : 'Address Information'}
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {isGerman ? 'Adressinformationen' : 'Address Information'}
           </h3>
           
           <div className="space-y-4">
@@ -1499,7 +1510,10 @@ const PartnerSettingsNew = () => {
         {/* Password Change Section */}
         <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            🔒 {isGerman ? 'Passwort ändern' : 'Change Password'}
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            {isGerman ? 'Passwort ändern' : 'Change Password'}
           </h3>
 
           <div className="space-y-4">
@@ -1529,12 +1543,15 @@ const PartnerSettingsNew = () => {
       {(!currentService || currentService === 'moving') && (
         <div key={`moving-${remountKey}`} className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            🚛 {isGerman ? 'Umzugs-Einstellungen' : 'Moving Settings'}
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+            </svg>
+            {isGerman ? 'Umzugs-Einstellungen' : 'Moving Settings'}
           </h3>
           
           <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
             <h4 className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'ℹ️ Radius-Erklärung:' : 'ℹ️ Radius Explanation:'}
+              {isGerman ? 'Radius-Erklärung:' : 'Radius Explanation:'}
             </h4>
             <ul className="text-sm space-y-1" style={{ color: 'var(--theme-text)' }}>
               <li>• <strong>0 km:</strong> {isGerman ? 'Service nur innerhalb der Stadtgrenzen' : 'Service only within city boundaries'}</li>
@@ -1729,7 +1746,7 @@ const PartnerSettingsNew = () => {
                                 <div key={city} className="p-3 rounded border space-y-3" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
                                   <div className="flex items-center justify-between">
                                     <span className="font-medium" style={{ color: 'var(--theme-text)' }}>
-                                      📍 {city}
+                                      {city}
                                     </span>
                                     <button
                                       onClick={() => handleCityToggle('moving', city, false, countryName, 'pickup')}
@@ -1754,7 +1771,11 @@ const PartnerSettingsNew = () => {
             {/* Destination Address Configuration */}
             <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
               <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-                🎯 {isGerman ? 'Zieladresse-Konfiguration' : 'Destination Address Configuration'}
+                <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {isGerman ? 'Zieladresse-Konfiguration' : 'Destination Address Configuration'}
               </h4>
 
               {/* Country Dropdown for Destination */}
@@ -1935,7 +1956,7 @@ const PartnerSettingsNew = () => {
                                 <div key={city} className="p-3 rounded border space-y-3" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
                                   <div className="flex items-center justify-between">
                                     <span className="font-medium" style={{ color: 'var(--theme-text)' }}>
-                                      📍 {city}
+                                      {city}
                                     </span>
                                     <button
                                       onClick={() => handleCityToggle('moving', city, false, countryName, 'destination')}
@@ -1970,7 +1991,7 @@ const PartnerSettingsNew = () => {
                     return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
                   }, 0)
                 } {isGerman ? 'Städte' : 'cities'}<br/>
-                🎯 {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
+                {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
                   Object.keys(settings.preferences.destination?.serviceArea || {}).reduce((total, country) => {
                     const countryData = settings.preferences.destination?.serviceArea?.[country];
                     return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
@@ -1987,12 +2008,15 @@ const PartnerSettingsNew = () => {
       {(!currentService || currentService === 'cleaning') && (
         <div key={`cleaning-${remountKey}`} className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            🧽 {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Settings'}
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Settings'}
           </h3>
 
           <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
             <h4 className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'ℹ️ Radius-Erklärung:' : 'ℹ️ Radius Explanation:'}
+              {isGerman ? 'Radius-Erklärung:' : 'Radius Explanation:'}
             </h4>
             <ul className="text-sm space-y-1" style={{ color: 'var(--theme-text)' }}>
               <li>• <strong>0 km:</strong> {isGerman ? 'Service nur innerhalb der Stadtgrenzen' : 'Service only within city boundaries'}</li>
@@ -2005,7 +2029,10 @@ const PartnerSettingsNew = () => {
             {/* Service Area Configuration */}
             <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
               <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-                🧽 {isGerman ? 'Service-Bereich-Konfiguration' : 'Service Area Configuration'}
+                <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {isGerman ? 'Service-Bereich-Konfiguration' : 'Service Area Configuration'}
               </h4>
 
               {/* Country Dropdown for Cleaning */}
@@ -2196,7 +2223,7 @@ const PartnerSettingsNew = () => {
                                 <div key={city} className="p-3 rounded border space-y-3" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
                                   <div className="flex items-center justify-between">
                                     <span className="font-medium" style={{ color: 'var(--theme-text)' }}>
-                                      🧽 {city}
+                                      {city}
                                     </span>
                                     <button
                                       onClick={() => handleCityToggle('cleaning', city, false, countryName, 'serviceArea')}
@@ -2309,7 +2336,7 @@ const PartnerSettingsNew = () => {
             {getConfiguredCountries('serviceArea').length > 0 && (
               <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
                 <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
-                🧽 {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('serviceArea').length} {isGerman ? 'Länder' : 'countries'}, {
+                {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('serviceArea').length} {isGerman ? 'Länder' : 'countries'}, {
                   Object.keys(settings.preferences.serviceArea.serviceArea || {}).reduce((total, country) => {
                     const countryData = settings.preferences.serviceArea.serviceArea[country];
                     return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
@@ -2350,7 +2377,10 @@ const PartnerSettingsNew = () => {
               <span>{isGerman ? 'Speichern...' : 'Saving...'}</span>
             </div>
           ) : (
-            <>💾 {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
+            <><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
           )}
         </button>
       </div>

@@ -643,7 +643,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              🧾 {isGerman ? 'Rechnung erstellen' : 'Generate Invoice'}
+              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {isGerman ? 'Rechnung erstellen' : 'Generate Invoice'}
             </motion.button>
           )}
         </div>
@@ -930,7 +933,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                         }}
                         title={isGerman ? 'Als unbezahlt markieren' : 'Mark as Unpaid'}
                       >
-                        ❌ {isGerman ? 'Unbezahlt' : 'Unpaid'}
+                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        {isGerman ? 'Unbezahlt' : 'Unpaid'}
                       </button>
                     ) : (
                       <button
@@ -949,7 +955,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                         }}
                         title={isGerman ? 'Als bezahlt markieren' : 'Mark as Paid'}
                       >
-                        ✅ {isGerman ? 'Bezahlt' : 'Paid'}
+                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {isGerman ? 'Bezahlt' : 'Paid'}
                       </button>
                     )}
                     <button
@@ -968,7 +977,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                       }}
                       title={isGerman ? 'PDF herunterladen' : 'Download PDF'}
                     >
-                      📄 {isGerman ? 'PDF' : 'PDF'}
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      {isGerman ? 'PDF' : 'PDF'}
                     </button>
                   </div>
                 </td>
@@ -1027,7 +1039,15 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 <div className={`text-2xl font-bold ${
                   invoiceDetailData.status === 'paid' ? 'text-green-600' : 'text-yellow-600'
                 }`}>
-                  {invoiceDetailData.status === 'paid' ? '✅' : '⏳'}
+                  {invoiceDetailData.status === 'paid' ? (
+                    <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
                 </div>
                 <div className="text-sm text-gray-500">
                   {invoiceDetailData.status === 'paid'
@@ -1238,10 +1258,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
               : 'bg-red-100 text-red-800'
           }`}>
             {invoice.status === 'paid'
-              ? (isGerman ? '✅ Bezahlt' : '✅ Paid')
+              ? (isGerman ? 'Bezahlt' : 'Paid')
               : invoice.status === 'pending'
-              ? (isGerman ? '⏳ Ausstehend' : '⏳ Pending')
-              : (isGerman ? '❌ Storniert' : '❌ Cancelled')
+              ? (isGerman ? 'Ausstehend' : 'Pending')
+              : (isGerman ? 'Storniert' : 'Cancelled')
             }
           </span>
         )
@@ -1383,7 +1403,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
               e.target.style.backgroundColor = 'var(--theme-export-button)';
             }}
           >
-            📄 {isGerman ? 'PDF herunterladen' : 'Download PDF'}
+            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            {isGerman ? 'PDF herunterladen' : 'Download PDF'}
           </button>
 
           <button
@@ -1397,7 +1420,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
               e.target.style.backgroundColor = '#16A34A';
             }}
           >
-            ✉️ {isGerman ? 'E-Mail senden' : 'Send Email'}
+            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            {isGerman ? 'E-Mail senden' : 'Send Email'}
           </button>
 
           {invoice.status === 'pending' && (
@@ -1415,7 +1441,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 e.target.style.backgroundColor = '#D97706';
               }}
             >
-              💰 {isGerman ? 'Als bezahlt markieren' : 'Mark as Paid'}
+              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {isGerman ? 'Als bezahlt markieren' : 'Mark as Paid'}
             </button>
           )}
         </div>
@@ -1565,7 +1594,11 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
               </div>
             </div>
           </div>
-          <div className="text-2xl">💰</div>
+          <div className="text-2xl">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
       </motion.div>
 
@@ -1662,8 +1695,8 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {partner.invoiceStatus === 'generated'
-                          ? (isGerman ? '✅ Erstellt' : '✅ Generated')
-                          : (isGerman ? '⏳ Ausstehend' : '⏳ Pending')
+                          ? (isGerman ? 'Erstellt' : 'Generated')
+                          : (isGerman ? 'Ausstehend' : 'Pending')
                         }
                       </span>
                     </td>
@@ -1684,7 +1717,11 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                         }}
                         title={isGerman ? 'Partner Details ansehen' : 'View Partner Details'}
                       >
-                        👁️ {isGerman ? 'Ansehen' : 'View'}
+                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {isGerman ? 'Ansehen' : 'View'}
                       </button>
                     </td>
                   </motion.tr>
@@ -1719,7 +1756,10 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
-                ⚠️ {isGerman ? 'Stornierungsanfragen ausstehend' : 'Cancel Requests Pending'}
+                <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {isGerman ? 'Stornierungsanfragen ausstehend' : 'Cancel Requests Pending'}
               </h3>
               <button
                 onClick={() => setShowCancelRequestDialog(false)}

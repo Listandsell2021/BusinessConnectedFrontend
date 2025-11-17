@@ -99,6 +99,49 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     }
   }, [router.query.filter]);
 
+  // Handle partnerId from URL query params (e.g., from dashboard partner click)
+  useEffect(() => {
+    const openPartnerFromUrl = async () => {
+      if (router.query.partnerId && router.isReady) {
+        try {
+          setLoading(true);
+          const response = await partnersAPI.getById(router.query.partnerId);
+
+          const partnerData = response.data.success ? response.data.partner : response.data;
+
+          // Transform the partner data
+          const transformedPartner = {
+            ...partnerData,
+            id: partnerData._id || partnerData.id,
+            name: partnerData.companyName || partnerData.name,
+            email: partnerData.contactPerson?.email || partnerData.email,
+            type: partnerData.partnerType || partnerData.type
+          };
+
+          setPartnerForDetails(transformedPartner);
+          setCurrentView('details');
+          setPartnerLeadsCurrentPage(1);
+
+          // Set the tab if specified in URL (e.g., view=leads)
+          if (router.query.view === 'leads') {
+            setPartnerDetailsTab('leads');
+          } else if (router.query.view === 'settings') {
+            setPartnerDetailsTab('settings');
+          } else {
+            setPartnerDetailsTab('overview');
+          }
+        } catch (error) {
+          console.error('Error loading partner from URL:', error);
+          toast.error(isGerman ? 'Fehler beim Laden der Partner-Details' : 'Failed to load partner details');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    openPartnerFromUrl();
+  }, [router.query.partnerId, router.isReady]);
+
   // Confirmation dialog states
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogData, setConfirmDialogData] = useState({
@@ -1630,7 +1673,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-4xl mb-4">🔒</div>
+          <div className="text-4xl mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>
             {isGerman ? 'Zugriff verweigert' : 'Access Denied'}
           </h3>
@@ -1664,7 +1711,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  📊 {t('common.export')}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {t('common.export')}
                   <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -1680,7 +1730,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <span className="text-green-600">📊</span>
+                        <span className="text-green-600">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </span>
                         <div>
                           <div className="font-medium">Export to Excel</div>
                           <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .xlsx file</div>
@@ -1693,7 +1747,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <span className="text-red-600">📄</span>
+                        <span className="text-red-600">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        </span>
                         <div>
                           <div className="font-medium">Export to PDF</div>
                           <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .pdf file</div>
@@ -1714,7 +1772,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                ➕ {isGerman ? 'Partner hinzufügen' : 'Add Partner'}
+                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                {isGerman ? 'Partner hinzufügen' : 'Add Partner'}
               </motion.button>
             </div>
           )}
@@ -1999,37 +2060,62 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           {
             label: isGerman ? 'Gesamt Partner' : 'Total Partners',
             value: partnerStats.total,
-            icon: '🏢',
+            icon: (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            ),
             color: 'blue'
           },
           {
             label: isGerman ? 'Aktive Partner' : 'Active Partners',
             value: partnerStats.active,
-            icon: '✅',
+            icon: (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ),
             color: 'green'
           },
           {
             label: isGerman ? 'Basic Partner' : 'Basic Partners',
             value: partnerStats.basic,
-            icon: '🟢',
+            icon: (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            ),
             color: 'emerald'
           },
           {
             label: isGerman ? 'Exklusive Partner' : 'Exclusive Partners',
             value: partnerStats.exclusive,
-            icon: '🔥',
+            icon: (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg>
+            ),
             color: 'purple'
           },
           {
             label: isGerman ? 'Ausstehende Anfragen' : 'Pending Requests',
             value: partnerStats.pending,
-            icon: '⏳',
+            icon: (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ),
             color: 'yellow'
           },
           {
             label: isGerman ? 'Abgelehnt/Gesperrt' : 'Rejected/Suspended',
             value: partnerStats.rejectSuspended,
-            icon: '🚫',
+            icon: (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            ),
             color: 'red'
           }
         ].map((stat, index) => (
@@ -2041,12 +2127,28 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 * index }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
-                <p className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{stat.value}</p>
+            <div>
+              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className={`text-2xl font-bold ${
+                  stat.color === 'blue' ? 'text-blue-600' :
+                  stat.color === 'green' ? 'text-green-600' :
+                  stat.color === 'yellow' ? 'text-yellow-600' :
+                  stat.color === 'red' ? 'text-red-600' :
+                  stat.color === 'emerald' ? 'text-emerald-600' :
+                  stat.color === 'purple' ? 'text-purple-600' :
+                  ''
+                }`}>{stat.value}</p>
+                <div className={`${
+                  stat.color === 'blue' ? 'text-blue-600' :
+                  stat.color === 'green' ? 'text-green-600' :
+                  stat.color === 'yellow' ? 'text-yellow-600' :
+                  stat.color === 'red' ? 'text-red-600' :
+                  stat.color === 'emerald' ? 'text-emerald-600' :
+                  stat.color === 'purple' ? 'text-purple-600' :
+                  ''
+                }`}>{stat.icon}</div>
               </div>
-              <div className="text-2xl">{stat.icon}</div>
             </div>
           </motion.div>
         ))}
@@ -2170,7 +2272,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           }}
                           title={isGerman ? 'Details anzeigen' : 'View Details'}
                         >
-                          👁️ {isGerman ? 'Anzeigen' : 'View'}
+                          <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          {isGerman ? 'Anzeigen' : 'View'}
                         </button>
                         {partner.status === 'pending' && (
                           <>
@@ -2184,7 +2290,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               }`}
                               title={isGerman ? "Service genehmigen" : "Approve service"}
                             >
-                              ✅ {isGerman ? 'Genehmigen' : 'Approve'}
+                              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              {isGerman ? 'Genehmigen' : 'Approve'}
                             </button>
                             <button
                               onClick={() => handleRejectPartner(partner.id, partner.name)}
@@ -2203,7 +2312,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               }}
                               title={isGerman ? "Service ablehnen" : "Reject service"}
                             >
-                              ❌ {isGerman ? 'Ablehnen' : 'Reject'}
+                              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              {isGerman ? 'Ablehnen' : 'Reject'}
                             </button>
                           </>
                         )}
@@ -2235,7 +2347,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                               }}
                             >
-                              🚫 {isGerman ? 'Sperren' : 'Suspend'}
+                              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                              {isGerman ? 'Sperren' : 'Suspend'}
                             </button>
                           </>
                         )}
@@ -2256,7 +2371,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                             }}
                           >
-                            ↩️ {isGerman ? 'Sperrung aufheben' : 'Remove Suspension'}
+                            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                            </svg>
+                            {isGerman ? 'Sperrung aufheben' : 'Remove Suspension'}
                           </button>
                         )}
                       </div>
@@ -2535,7 +2653,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 {/* Pickup Preferences */}
                 <div>
                   <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
-                    📦 {isGerman ? 'Abholung-Einstellungen' : 'Pickup Preferences'}
+                    <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    {isGerman ? 'Abholung-Einstellungen' : 'Pickup Preferences'}
                   </h4>
                   <div className="overflow-x-auto">
                     <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -2544,7 +2665,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           Object.entries(partnerForDetails.preferences.pickup.serviceArea).map(([country, config]) => (
                             <tr key={`pickup-${country}`}>
                               <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                                🌍 {country}:
+                                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {country}:
                               </td>
                               <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
                                 {config.type === 'cities' ? (
@@ -2589,7 +2713,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 {/* Destination Preferences */}
                 <div>
                   <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
-                    🎯 {isGerman ? 'Ziel-Einstellungen' : 'Destination Preferences'}
+                    <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {isGerman ? 'Ziel-Einstellungen' : 'Destination Preferences'}
                   </h4>
                   <div className="overflow-x-auto">
                     <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -2598,7 +2726,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           Object.entries(partnerForDetails.preferences.destination.serviceArea).map(([country, config]) => (
                             <tr key={`destination-${country}`}>
                               <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                                🌍 {country}:
+                                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {country}:
                               </td>
                               <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
                                 {config.type === 'cities' ? (
@@ -2648,7 +2779,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
               <div>
                 <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
-                  🧽 {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Preferences'}
+                  <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Preferences'}
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -2657,7 +2791,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         Object.entries(partnerForDetails.preferences.cleaning.serviceArea).map(([country, config]) => (
                           <tr key={`cleaning-${country}`}>
                             <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                              🌍 {country}:
+                              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {country}:
                             </td>
                             <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
                               {config.type === 'cities' ? (
@@ -2862,46 +2999,70 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   {
                     label: isGerman ? 'Gesamt Leads' : 'Total Leads',
                     value: partnerLeadsStats.total || 0,
-                    icon: '📋',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    ),
                     color: 'blue'
                   },
                   {
                     label: translateStatus('pending'),
                     value: partnerLeadsStats.pending || 0,
-                    icon: '⏳',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ),
                     color: 'yellow'
                   },
                   {
                     label: translateStatus('accepted'),
                     value: partnerLeadsStats.accepted || 0,
-                    icon: '✅',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ),
                     color: 'green'
                   },
                   {
                     label: translateStatus('rejected'),
                     value: partnerLeadsStats.rejected || 0,
-                    icon: '❌',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ),
                     color: 'red'
                   },
                   {
                     label: isGerman ? 'Stornierungsanfragen' : 'Cancel Requests',
                     value: partnerLeadsStats.cancel_requested || 0,
-                    icon: '🔄',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    ),
                     color: 'orange'
                   },
                   {
                     label: translateStatus('cancelled'),
                     value: partnerLeadsStats.cancelled || 0,
-                    icon: '🚫',
+                    icon: (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    ),
                     color: 'gray'
                   }
                 ].map((stat, index) => (
                   <motion.div
                     key={index}
                     className="p-4 rounded-lg flex-1 min-w-[180px] border"
-                    style={{ 
-                      backgroundColor: 'var(--theme-card-bg)', 
-                      borderColor: 'var(--theme-border)' 
+                    style={{
+                      backgroundColor: 'var(--theme-card-bg)',
+                      borderColor: 'var(--theme-border)'
                     }}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -2912,7 +3073,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
                         <p className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{stat.value}</p>
                       </div>
-                      <div className="text-2xl">{stat.icon}</div>
+                      <div style={{ color: 'var(--theme-text)' }}>{stat.icon}</div>
                     </div>
                   </motion.div>
                 ))}
@@ -3030,7 +3191,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 }}
                                 title={isGerman ? 'Details anzeigen' : 'View Details'}
                               >
-                                👁️ {isGerman ? 'Ansehen' : 'View'}
+                                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                {isGerman ? 'Ansehen' : 'View'}
                               </button>
                             </td>
                           </motion.tr>
@@ -3076,7 +3241,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                        ⚙️ {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
+                        <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
                       </h3>
                       <p className="text-sm mt-1" style={{ color: 'var(--theme-muted)' }}>
                         {isGerman
@@ -3104,7 +3273,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           <span>{isGerman ? 'Speichern...' : 'Saving...'}</span>
                         </div>
                       ) : (
-                        <>💾 {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
+                        <><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                          </svg>
+                          {isGerman ? 'Einstellungen speichern' : 'Save Settings'}</>
                       )}
                     </motion.button>
                   </div>
@@ -3119,7 +3291,12 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     whileHover={{ y: -2, transition: { duration: 0.2 } }}
                   >
                     <div className="flex items-center space-x-3 mb-6">
-                      <div className="text-3xl">⚙️</div>
+                      <div className="text-3xl">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
                       <div>
                         <h4 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
                           {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
@@ -3186,7 +3363,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             }}
                             title={isGerman ? 'Standard verwenden' : 'Use Default'}
                           >
-                            🔄 {isGerman ? 'Standard' : 'Default'}
+                            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            {isGerman ? 'Standard' : 'Default'}
                           </button>
                         </div>
                         <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
@@ -3233,7 +3413,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             }}
                             title={isGerman ? 'Standard verwenden' : 'Use Default'}
                           >
-                            🔄 {isGerman ? 'Standard' : 'Default'}
+                            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            {isGerman ? 'Standard' : 'Default'}
                           </button>
                         </div>
                         <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
@@ -3255,7 +3438,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     }}
                   >
                     <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-                      📊 {isGerman ? 'Aktuelle Einstellungen' : 'Current Settings'}
+                      <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {isGerman ? 'Aktuelle Einstellungen' : 'Current Settings'}
                     </h4>
                     <div className="flex flex-row gap-4">
                       <div className="flex-1 text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
@@ -3334,17 +3520,29 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               <div className="flex items-center gap-3 mb-4">
                 {confirmDialogData.type === 'danger' && (
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <span className="text-red-600 text-xl">⚠️</span>
+                    <span className="text-red-600 text-xl">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </span>
                   </div>
                 )}
                 {confirmDialogData.type === 'warning' && (
                   <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <span className="text-yellow-600 text-xl">⚠️</span>
+                    <span className="text-yellow-600 text-xl">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </span>
                   </div>
                 )}
                 {confirmDialogData.type === 'info' && (
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 text-xl">ℹ️</span>
+                    <span className="text-blue-600 text-xl">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
                   </div>
                 )}
                 <div>
@@ -3389,7 +3587,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
                   }}
                 >
-                  {confirmDialogData.type === 'danger' && confirmDialogData.confirmText.includes('Remove') && '↩️ '}
+                  {confirmDialogData.type === 'danger' && confirmDialogData.confirmText.includes('Remove') && (
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                  )}
                   {confirmDialogData.type === 'danger' && confirmDialogData.confirmText.includes('Suspend') && !confirmDialogData.confirmText.includes('Remove') && '🚫 '}
                   {confirmDialogData.confirmText}
                 </button>
@@ -3422,7 +3624,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               {/* Dialog Header */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 text-xl">❌</span>
+                  <span className="text-red-600 text-xl">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </span>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
@@ -3485,7 +3691,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   }}
                   disabled={!rejectionDialog.reason.trim()}
                 >
-                  ❌ {isGerman ? 'Ablehnen' : 'Reject'}
+                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {isGerman ? 'Ablehnen' : 'Reject'}
                 </button>
               </div>
             </motion.div>
@@ -3551,7 +3760,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      👤 {isGerman ? 'Vorname' : 'First Name'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {isGerman ? 'Vorname' : 'First Name'} *
                     </label>
                     <input
                       id="partner-firstName"
@@ -3585,7 +3797,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      👤 {isGerman ? 'Nachname' : 'Last Name'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {isGerman ? 'Nachname' : 'Last Name'} *
                     </label>
                     <input
                       id="partner-lastName"
@@ -3684,7 +3899,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   {/* Service Type - Dropdown */}
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                      🛠️ {isGerman ? 'Service-Typ' : 'Service Type'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {isGerman ? 'Service-Typ' : 'Service Type'} *
                     </label>
                     <div className="service-dropdown-container relative">
                       <button
@@ -3725,7 +3944,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                               />
                               <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                                {service.id === 'moving' ? '🚛' : '🧽'} {service.name}
+                                {service.id === 'moving' ? (
+                                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                )} {service.name}
                               </span>
                             </label>
                           )) : (
@@ -3748,7 +3975,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       className="block text-sm font-medium mb-2"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      🏢 {isGerman ? 'Firmenname' : 'Company Name'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {isGerman ? 'Firmenname' : 'Company Name'} *
                     </label>
                     <input
                       id="partner-company"
@@ -3783,7 +4013,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      📍 {isGerman ? 'Straße' : 'Street'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {isGerman ? 'Straße' : 'Street'} *
                     </label>
                     <input
                       id="partner-street"
@@ -3814,7 +4048,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      🏘️ {isGerman ? 'Stadt' : 'City'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {isGerman ? 'Stadt' : 'City'} *
                     </label>
                     <input
                       id="partner-city"

@@ -320,13 +320,33 @@ const LogsModule = () => {
   };
 
   const getRoleIcon = (role) => {
-    const icons = {
-      user: '👤',
-      partner: '🏢',
-      superadmin: '👑',
-      system: '🤖'
+    const iconMap = {
+      user: (
+        <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+      partner: (
+        <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      superadmin: (
+        <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+        </svg>
+      ),
+      system: (
+        <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      )
     };
-    return icons[role] || '📝';
+    return iconMap[role] || (
+      <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
   };
 
   const getActionColor = (action) => {
@@ -586,12 +606,22 @@ const LogsModule = () => {
             {
               label: isGerman ? 'Gesamt' : 'Total',
               value: logStats.total,
-              color: 'blue'
+              color: 'blue',
+              icon: (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              )
             },
             {
               label: isGerman ? 'Heute' : 'Today',
               value: logStats.today,
-              color: 'yellow'
+              color: 'yellow',
+              icon: (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )
             }
           ];
 
@@ -602,17 +632,33 @@ const LogsModule = () => {
               {
                 label: isGerman ? 'Lead Aktionen' : 'Lead Actions',
                 value: logStats.leadActions || 0,
-                color: 'green'
+                color: 'green',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                )
               },
               {
                 label: isGerman ? 'Partner Aktionen' : 'Partner Actions',
                 value: logStats.partnerActions || 0,
-                color: 'orange'
+                color: 'orange',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                )
               },
               {
                 label: isGerman ? 'System/Einstellungen' : 'System/Settings',
                 value: logStats.settingsActions || 0,
-                color: 'purple'
+                color: 'purple',
+                icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )
               }
             ];
           } else if (activeTab === 'leads') {
@@ -713,9 +759,9 @@ const LogsModule = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 * index }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
+            <div>
+              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
+              <div className="flex items-center justify-between mt-1">
                 <p className={`text-2xl font-bold ${
                   stat.color === 'blue' ? 'text-blue-600' :
                   stat.color === 'green' ? 'text-green-600' :
@@ -729,6 +775,20 @@ const LogsModule = () => {
                 style={{ color: !stat.color ? 'var(--theme-text)' : undefined }}>
                   {stat.value}
                 </p>
+                {stat.icon && (
+                  <div className={`${
+                    stat.color === 'blue' ? 'text-blue-600' :
+                    stat.color === 'green' ? 'text-green-600' :
+                    stat.color === 'yellow' ? 'text-yellow-600' :
+                    stat.color === 'red' ? 'text-red-600' :
+                    stat.color === 'orange' ? 'text-orange-600' :
+                    stat.color === 'purple' ? 'text-purple-600' :
+                    stat.color === 'emerald' ? 'text-emerald-600' :
+                    ''
+                  }`} style={{ color: !stat.color ? 'var(--theme-text)' : undefined }}>
+                    {stat.icon}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -833,7 +893,9 @@ const LogsModule = () => {
                     <div className="flex flex-col">
                       {log.leadId && (
                         <div className="flex items-center mb-1">
-                          <span className="text-xs text-blue-600 mr-1">📋</span>
+                          <svg className="w-3 h-3 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
                           <span className="font-mono text-xs font-medium text-blue-600">
                             {log.leadId}
                           </span>
@@ -841,7 +903,9 @@ const LogsModule = () => {
                       )}
                       {log.partnerName && (
                         <div className="flex items-center">
-                          <span className="text-xs text-orange-600 mr-1">🏢</span>
+                          <svg className="w-3 h-3 text-orange-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
                           <span className="text-xs text-orange-600 font-medium truncate max-w-24" title={log.partnerName}>
                             {log.partnerName}
                           </span>
@@ -849,7 +913,9 @@ const LogsModule = () => {
                       )}
                       {log.leadCustomer && (
                         <div className="flex items-center">
-                          <span className="text-xs text-green-600 mr-1">👤</span>
+                          <svg className="w-3 h-3 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
                           <span className="text-xs text-green-600 truncate max-w-24" title={log.leadCustomer}>
                             {log.leadCustomer}
                           </span>

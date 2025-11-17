@@ -130,7 +130,7 @@ const PartnerPerformance = ({ className = "" }) => {
           >
             🏆
           </motion.span>
-          {isGerman ? 'Partner-Performance' : 'Partner Performance'}
+          {isGerman ? 'Partnerleistung' : 'Partner Performance'}
         </h3>
 
         {/* Sort Selector */}
@@ -169,6 +169,7 @@ const PartnerPerformance = ({ className = "" }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -2, scale: 1.01 }}
+              onClick={() => router.push(`/dashboard?tab=partners&partnerId=${partner.id}`)}
             >
               <div className="flex items-center justify-between">
                 {/* Partner Info */}

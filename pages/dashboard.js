@@ -58,6 +58,22 @@ export default function Dashboard({ initialData = {} }) {
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Helper function to get translated user display name
+  const getDisplayName = () => {
+    // Get base name from user object
+    const baseName = user?.name ||
+                     (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) ||
+                     user?.email?.split('@')[0] ||
+                     (isGerman ? 'Benutzer' : 'User');
+
+    // Check if name contains "admin" and "user" (case-insensitive) for German translation
+    const nameLower = String(baseName).toLowerCase();
+    if (isGerman && nameLower.includes('admin') && nameLower.includes('user')) {
+      return 'Admin-Benutzer';
+    }
+    return baseName;
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated()) {
       router.push('/auth/login');
@@ -405,10 +421,10 @@ export default function Dashboard({ initialData = {} }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--theme-text)' }}>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--theme-text)' }} suppressHydrationWarning>
               {isGerman ? 'Dashboard wird geladen...' : 'Loading Dashboard...'}
             </h2>
-            <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+            <p className="text-sm" style={{ color: 'var(--theme-muted)' }} suppressHydrationWarning>
               {isGerman ? 'Bereite deine Daten vor...' : 'Preparing your data...'}
             </p>
           </motion.div>
@@ -426,31 +442,76 @@ export default function Dashboard({ initialData = {} }) {
     router.push('/auth/login');
   };
 
+  // SVG Icons for menu items
+  const MenuIcons = {
+    dashboard: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    ),
+    leads: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+    partners: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    logs: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+    income: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    settings: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    invoices: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+      </svg>
+    ),
+    notifications: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+    )
+  };
+
   // Define menu items based on user role
   const getMenuItems = () => {
     const menuItems = [
-      { id: 'overview', label: isGerman ? 'Dashboard' : 'Dashboard', icon: '📊', roles: ['superadmin', 'partner'] }
+      { id: 'overview', label: isGerman ? 'Dashboard' : 'Dashboard', icon: MenuIcons.dashboard, roles: ['superadmin', 'partner'] }
     ];
-    
+
     if (isSuperAdmin) {
       menuItems.push(
-        { id: 'leads', label: isGerman ? 'Lead-Verwaltung' : 'Lead Management', icon: '🎯', roles: ['superadmin'], description: isGerman ? 'Verwalten Sie alle Leads' : 'Manage all leads' },
-        { id: 'partners', label: isGerman ? 'Partner-Verwaltung' : 'Partner Management', icon: '🤝', roles: ['superadmin'], description: isGerman ? 'Partner verwalten' : 'Manage partners' },
-        { id: 'logs', label: isGerman ? 'System-Protokolle' : 'System Logs', icon: '📝', roles: ['superadmin'], description: isGerman ? 'System-Aktivitäten' : 'System activities' },
-        { id: 'income', label: isGerman ? 'Umsätze & Rechnungen' : 'Income & Invoices', icon: '💎', roles: ['superadmin'], description: isGerman ? 'Finanzen verwalten' : 'Manage finances' },
-        { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: '⚙️', roles: ['superadmin'], description: isGerman ? 'System-Einstellungen' : 'System settings' }
+        { id: 'leads', label: isGerman ? 'Lead-Verwaltung' : 'Lead Management', icon: MenuIcons.leads, roles: ['superadmin'], description: isGerman ? 'Verwalten Sie alle Leads' : 'Manage all leads' },
+        { id: 'partners', label: isGerman ? 'Partner-Verwaltung' : 'Partner Management', icon: MenuIcons.partners, roles: ['superadmin'], description: isGerman ? 'Partner verwalten' : 'Manage partners' },
+        { id: 'logs', label: isGerman ? 'System-Protokolle' : 'System Logs', icon: MenuIcons.logs, roles: ['superadmin'], description: isGerman ? 'System-Aktivitäten' : 'System activities' },
+        { id: 'income', label: isGerman ? 'Umsätze & Rechnungen' : 'Income & Invoices', icon: MenuIcons.income, roles: ['superadmin'], description: isGerman ? 'Finanzen verwalten' : 'Manage finances' },
+        { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: MenuIcons.settings, roles: ['superadmin'], description: isGerman ? 'System-Einstellungen' : 'System settings' }
       );
     }
-    
+
     if (isPartner) {
       menuItems.push(
-        { id: 'leads', label: isGerman ? 'Meine Leads' : 'My Leads', icon: '🎯', roles: ['partner'], description: isGerman ? 'Ihre zugewiesenen Leads' : 'Your assigned leads' },
-        { id: 'invoices', label: isGerman ? 'Meine Rechnungen' : 'My Invoices', icon: '🧾', roles: ['partner'], description: isGerman ? 'Ihre Rechnungen verwalten' : 'Manage your invoices' },
-        { id: 'notifications', label: isGerman ? 'Benachrichtigungen' : 'Notifications', icon: '🔔', roles: ['partner'], description: isGerman ? 'Ihre Benachrichtigungen' : 'Your notifications' },
-        { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: '⚙️', roles: ['partner'], description: isGerman ? 'Konto-Einstellungen' : 'Account settings' }
+        { id: 'leads', label: isGerman ? 'Meine Leads' : 'My Leads', icon: MenuIcons.leads, roles: ['partner'], description: isGerman ? 'Ihre zugewiesenen Leads' : 'Your assigned leads' },
+        { id: 'invoices', label: isGerman ? 'Meine Rechnungen' : 'My Invoices', icon: MenuIcons.invoices, roles: ['partner'], description: isGerman ? 'Ihre Rechnungen verwalten' : 'Manage your invoices' },
+        { id: 'notifications', label: isGerman ? 'Benachrichtigungen' : 'Notifications', icon: MenuIcons.notifications, roles: ['partner'], description: isGerman ? 'Ihre Benachrichtigungen' : 'Your notifications' },
+        { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: MenuIcons.settings, roles: ['partner'], description: isGerman ? 'Konto-Einstellungen' : 'Account settings' }
       );
     }
-    
+
     return menuItems;
   };
 
@@ -768,10 +829,11 @@ export default function Dashboard({ initialData = {} }) {
                 style={{ color: 'var(--theme-text)' }}
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                suppressHydrationWarning
               >
-                {isGerman ? `Willkommen zurück, ${user?.name || 'Partner'}!` : `Welcome back, ${user?.name || 'Partner'}!`}
+                {isGerman ? `Willkommen zurück, ${getDisplayName()}!` : `Welcome back, ${getDisplayName()}!`}
               </motion.h1>
-              <p className="text-lg" style={{ color: 'var(--theme-muted)' }}>
+              <p className="text-lg" style={{ color: 'var(--theme-muted)' }} suppressHydrationWarning>
                 {isGerman
                   ? `Hier ist deine Business-Übersicht für heute.`
                   : `Here's your business overview for today.`}
@@ -1320,13 +1382,13 @@ export default function Dashboard({ initialData = {} }) {
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="relative">
-                  <motion.span
-                    className="text-2xl"
-                    animate={activeTab === item.id ? { scale: [1, 1.2, 1] } : {}}
+                  <motion.div
+                    className="flex-shrink-0"
+                    animate={activeTab === item.id ? { scale: [1, 1.1, 1] } : {}}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   >
                     {item.icon}
-                  </motion.span>
+                  </motion.div>
                   {/* Notification count badge for notifications tab */}
                   {item.id === 'notifications' && unreadCount > 0 && (
                     <motion.div
@@ -1464,18 +1526,26 @@ export default function Dashboard({ initialData = {} }) {
                   {/* User Profile Info */}
                   <div className="flex items-center space-x-3">
                     <motion.div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
                       style={{ backgroundColor: 'var(--theme-button-bg)', color: 'var(--theme-button-text)' }}
                       whileHover={{ scale: 1.1 }}
                     >
-                      {user?.role === 'superadmin' ? '👑' : '👤'}
+                      {user?.role === 'superadmin' ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
                     </motion.div>
                     <div className="text-sm text-right">
                       <p className="font-bold" style={{ color: 'var(--theme-text)' }}>
-                        {user?.name || user?.email?.split('@')[0] || 'User'}
+                        {getDisplayName()}
                       </p>
                       <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                        {user?.role === 'superadmin' ? (isGerman ? 'Super Admin' : 'Super Admin') : (isGerman ? 'Partner' : 'Partner')}
+                        {user?.role === 'superadmin' ? (isGerman ? 'Super-Administrator' : 'Super Admin') : (isGerman ? 'Partner' : 'Partner')}
                       </p>
                     </div>
                   </div>
