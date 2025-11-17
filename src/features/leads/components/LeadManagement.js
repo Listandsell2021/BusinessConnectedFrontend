@@ -982,14 +982,43 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const partnerId = selectedPartners[0];
       const response = await leadsAPI.assign(selectedLead.id, partnerId);
 
-      if (response.data.success) {
-        toast.success('Lead assigned successfully');
+      console.log('Assignment response:', response.data); // Debug log
 
-        // Show capacity warning if exists (using toast() since toast.warning doesn't exist)
-        if (response.data.warning) {
-          toast(response.data.warning, {
-            duration: 4000,
-            icon: '⚠️'
+      if (response.data.success) {
+        // Show success message
+        toast.success(isGerman ? 'Lead erfolgreich zugewiesen' : 'Lead assigned successfully');
+
+        // Show capacity info if exists
+        if (response.data.capacityInfo) {
+          // Translate the capacity message
+          let capacityMessage = response.data.capacityInfo;
+          const isOverCapacity = capacityMessage.includes('at/over capacity');
+
+          if (isGerman) {
+            // Parse the numbers from the message
+            const match = capacityMessage.match(/(\d+)\/(\d+)/);
+            if (match) {
+              if (isOverCapacity) {
+                capacityMessage = `Partner ist bei/über Kapazität: ${match[1]}/${match[2]} Leads diese Woche`;
+              } else {
+                capacityMessage = `Partner-Kapazität: ${match[1]}/${match[2]} Leads diese Woche`;
+              }
+            }
+          }
+
+          // Show capacity info with appropriate styling
+          toast(capacityMessage, {
+            duration: 6000,
+            icon: isOverCapacity ? '⚠️' : 'ℹ️',
+            style: isOverCapacity ? {
+              background: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #f59e0b'
+            } : {
+              background: '#dbeafe',
+              color: '#1e40af',
+              border: '1px solid #3b82f6'
+            }
           });
         }
 
@@ -2956,8 +2985,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     >
                       <span className="text-green-600">📊</span>
                       <div>
-                        <div className="font-medium">Export to Excel</div>
-                        <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .xlsx file</div>
+                        <div className="font-medium">{isGerman ? 'Excel-Export' : 'Export to Excel'}</div>
+                        <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>{isGerman ? '.xlsx Datei' : 'Download as .xlsx file'}</div>
                       </div>
                     </button>
                     <button
@@ -2969,8 +2998,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     >
                       <span className="text-red-600">📄</span>
                       <div>
-                        <div className="font-medium">Export to PDF</div>
-                        <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .pdf file</div>
+                        <div className="font-medium">{isGerman ? 'PDF-Export' : 'Export to PDF'}</div>
+                        <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>{isGerman ? '.pdf Datei' : 'Download as .pdf file'}</div>
                       </div>
                     </button>
                   </div>
@@ -3038,40 +3067,44 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       {/* Filters - show for both leads and cancelled requests tabs */}
       {currentView === 'table' && (
         <motion.div
-          className="flex gap-3 p-4 rounded-lg mb-6"
+          className="grid grid-cols-4 gap-3 p-4 rounded-lg mb-6"
           style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Search */}
-          <div className="flex-1">
+          <div className="min-w-0">
             <input
               type="text"
               placeholder={isGerman ? 'Suche nach ID, Name, E-Mail...' : 'Search by ID, name, email...'}
               value={filters.searchTerm}
               onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
               style={{
                 backgroundColor: 'var(--theme-input-bg)',
                 borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
+                color: 'var(--theme-text)',
+                minWidth: '100%',
+                height: '42px'
               }}
             />
           </div>
 
           {/* Status Filter */}
-          <div className="flex-1">
+          <div className="min-w-0">
             <select
               value={filters.status}
               onChange={(e) => {
                 console.log('Status filter changed to:', e.target.value);
                 setFilters(prev => ({ ...prev, status: e.target.value }));
               }}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
               style={{
                 backgroundColor: 'var(--theme-input-bg)',
                 borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
+                color: 'var(--theme-text)',
+                minWidth: '100%',
+                height: '42px'
               }}
             >
               <option value="all">{isGerman ? 'Alle Status' : 'All Status'}</option>
@@ -3104,35 +3137,39 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           </div>
 
           {/* City Filter */}
-          <div className="flex-1">
+          <div className="min-w-0">
             <input
               type="text"
-              placeholder={currentService === 'moving' 
+              placeholder={currentService === 'moving'
                 ? (isGerman ? 'Abhol- oder Zielort...' : 'Pickup or destination city...')
                 : (isGerman ? 'Stadt...' : 'City...')
               }
               value={filters.city}
               onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
               style={{
                 backgroundColor: 'var(--theme-input-bg)',
                 borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
+                color: 'var(--theme-text)',
+                minWidth: '100%',
+                height: '42px'
               }}
             />
           </div>
 
 
           {/* Date Filter */}
-          <div className="space-y-2 flex-1">
+          <div className="space-y-2 min-w-0">
             <select
               value={dateFilter.type}
               onChange={(e) => setDateFilter(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
               style={{
                 backgroundColor: 'var(--theme-input-bg)',
                 borderColor: 'var(--theme-border)',
-                color: 'var(--theme-text)'
+                color: 'var(--theme-text)',
+                minWidth: '100%',
+                height: '42px'
               }}
             >
               <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
@@ -4370,7 +4407,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6 pb-4 px-6 pt-6 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <div className="flex justify-between items-center mb-6 pb-3 px-6 pt-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
                 <div>
                   <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--theme-text)' }}>
                     {t('leads.assignLead')}
@@ -4398,22 +4435,22 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               {/* Lead Information */}
               {selectedLead && (
                 <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
-                  <h3 className="font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>Lead Details</h3>
+                  <h3 className="font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Lead-Details' : 'Lead Details'}</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <strong style={{ color: 'var(--theme-text)' }}>Customer:</strong> 
+                      <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Kunde:' : 'Customer:'}</strong>
                       <span style={{ color: 'var(--theme-text)' }}> {selectedLead.name}</span>
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--theme-text)' }}>Location:</strong> 
+                      <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Standort:' : 'Location:'}</strong>
                       <span style={{ color: 'var(--theme-text)' }}> {selectedLead.city}</span>
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--theme-text)' }}>Service:</strong> 
+                      <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Dienst:' : 'Service:'}</strong>
                       <span style={{ color: 'var(--theme-text)' }}> {translateService(selectedLead.serviceType || currentService)}</span>
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--theme-text)' }}>Status:</strong> 
+                      <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Status:' : 'Status:'}</strong>
                       <span style={{ color: 'var(--theme-text)' }}> {translateStatus(selectedLead.status)}</span>
                     </div>
                   </div>
@@ -4424,14 +4461,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold" style={{ color: 'var(--theme-text)' }}>
-                    Suggested Partners ({filteredPartners.length})
+                    {isGerman ? 'Vorgeschlagene Partner' : 'Suggested Partners'} ({filteredPartners.length})
                   </h3>
 
                   {/* Search Input */}
                   <div className="relative w-64">
                     <input
                       type="text"
-                      placeholder="Search partners..."
+                      placeholder={isGerman ? 'Partner suchen...' : 'Search partners...'}
                       value={partnerSearchQuery}
                       onChange={handleSearchInputChange}
                       className="w-full px-4 py-2 pl-12 text-sm rounded-md border focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-colors"
@@ -4469,7 +4506,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 : 'text-gray-500 hover:text-gray-700'
                             }`}
                           >
-                            Basic ({partnerTabs.basic.count})
+                            {isGerman ? 'Basis' : 'Basic'} ({partnerTabs.basic.count})
                           </button>
                           <button
                             onClick={() => handlePartnerFilterChange('exclusive')}
@@ -4479,7 +4516,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 : 'text-gray-500 hover:text-gray-700'
                             }`}
                           >
-                            Exclusive ({partnerTabs.exclusive.count})
+                            {isGerman ? 'Exklusiv' : 'Exclusive'} ({partnerTabs.exclusive.count})
                           </button>
                         </>
                       )}
@@ -4494,7 +4531,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               : 'text-gray-500 hover:text-gray-700'
                           }`}
                         >
-                          Searched Partners ({filteredPartners.length})
+                          {isGerman ? 'Gesuchte Partner' : 'Searched Partners'} ({filteredPartners.length})
                         </button>
                       )}
                     </div>
@@ -4504,8 +4541,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 {partnersLoading ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                    <p className="font-medium" style={{ color: 'var(--theme-text)' }}>Loading partners...</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--theme-muted)' }}>Finding the best matches for your lead</p>
+                    <p className="font-medium" style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Partner werden geladen...' : 'Loading partners...'}</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Die besten Partner für Ihren Lead werden gesucht' : 'Finding the best matches for your lead'}</p>
                   </div>
                 ) : !showTabs && !partnerSearchQuery.trim() ? (
                   // When no suggested partners and no search query, show message to search
@@ -4516,10 +4553,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       </svg>
                     </div>
                     <p className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                      No suggested partners for this lead
+                      {isGerman ? 'Keine vorgeschlagenen Partner für diesen Lead' : 'No suggested partners for this lead'}
                     </p>
                     <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      Search for partners by company name, email, or partner ID above
+                      {isGerman ? 'Suchen Sie nach Partnern nach Firmenname, E-Mail oder Partner-ID oben' : 'Search for partners by company name, email, or partner ID above'}
                     </p>
                   </div>
                 ) : filteredPartners.length === 0 ? (
@@ -4530,10 +4567,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       </svg>
                     </div>
                     <p className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                      No Search Results
+                      {isGerman ? 'Keine Suchergebnisse' : 'No Search Results'}
                     </p>
                     <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      No partners found matching &quot;{partnerSearchQuery}&quot;
+                      {isGerman ? `Keine Partner gefunden für "${partnerSearchQuery}"` : `No partners found matching "${partnerSearchQuery}"`}
                     </p>
                   </div>
                 ) : (
@@ -4777,12 +4814,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <div className="text-sm space-y-1 mb-4" style={{ color: 'var(--theme-text)' }}>
                     <div>
                       <span style={{ color: 'var(--theme-text)' }}>
-                        Basic partners - multiple selection allowed
+                        {isGerman ? 'Basis-Partner - Mehrfachauswahl erlaubt' : 'Basic partners - multiple selection allowed'}
                       </span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--theme-text)' }}>
-                        Exclusive partners - single selection
+                        {isGerman ? 'Exklusive Partner - Einzelauswahl' : 'Exclusive partners - single selection'}
                       </span>
                     </div>
                   </div>
@@ -4790,13 +4827,13 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     <button
                     onClick={handleCloseAssignModal}
                     className="px-4 py-2 border rounded-lg font-medium hover:opacity-80"
-                    style={{ 
-                      borderColor: 'var(--theme-border)', 
+                    style={{
+                      borderColor: 'var(--theme-border)',
                       color: 'var(--theme-text)',
                       backgroundColor: 'var(--theme-bg-secondary)'
                     }}
                   >
-                    Cancel
+                    {isGerman ? 'Abbrechen' : 'Cancel'}
                   </button>
                   <button
                     onClick={handleConfirmAssignment}
@@ -4810,10 +4847,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     {assigningLead ? (
                       <span className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Assigning...
+                        {isGerman ? 'Wird zugewiesen...' : 'Assigning...'}
                       </span>
                     ) : (
-                      `Assign to ${selectedPartners.length} Partner${selectedPartners.length !== 1 ? 's' : ''}`
+                      isGerman
+                        ? `Zu ${selectedPartners.length} Partner${selectedPartners.length !== 1 ? 'n' : ''} zuweisen`
+                        : `Assign to ${selectedPartners.length} Partner${selectedPartners.length !== 1 ? 's' : ''}`
                     )}
                   </button>
                   </div>

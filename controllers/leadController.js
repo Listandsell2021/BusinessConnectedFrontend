@@ -1965,11 +1965,13 @@ const assignLead = async (req, res) => {
     });
 
     const avgLeadsPerWeek = partner.preferences?.averageLeadsPerWeek || 5;
-    
-    // Warn if over capacity (but still allow assignment)
-    let capacityWarning = null;
+
+    // Always show capacity info after assignment
+    let capacityInfo = null;
     if (currentWeekLeadsCount >= avgLeadsPerWeek) {
-      capacityWarning = `Partner is at/over capacity: ${currentWeekLeadsCount}/${avgLeadsPerWeek} leads this week`;
+      capacityInfo = `Partner is at/over capacity: ${currentWeekLeadsCount}/${avgLeadsPerWeek} leads this week`;
+    } else {
+      capacityInfo = `Partner capacity: ${currentWeekLeadsCount}/${avgLeadsPerWeek} leads this week`;
     }
 
     // Check if partner has an active (non-rejected, non-cancelled) assignment
@@ -2028,7 +2030,7 @@ const assignLead = async (req, res) => {
       success: true,
       message: 'Lead assigned successfully',
       lead,
-      ...(capacityWarning && { warning: capacityWarning }),
+      capacityInfo: capacityInfo,
       assignmentInfo: {
         partnerName: partner.companyName,
         partnerType: partner.partnerType,

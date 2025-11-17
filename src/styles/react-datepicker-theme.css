@@ -68,11 +68,11 @@
   display: block !important;
   height: 0.5rem !important;
   width: 0.5rem !important;
-  transform: rotate(-45deg) !important;
+  transform: rotate(225deg) !important;
 }
 
 .react-datepicker__navigation--next .react-datepicker__navigation-icon::before {
-  transform: rotate(45deg);
+  transform: rotate(45deg) !important;
 }
 
 .react-datepicker__day-names {
