@@ -1363,7 +1363,14 @@ const LogsModule = () => {
                     {isGerman ? 'Nachricht:' : 'Message:'}
                   </strong>
                   <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>
-                    {selectedLog.details || selectedLog.message || 'No message available'}
+                    {isGerman
+                      ? (selectedLog.originalMessage_de && selectedLog.originalMessage_de.trim() !== ''
+                          ? selectedLog.originalMessage_de
+                          : selectedLog.details)
+                      : (selectedLog.originalMessage && selectedLog.originalMessage.trim() !== ''
+                          ? selectedLog.originalMessage
+                          : selectedLog.details)
+                    }
                   </div>
                 </div>
 
@@ -1376,7 +1383,7 @@ const LogsModule = () => {
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       {selectedLog.metadata?.ipAddress && (
                         <div>
-                          <span style={{ color: 'var(--theme-muted)' }}>IP Address:</span>
+                          <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'IP-Adresse:' : 'IP Address:'}</span>
                           <div className="font-mono mt-1" style={{ color: 'var(--theme-text)' }}>
                             {selectedLog.metadata.ipAddress}
                           </div>
@@ -1384,7 +1391,7 @@ const LogsModule = () => {
                       )}
                       {selectedLog.sourceDomain && (
                         <div>
-                          <span style={{ color: 'var(--theme-muted)' }}>Domain:</span>
+                          <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Domäne:' : 'Domain:'}</span>
                           <div className="mt-1" style={{ color: 'var(--theme-text)' }}>
                             {selectedLog.sourceDomain}
                           </div>
@@ -1393,7 +1400,7 @@ const LogsModule = () => {
                     </div>
                     {selectedLog.metadata?.userAgent && (
                       <div className="mt-4">
-                        <span style={{ color: 'var(--theme-muted)' }}>User Agent:</span>
+                        <span style={{ color: 'var(--theme-muted)' }}>{isGerman ? 'Browser-Agent:' : 'User Agent:'}</span>
                         <div className="mt-1 p-3 rounded border text-sm font-mono break-all select-text" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)', borderColor: 'var(--theme-border)' }}>
                           {selectedLog.metadata.userAgent}
                         </div>
