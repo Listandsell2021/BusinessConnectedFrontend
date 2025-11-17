@@ -16,9 +16,10 @@ const EnhancedIncomeInvoices = () => {
   const [partners, setPartners] = useState([]);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [partnerDetails, setPartnerDetails] = useState({
-    paidLeads: [],
-    unpaidLeads: [],
-    invoices: []
+    unpaidLeads: [], // Leads without invoices
+    invoicedLeads: [], // Leads in invoices but not paid
+    invoices: [],
+    paidLeads: [] // Leads in paid invoices
   });
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -148,15 +149,13 @@ const EnhancedIncomeInvoices = () => {
   const loadPartnerDetails = async (partnerId) => {
     setDetailLoading(true);
     try {
-      const periodParams = {
-        startDate: new Date(filters.year, filters.month - 1, 1).toISOString(),
-        endDate: new Date(filters.year, filters.month, 0).toISOString()
-      };
+      const periodStart = new Date(filters.year, filters.month - 1, 1);
+      const periodEnd = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
 
-      // Get partner's leads for the period
-      // Include both accepted and cancel_requested leads, but exclude cancelled leads
+      // Get ALL partner's leads (no date filter - we'll filter by acceptedAt on frontend)
+      // This ensures we capture leads that were assigned earlier but accepted in the selected month
       const leadsResponse = await partnersAPI.getLeads(partnerId, {
-        ...periodParams
+        // Don't pass date filters - we'll filter client-side by acceptedAt
         // Don't filter by status here - we'll filter client-side to include accepted and cancel_requested
       });
 
@@ -196,13 +195,26 @@ const EnhancedIncomeInvoices = () => {
         }
 
         // Find ALL valid assignments for this partner (not just one)
+        // Filter by acceptedAt date to ensure we only show leads accepted in the selected period
         const validAssignments = partnerAssignments.filter(assignment => {
           const matchesPartner = assignment.partner === partnerId ||
                                 assignment.partner?._id === partnerId ||
                                 assignment.partner?.$oid === partnerId;
           const hasValidStatus = assignment.status === 'accepted' ||
                                 assignment.status === 'cancellationRequested';
-          return matchesPartner && hasValidStatus;
+
+          // Check if the acceptedAt date falls within the selected period
+          let acceptedInPeriod = true;
+          if (assignment.acceptedAt) {
+            const acceptedDate = new Date(assignment.acceptedAt);
+            acceptedInPeriod = acceptedDate >= periodStart && acceptedDate <= periodEnd;
+          } else if (assignment.assignedAt) {
+            // Fallback to assignedAt if acceptedAt is not available
+            const assignedDate = new Date(assignment.assignedAt);
+            acceptedInPeriod = assignedDate >= periodStart && assignedDate <= periodEnd;
+          }
+
+          return matchesPartner && hasValidStatus && acceptedInPeriod;
         });
 
         // Create an item for each valid assignment
@@ -228,26 +240,65 @@ const EnhancedIncomeInvoices = () => {
         }))
       });
 
-      const paidLeads = assignmentItems.filter(item => item.paymentStatus === 'paid');
-      const unpaidLeads = assignmentItems.filter(item => item.paymentStatus !== 'paid');
-
-      console.log('=== PAID/UNPAID SPLIT ===', {
-        paidCount: paidLeads.length,
-        unpaidCount: unpaidLeads.length,
-        paidLeads: paidLeads.map(l => ({ leadId: l.leadId, assignmentId: l.currentAssignment._id, paymentStatus: l.paymentStatus })),
-        unpaidLeads: unpaidLeads.map(l => ({ leadId: l.leadId, assignmentId: l.currentAssignment._id, paymentStatus: l.paymentStatus }))
+      console.log('=== TOTAL ASSIGNMENT ITEMS ===', {
+        totalAssignmentItems: assignmentItems.length
       });
 
       // Get partner's invoices for the period
       const invoicesResponse = await invoicesAPI.getAll({
         partnerId,
-        ...periodParams
+        startDate: periodStart.toISOString(),
+        endDate: periodEnd.toISOString()
+      });
+
+      const invoices = invoicesResponse.data.invoices || [];
+
+      // Create a map of lead IDs that are in invoices and their payment status
+      const leadsInInvoices = new Map();
+      invoices.forEach(invoice => {
+        invoice.items.forEach(item => {
+          const leadId = item.leadId?._id || item.leadId;
+          if (leadId) {
+            leadsInInvoices.set(leadId.toString(), {
+              invoiceStatus: invoice.status,
+              invoiceId: invoice._id
+            });
+          }
+        });
+      });
+
+      // Categorize leads based on invoice status
+      const unpaidLeads = []; // Leads NOT in any invoice
+      const invoicedLeads = []; // Leads in unpaid invoices
+      const paidLeads = []; // Leads in paid invoices
+
+      assignmentItems.forEach(item => {
+        const leadIdStr = item._id.toString();
+        const invoiceInfo = leadsInInvoices.get(leadIdStr);
+
+        if (!invoiceInfo) {
+          // Lead is not in any invoice
+          unpaidLeads.push(item);
+        } else if (invoiceInfo.invoiceStatus === 'paid') {
+          // Lead is in a paid invoice
+          paidLeads.push(item);
+        } else {
+          // Lead is in an unpaid invoice (pending/generated)
+          invoicedLeads.push(item);
+        }
+      });
+
+      console.log('=== CATEGORIZED LEADS ===', {
+        unpaidCount: unpaidLeads.length,
+        invoicedCount: invoicedLeads.length,
+        paidCount: paidLeads.length
       });
 
       setPartnerDetails({
-        paidLeads,
         unpaidLeads,
-        invoices: invoicesResponse.data.invoices || []
+        invoicedLeads,
+        invoices,
+        paidLeads
       });
     } catch (error) {
       console.error('Error loading partner details:', error);
@@ -286,7 +337,7 @@ const EnhancedIncomeInvoices = () => {
   const handleBackToTable = () => {
     setCurrentView('table');
     setSelectedPartner(null);
-    setPartnerDetails({ paidLeads: [], unpaidLeads: [], invoices: [] });
+    setPartnerDetails({ unpaidLeads: [], invoicedLeads: [], invoices: [], paidLeads: [] });
   };
 
   // View Invoice Details
@@ -514,18 +565,12 @@ const EnhancedIncomeInvoices = () => {
   // Update Invoice Payment Status
   const updateInvoicePaymentStatus = async (invoiceId, status) => {
     try {
-      // Update invoice status
-      await invoicesAPI.markPaid(invoiceId);
-
-      // Get invoice details to get all lead IDs
-      const response = await invoicesAPI.getById(invoiceId);
-      const invoice = response.data.invoice;
-
-      // Update all leads in this invoice to the same payment status
-      for (const item of invoice.items) {
-        if (item.leadId) {
-          await leadsAPI.updateStatus(item.leadId._id || item.leadId, { paymentStatus: status });
-        }
+      // Update invoice status using dedicated endpoints
+      if (status === 'paid') {
+        await invoicesAPI.markPaid(invoiceId);
+      } else {
+        // Use the mark-unpaid endpoint
+        await invoicesAPI.markUnpaid(invoiceId);
       }
 
       toast.success(isGerman
@@ -533,7 +578,7 @@ const EnhancedIncomeInvoices = () => {
         : `Invoice marked as ${status}`
       );
 
-      // Reload data
+      // Reload data to reflect the changes
       loadPartners();
       if (selectedPartner) {
         loadPartnerDetails(selectedPartner._id);
@@ -655,8 +700,9 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
         <div className="flex space-x-0 border-b" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)' }}>
           {[
             { id: 'unpaid', label: isGerman ? 'Unbezahlte Leads' : 'Unpaid Leads', count: partnerDetails.unpaidLeads.length },
-            { id: 'paid', label: isGerman ? 'Bezahlte Leads' : 'Paid Leads', count: partnerDetails.paidLeads.length },
-            { id: 'invoices', label: isGerman ? 'Rechnungen' : 'Invoices', count: partnerDetails.invoices.length }
+            { id: 'invoiced', label: isGerman ? 'Rechnungen erstellt' : 'Invoice Created Leads', count: partnerDetails.invoicedLeads.length },
+            { id: 'invoices', label: isGerman ? 'Rechnungen' : 'Invoices', count: partnerDetails.invoices.length },
+            { id: 'paid', label: isGerman ? 'Bezahlte Leads' : 'Paid Leads', count: partnerDetails.paidLeads.length }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -697,11 +743,14 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 {activeDetailTab === 'unpaid' && (
                   <LeadsTable leads={partnerDetails.unpaidLeads} type="unpaid" />
                 )}
-                {activeDetailTab === 'paid' && (
-                  <LeadsTable leads={partnerDetails.paidLeads} type="paid" />
+                {activeDetailTab === 'invoiced' && (
+                  <LeadsTable leads={partnerDetails.invoicedLeads} type="invoiced" />
                 )}
                 {activeDetailTab === 'invoices' && (
                   <InvoicesTable invoices={partnerDetails.invoices} onDownload={downloadInvoicePDF} onView={viewInvoiceDetails} />
+                )}
+                {activeDetailTab === 'paid' && (
+                  <LeadsTable leads={partnerDetails.paidLeads} type="paid" />
                 )}
               </div>
             )}
@@ -868,7 +917,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
   const InvoicesTable = ({ invoices, onDownload, onView }) => {
     if (invoices.length === 0) {
       return (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8" style={{ color: 'var(--theme-muted)' }}>
           {isGerman ? 'Keine Rechnungen gefunden' : 'No invoices found'}
         </div>
       );
@@ -876,33 +925,33 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
 
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
+          <thead style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Rechnung ID' : 'Invoice ID'}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Rechnungsperiode' : 'Billing Period'}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Betrag' : 'Amount'}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Erstellt' : 'Created'}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Aktionen' : 'Actions'}
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
             {invoices.map((invoice) => (
               <tr key={invoice._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                   {invoice.invoiceNumber || `INV-${invoice._id.slice(-6)}`}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                   {invoice.billingPeriod ?
                     `${new Date(invoice.billingPeriod.from).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}` :
                     'N/A'
@@ -911,7 +960,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
                   {formatCurrency(invoice.total)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                   {formatDate(invoice.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

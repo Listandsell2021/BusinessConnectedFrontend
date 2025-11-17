@@ -229,6 +229,7 @@ export const invoicesAPI = {
   update: (id, data) => api.put(`/invoices/${id}`, data),
   delete: (id) => api.delete(`/invoices/${id}`),
   markPaid: (id) => api.patch(`/invoices/${id}/paid`),
+  markUnpaid: (id) => api.put(`/invoices/${id}/mark-unpaid`),
   generatePDF: (id) => api.get(`/invoices/${id}/download`, { responseType: 'blob' }),
   getStats: () => api.get('/invoices/stats'),
   getPartnerInvoices: (partnerId, params) => api.get(`/invoices/partner/${partnerId}`, { params }),
