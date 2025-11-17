@@ -2297,18 +2297,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
-      partial_assigned: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-      assigned: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      cancel_requested: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      cancellationRequested: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      cancellation_rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      cancellation_approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      completed: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+      pending: 'bg-yellow-100 text-yellow-800 border border-yellow-300 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700',
+      partial_assigned: 'bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-700',
+      assigned: 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700',
+      accepted: 'bg-green-100 text-green-800 border border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700',
+      approved: 'bg-green-100 text-green-800 border border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700',
+      cancel_requested: 'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
+      cancellationRequested: 'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700',
+      cancelled: 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700',
+      rejected: 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700',
+      cancellation_rejected: 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700',
+      cancellation_approved: 'bg-green-100 text-green-800 border border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700',
+      completed: 'bg-gray-100 text-gray-800 border border-gray-300 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700'
     };
     return colors[status] || colors.pending;
   };

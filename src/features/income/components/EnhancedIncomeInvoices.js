@@ -983,7 +983,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                         title={isGerman ? 'Als unbezahlt markieren' : 'Mark as Unpaid'}
                       >
                         <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                         </svg>
                         {isGerman ? 'Unbezahlt' : 'Unpaid'}
                       </button>
@@ -1691,7 +1691,7 @@ ${isGerman ? 'Ihr ProvenHub Team' : 'Your ProvenHub Team'}`;
                     className="hover:bg-opacity-50"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                      {partner._id.slice(-6)}
+                      {partner.partnerId || partner._id.slice(-6)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                       {typeof partner.companyName === 'object' ? partner.companyName?.companyName || partner.companyName?._id || 'N/A' : partner.companyName || 'N/A'}

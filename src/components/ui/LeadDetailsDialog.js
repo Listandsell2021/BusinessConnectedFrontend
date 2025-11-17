@@ -582,15 +582,15 @@ const LeadDetailsDialog = ({
                     const displayStatus = isPartner ? (leadData.partnerStatus || leadData.status) : leadData.status;
 
                     return (
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        displayStatus === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                        displayStatus === 'accepted' ? 'bg-green-100 text-green-800' :
-                        displayStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                        displayStatus === 'partial_assigned' ? 'bg-blue-100 text-blue-800' :
-                        displayStatus === 'assigned' ? 'bg-blue-100 text-blue-800' :
-                        displayStatus === 'cancelled' || displayStatus === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
-                        displayStatus === 'cancellationRequested' || displayStatus === 'cancel_requested' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${
+                        displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        displayStatus === 'accepted' ? 'bg-green-100 text-green-800 border-green-400' :
+                        displayStatus === 'rejected' ? 'bg-red-100 text-red-800 border-red-300' :
+                        displayStatus === 'partial_assigned' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                        displayStatus === 'assigned' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                        displayStatus === 'cancelled' || displayStatus === 'cancellation_approved' ? 'bg-red-100 text-red-800 border-red-300' :
+                        displayStatus === 'cancellationRequested' || displayStatus === 'cancel_requested' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                        'bg-gray-100 text-gray-800 border-gray-300'
                       }`}>
                         {displayStatus === 'pending' ? (isGerman ? 'Ausstehend' : 'Pending') :
                          displayStatus === 'accepted' ? (isGerman ? 'Akzeptiert' : 'Accepted') :

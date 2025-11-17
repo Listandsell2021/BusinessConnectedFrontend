@@ -3173,16 +3173,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               }
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                lead.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                                lead.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
-                                lead.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                lead.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                lead.status === 'cancelled' || lead.status === 'cancellation_approved' ? 'bg-red-100 text-red-800' :
-                                lead.status === 'cancel_requested' || lead.status === 'cancellationRequested' ? 'bg-purple-100 text-purple-800' :
-                                lead.status === 'cancellation_rejected' ? 'bg-red-100 text-red-800' :
-                                lead.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                                'bg-gray-100 text-gray-800'
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
+                                lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                lead.status === 'accepted' ? 'bg-green-100 text-green-800 border-green-400' :
+                                lead.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-300' :
+                                lead.status === 'cancelled' || lead.status === 'cancellation_approved' ? 'bg-red-100 text-red-800 border-red-300' :
+                                lead.status === 'cancel_requested' || lead.status === 'cancellationRequested' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                                lead.status === 'cancellation_rejected' ? 'bg-red-100 text-red-800 border-red-300' :
+                                lead.status === 'completed' ? 'bg-gray-100 text-gray-800 border-gray-300' :
+                                'bg-gray-100 text-gray-800 border-gray-300'
                               }`}>
                                 {translateStatus(lead.status)}
                               </span>

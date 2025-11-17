@@ -1072,7 +1072,7 @@ export default function Dashboard({ initialData = {} }) {
                           <div className="flex items-center space-x-2">
                             <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                             <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                              {notification.message}
+                              {isGerman && notification.message_de ? notification.message_de : notification.message}
                             </p>
                           </div>
                           <p className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
@@ -1232,7 +1232,7 @@ export default function Dashboard({ initialData = {} }) {
                           </motion.span>
                           <div className="flex-1">
                             <p className="text-lg font-medium" style={{ color: 'var(--theme-text)' }}>
-                              {notification.message}
+                              {isGerman && notification.message_de ? notification.message_de : notification.message}
                             </p>
                             <div className="flex items-center space-x-4 mt-1">
                               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
