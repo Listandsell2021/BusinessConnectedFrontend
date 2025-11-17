@@ -41,11 +41,59 @@ const LeadDetailsDialog = ({
         // Handle other objects by showing key-value pairs in a compact inline format
         const entries = Object.entries(value).filter(([k, v]) => v !== null && v !== undefined);
         if (entries.length > 0 && entries.length <= 6) {
+          // Inline translations for nested object labels
+          const nestedLabelTranslations = {
+            'futurePropertyType': isGerman ? 'Zukünftiger Objekttyp' : 'Future Property Type',
+            'elevatorAvailable': isGerman ? 'Aufzug verfügbar' : 'Elevator Available',
+            'otherImportantInfo': isGerman ? 'Andere wichtige Infos' : 'Other Important Info',
+            'destinationLocation': isGerman ? 'Zielort' : 'Destination Location',
+            'startDate': isGerman ? 'Startdatum' : 'Start Date',
+            'endDate': isGerman ? 'Enddatum' : 'End Date',
+            'preferredWeekdays': isGerman ? 'Bevorzugte Wochentage' : 'Preferred Weekdays',
+            'timeFlexibility': isGerman ? 'Zeitliche Flexibilität' : 'Time Flexibility'
+          };
+
+          // Inline translations for nested object values
+          const nestedValueTranslations = {
+            'own_home': isGerman ? 'Eigenheim' : 'Own Home',
+            'own_house': isGerman ? 'Eigenhaus' : 'Own House',
+            'own_apartment': isGerman ? 'Eigentumswohnung' : 'Own Apartment',
+            'rental_apartment': isGerman ? 'Mietwohnung' : 'Rental Apartment',
+            'rental_house': isGerman ? 'Miethaus' : 'Rental House',
+            'true': isGerman ? 'Ja' : 'Yes',
+            'false': isGerman ? 'Nein' : 'No',
+            'monday': isGerman ? 'Montag' : 'Monday',
+            'tuesday': isGerman ? 'Dienstag' : 'Tuesday',
+            'wednesday': isGerman ? 'Mittwoch' : 'Wednesday',
+            'thursday': isGerman ? 'Donnerstag' : 'Thursday',
+            'friday': isGerman ? 'Freitag' : 'Friday',
+            'saturday': isGerman ? 'Samstag' : 'Saturday',
+            'sunday': isGerman ? 'Sonntag' : 'Sunday',
+            'evening_preferred': isGerman ? 'Abends bevorzugt' : 'Evening Preferred',
+            'morning_preferred': isGerman ? 'Morgens bevorzugt' : 'Morning Preferred',
+            'afternoon_preferred': isGerman ? 'Nachmittags bevorzugt' : 'Afternoon Preferred'
+          };
+
           return (
             <div className="space-y-1">
               {entries.map(([k, v]) => {
-                const label = k.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase());
-                const val = renderValue(v, depth + 1);
+                const label = nestedLabelTranslations[k] || k.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase());
+                let val;
+                if (typeof v === 'boolean') {
+                  val = v ? (isGerman ? 'Ja' : 'Yes') : (isGerman ? 'Nein' : 'No');
+                } else if (typeof v === 'string' && nestedValueTranslations[v]) {
+                  val = nestedValueTranslations[v];
+                } else if (typeof v === 'string' && v.includes(',')) {
+                  // Handle comma-separated values like weekdays
+                  val = v.split(',').map(item => {
+                    const trimmed = item.trim();
+                    return nestedValueTranslations[trimmed] || trimmed.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  }).join(', ');
+                } else if (typeof v === 'string') {
+                  val = v.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                } else {
+                  val = renderValue(v, depth + 1);
+                }
                 return (
                   <div key={k} className="flex flex-wrap">
                     <span className="font-medium mr-2" style={{ color: 'var(--theme-muted)' }}>
@@ -72,6 +120,37 @@ const LeadDetailsDialog = ({
     return str.length > 100 ? str.substring(0, 100) + '...' : str;
   };
 
+  // Simple value formatter for nested objects (called before formatFormValue is defined)
+  const formatSimpleValue = (key, value) => {
+    if (value === null || value === undefined || value === '') return '';
+
+    // Boolean values
+    if (typeof value === 'boolean' || value === 'true' || value === 'false') {
+      const boolVal = value === true || value === 'true';
+      return boolVal ? (isGerman ? 'Ja' : 'Yes') : (isGerman ? 'Nein' : 'No');
+    }
+
+    // Property types
+    const propertyTypes = {
+      'own_home': isGerman ? 'Eigenheim' : 'Own Home',
+      'own_house': isGerman ? 'Eigenhaus' : 'Own House',
+      'own_apartment': isGerman ? 'Eigentumswohnung' : 'Own Apartment',
+      'rental_apartment': isGerman ? 'Mietwohnung' : 'Rental Apartment',
+      'rental_house': isGerman ? 'Miethaus' : 'Rental House'
+    };
+
+    if (typeof value === 'string' && propertyTypes[value]) {
+      return propertyTypes[value];
+    }
+
+    // Default: replace underscores and capitalize
+    if (typeof value === 'string') {
+      return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    return value;
+  };
+
   // Format and translate form values
   const formatFormValue = (key, value) => {
     if (value === null || value === undefined || value === '') {
@@ -93,7 +172,7 @@ const LeadDetailsDialog = ({
     }
 
     // Time preferences
-    if (key === 'preferredContactTime' || key === 'timeFlexibility') {
+    if (key === 'preferredContactTime' || key === 'timeFlexibility' || key === 'bestReachTime') {
       const timePrefs = {
         'morning_preferred': isGerman ? 'Morgens bevorzugt' : 'Morning Preferred',
         'afternoon_preferred': isGerman ? 'Nachmittags bevorzugt' : 'Afternoon Preferred',
@@ -105,7 +184,42 @@ const LeadDetailsDialog = ({
         'flexible': isGerman ? 'Flexibel' : 'Flexible',
         'specific_time': isGerman ? 'Bestimmte Zeit' : 'Specific Time'
       };
-      return timePrefs[value] || value.replace(/_/g, ' ');
+
+      if (timePrefs[value]) {
+        return timePrefs[value];
+      }
+
+      // Handle time ranges like "8-12", "12-16", "16-20"
+      const timeRangeMatch = value.match(/^(\d{1,2})-(\d{1,2})$/);
+      if (timeRangeMatch) {
+        const startHour = parseInt(timeRangeMatch[1]);
+        const endHour = parseInt(timeRangeMatch[2]);
+
+        // Determine time period
+        let timePeriod = '';
+        if (startHour >= 6 && endHour <= 12) {
+          timePeriod = isGerman ? ' (Morgens)' : ' (Morning)';
+        } else if (startHour >= 12 && endHour <= 18) {
+          timePeriod = isGerman ? ' (Nachmittags)' : ' (Afternoon)';
+        } else if (startHour >= 18 || endHour <= 6) {
+          timePeriod = isGerman ? ' (Abends)' : ' (Evening)';
+        }
+
+        if (isGerman) {
+          return `${startHour}:00 - ${endHour}:00 Uhr${timePeriod}`;
+        } else {
+          // Convert to 12-hour format for English
+          const formatHour = (h) => {
+            if (h === 0 || h === 24) return '12:00 AM';
+            if (h === 12) return '12:00 PM';
+            if (h < 12) return `${h}:00 AM`;
+            return `${h - 12}:00 PM`;
+          };
+          return `${formatHour(startHour)} - ${formatHour(endHour)}${timePeriod}`;
+        }
+      }
+
+      return value.replace(/_/g, ' ');
     }
 
     // Move date flexibility
@@ -144,12 +258,55 @@ const LeadDetailsDialog = ({
     if (key === 'salutation') {
       const salutations = {
         'mr': isGerman ? 'Herr' : 'Mr.',
+        'mr.': isGerman ? 'Herr' : 'Mr.',
         'mrs': isGerman ? 'Frau' : 'Mrs.',
+        'mrs.': isGerman ? 'Frau' : 'Mrs.',
         'ms': isGerman ? 'Frau' : 'Ms.',
+        'ms.': isGerman ? 'Frau' : 'Ms.',
         'dr': isGerman ? 'Dr.' : 'Dr.',
-        'prof': isGerman ? 'Prof.' : 'Prof.'
+        'dr.': isGerman ? 'Dr.' : 'Dr.',
+        'prof': isGerman ? 'Prof.' : 'Prof.',
+        'prof.': isGerman ? 'Prof.' : 'Prof.',
+        'mister': isGerman ? 'Herr' : 'Mister',
+        'miss': isGerman ? 'Fräulein' : 'Miss',
+        'man': isGerman ? 'Mann' : 'Man',
+        'men': isGerman ? 'Mann' : 'Man',
+        'woman': isGerman ? 'Frau' : 'Woman',
+        'women': isGerman ? 'Frau' : 'Woman'
       };
-      return salutations[value.toLowerCase()] || value;
+      return salutations[value.toLowerCase()] || value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    // Services field (like basic_cleaning, deep_cleaning, etc.)
+    if (key === 'services' || key === 'serviceTypes' || key === 'service_types' || key === 'service' || key === 'additionalServices' || key === 'servicesWanted') {
+      const serviceTranslations = {
+        'basic_cleaning': isGerman ? 'Basis-Reinigung' : 'Basic Cleaning',
+        'deep_cleaning': isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
+        'window_cleaning': isGerman ? 'Fensterreinigung' : 'Window Cleaning',
+        'carpet_cleaning': isGerman ? 'Teppichreinigung' : 'Carpet Cleaning',
+        'move_in_cleaning': isGerman ? 'Einzugsreinigung' : 'Move In Cleaning',
+        'move_out_cleaning': isGerman ? 'Auszugsreinigung' : 'Move Out Cleaning',
+        'office_cleaning': isGerman ? 'Büroreinigung' : 'Office Cleaning',
+        'regular_cleaning': isGerman ? 'Regelmäßige Reinigung' : 'Regular Cleaning',
+        'packing_boxes': isGerman ? 'Kartons packen' : 'Packing Boxes',
+        'unpacking_service': isGerman ? 'Auspacken Service' : 'Unpacking Service',
+        'packaging_material': isGerman ? 'Verpackungsmaterial' : 'Packaging Material',
+        'furniture_lift': isGerman ? 'Möbellift' : 'Furniture Lift',
+        'furniture_removal': isGerman ? 'Möbelabbau' : 'Furniture Removal',
+        'furniture_assembly': isGerman ? 'Möbelaufbau' : 'Furniture Assembly',
+        'kitchen_dismantling': isGerman ? 'Küchenabbau' : 'Kitchen Dismantling',
+        'kitchen_assembly': isGerman ? 'Küchenaufbau' : 'Kitchen Assembly',
+        'cellar_contents': isGerman ? 'Kellerinhalte' : 'Cellar Contents',
+        'intermediate_storage': isGerman ? 'Zwischenlagerung' : 'Intermediate Storage'
+      };
+
+      if (typeof value === 'string') {
+        return serviceTranslations[value] || value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      if (Array.isArray(value)) {
+        return value.map(v => serviceTranslations[v] || v.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ');
+      }
+      return value;
     }
 
     // Weekdays
@@ -180,14 +337,39 @@ const LeadDetailsDialog = ({
     }
 
     // Move types
-    if (key === 'moveType') {
+    if (key === 'moveType' || key === 'movingType') {
       const moveTypes = {
         'private': isGerman ? 'Privat' : 'Private',
         'business': isGerman ? 'Geschäftlich' : 'Business',
         'long_distance': isGerman ? 'Fernumzug' : 'Long Distance',
         'special_transport': isGerman ? 'Spezialtransport' : 'Special Transport'
       };
-      return moveTypes[value] || value;
+      return moveTypes[value.toLowerCase()] || moveTypes[value] || value;
+    }
+
+    // Building types
+    if (key === 'buildingType' || key === 'building_type') {
+      const buildingTypes = {
+        'apartment': isGerman ? 'Wohnung' : 'Apartment',
+        'rental_apartment': isGerman ? 'Mietwohnung' : 'Rental Apartment',
+        'own_apartment': isGerman ? 'Eigentumswohnung' : 'Own Apartment',
+        'house': isGerman ? 'Haus' : 'House',
+        'rental_house': isGerman ? 'Miethaus' : 'Rental House',
+        'own_house': isGerman ? 'Eigenhaus' : 'Own House',
+        'own_home': isGerman ? 'Eigenheim' : 'Own Home',
+        'office': isGerman ? 'Büro' : 'Office',
+        'commercial': isGerman ? 'Gewerbe' : 'Commercial',
+        'studio': isGerman ? 'Studio' : 'Studio',
+        'villa': isGerman ? 'Villa' : 'Villa',
+        'flat': isGerman ? 'Wohnung' : 'Flat',
+        'room': isGerman ? 'Zimmer' : 'Room'
+      };
+      return buildingTypes[value.toLowerCase()] || buildingTypes[value] || value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Common boolean/yes-no values
+    if (typeof value === 'boolean') {
+      return value ? (isGerman ? 'Ja' : 'Yes') : (isGerman ? 'Nein' : 'No');
     }
 
     // Arrays (join with commas)
@@ -195,12 +377,130 @@ const LeadDetailsDialog = ({
       return value.join(', ');
     }
 
-    // Default: replace underscores with spaces and capitalize
+    // Default: check for common translations, then replace underscores with spaces and capitalize
     if (typeof value === 'string') {
+      // Common value translations
+      const commonTranslations = {
+        'yes': isGerman ? 'Ja' : 'Yes',
+        'no': isGerman ? 'Nein' : 'No',
+        'true': isGerman ? 'Ja' : 'Yes',
+        'false': isGerman ? 'Nein' : 'No',
+        'pending': isGerman ? 'Ausstehend' : 'Pending',
+        'accepted': isGerman ? 'Akzeptiert' : 'Accepted',
+        'rejected': isGerman ? 'Abgelehnt' : 'Rejected',
+        'assigned': isGerman ? 'Zugewiesen' : 'Assigned',
+        'cancelled': isGerman ? 'Storniert' : 'Cancelled',
+        'completed': isGerman ? 'Abgeschlossen' : 'Completed',
+        'business': isGerman ? 'Geschäftlich' : 'Business',
+        'private': isGerman ? 'Privat' : 'Private',
+        'apartment': isGerman ? 'Wohnung' : 'Apartment',
+        'rental_apartment': isGerman ? 'Mietwohnung' : 'Rental Apartment',
+        'own_apartment': isGerman ? 'Eigentumswohnung' : 'Own Apartment',
+        'house': isGerman ? 'Haus' : 'House',
+        'rental_house': isGerman ? 'Miethaus' : 'Rental House',
+        'own_house': isGerman ? 'Eigenhaus' : 'Own House',
+        'own_home': isGerman ? 'Eigenheim' : 'Own Home',
+        'office': isGerman ? 'Büro' : 'Office',
+        'commercial': isGerman ? 'Gewerbe' : 'Commercial',
+        'man': isGerman ? 'Mann' : 'Man',
+        'woman': isGerman ? 'Frau' : 'Woman',
+        'women': isGerman ? 'Frau' : 'Woman',
+        'men': isGerman ? 'Mann' : 'Man',
+        'mister': isGerman ? 'Herr' : 'Mister',
+        'miss': isGerman ? 'Fräulein' : 'Miss',
+        // Time/Date related
+        'next month': isGerman ? 'Nächsten Monat' : 'Next Month',
+        'next_month': isGerman ? 'Nächsten Monat' : 'Next Month',
+        'this month': isGerman ? 'Diesen Monat' : 'This Month',
+        'this_month': isGerman ? 'Diesen Monat' : 'This Month',
+        'asap': isGerman ? 'So bald wie möglich' : 'ASAP',
+        'flexible': isGerman ? 'Flexibel' : 'Flexible',
+        'fixed': isGerman ? 'Fest' : 'Fixed',
+        // Location types
+        'single location': isGerman ? 'Einzelner Standort' : 'Single Location',
+        'single_location': isGerman ? 'Einzelner Standort' : 'Single Location',
+        'multiple locations': isGerman ? 'Mehrere Standorte' : 'Multiple Locations',
+        'multiple_locations': isGerman ? 'Mehrere Standorte' : 'Multiple Locations',
+        // Frequency
+        'unique': isGerman ? 'Einmalig' : 'Unique',
+        'one-time': isGerman ? 'Einmalig' : 'One-Time',
+        'one_time': isGerman ? 'Einmalig' : 'One-Time',
+        'weekly': isGerman ? 'Wöchentlich' : 'Weekly',
+        'biweekly': isGerman ? 'Zweiwöchentlich' : 'Biweekly',
+        'monthly': isGerman ? 'Monatlich' : 'Monthly',
+        'daily': isGerman ? 'Täglich' : 'Daily',
+        // Services
+        'basic_cleaning': isGerman ? 'Basis-Reinigung' : 'Basic Cleaning',
+        'deep_cleaning': isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
+        'window_cleaning': isGerman ? 'Fensterreinigung' : 'Window Cleaning',
+        'carpet_cleaning': isGerman ? 'Teppichreinigung' : 'Carpet Cleaning'
+      };
+
+      // Check if the lowercase value has a translation
+      const lowerValue = value.toLowerCase();
+      if (commonTranslations[lowerValue]) {
+        return commonTranslations[lowerValue];
+      }
+
       return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
     return value;
+  };
+
+  // Translate field labels to German
+  const translateLabel = (key) => {
+    const labelTranslations = {
+      'salutation': isGerman ? 'Anrede' : 'Salutation',
+      'firstName': isGerman ? 'Vorname' : 'First Name',
+      'lastName': isGerman ? 'Nachname' : 'Last Name',
+      'email': isGerman ? 'E-Mail' : 'Email',
+      'phone': isGerman ? 'Telefon' : 'Phone',
+      'moveDateType': isGerman ? 'Umzugsdatum-Typ' : 'Move Date Type',
+      'moveDate': isGerman ? 'Umzugsdatum' : 'Move Date',
+      'desiredMoveDate': isGerman ? 'Gewünschtes Umzugsdatum' : 'Desired Move Date',
+      'additionalServices': isGerman ? 'Zusätzliche Dienste' : 'Additional Services',
+      'specialInstructions': isGerman ? 'Besondere Anweisungen' : 'Special Instructions',
+      'movingType': isGerman ? 'Umzugsart' : 'Moving Type',
+      'buildingType': isGerman ? 'Gebäudetyp' : 'Building Type',
+      'roomCount': isGerman ? 'Zimmeranzahl' : 'Room Count',
+      'flexiblePeriod': isGerman ? 'Flexibler Zeitraum' : 'Flexible Period',
+      'bestReachTime': isGerman ? 'Beste Erreichbarkeit' : 'Best Reach Time',
+      'pickupAddress': isGerman ? 'Abholadresse' : 'Pickup Address',
+      'destinationAddress': isGerman ? 'Zieladresse' : 'Destination Address',
+      'estimatedCommercialArea': isGerman ? 'Geschätzte Gewerbefläche' : 'Estimated Commercial Area',
+      'startDate': isGerman ? 'Startdatum' : 'Start Date',
+      'endDate': isGerman ? 'Enddatum' : 'End Date',
+      'services': isGerman ? 'Dienste' : 'Services',
+      'serviceTypes': isGerman ? 'Diensttypen' : 'Service Types',
+      'servicesWanted': isGerman ? 'Gewünschte Dienste' : 'Services Wanted',
+      'propertyType': isGerman ? 'Objekttyp' : 'Property Type',
+      'surfaceArea': isGerman ? 'Fläche' : 'Surface Area',
+      'preferredContactTime': isGerman ? 'Bevorzugte Kontaktzeit' : 'Preferred Contact Time',
+      'frequency': isGerman ? 'Häufigkeit' : 'Frequency',
+      'objectType': isGerman ? 'Objekttyp' : 'Object Type',
+      'cleaningFrequency': isGerman ? 'Reinigungshäufigkeit' : 'Cleaning Frequency',
+      'desiredStart': isGerman ? 'Gewünschter Beginn' : 'Desired Start',
+      'serviceAddress': isGerman ? 'Serviceadresse' : 'Service Address',
+      'venueType': isGerman ? 'Veranstaltungsort' : 'Venue Type',
+      'areaSize': isGerman ? 'Flächengröße' : 'Area Size',
+      'address': isGerman ? 'Adresse' : 'Address',
+      'locationType': isGerman ? 'Standorttyp' : 'Location Type',
+      'startDate': isGerman ? 'Startdatum' : 'Start Date',
+      'endDate': isGerman ? 'Enddatum' : 'End Date',
+      'fixedDate': isGerman ? 'Festes Datum' : 'Fixed Date',
+      'transportType': isGerman ? 'Transportart' : 'Transport Type',
+      'roomsIncluded': isGerman ? 'Zimmer inbegriffen' : 'Rooms Included',
+      'estimatedLivingSpace': isGerman ? 'Geschätzte Wohnfläche' : 'Estimated Living Space',
+      'costCoverage': isGerman ? 'Kostenübernahme' : 'Cost Coverage'
+    };
+
+    if (labelTranslations[key]) {
+      return labelTranslations[key];
+    }
+
+    // Default: convert camelCase to readable format
+    return key.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase());
   };
 
   const TableRow = ({ label, value, isContactInfo = false }) => {
@@ -283,7 +583,7 @@ const LeadDetailsDialog = ({
 
                     return (
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        displayStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        displayStatus === 'pending' ? 'bg-yellow-200 text-yellow-800' :
                         displayStatus === 'accepted' ? 'bg-green-100 text-green-800' :
                         displayStatus === 'rejected' ? 'bg-red-100 text-red-800' :
                         displayStatus === 'partial_assigned' ? 'bg-blue-100 text-blue-800' :
@@ -349,7 +649,7 @@ const LeadDetailsDialog = ({
               {/* Right Column - Service & Additional Information */}
               <div>
                 <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Service & Details' : 'Service & Details'}
+                  {isGerman ? 'Dienst & Details' : 'Service & Details'}
                 </h4>
                 <div>
                   <table className="w-full" style={{ backgroundColor: 'var(--theme-bg)', tableLayout: 'fixed' }}>
@@ -405,8 +705,24 @@ const LeadDetailsDialog = ({
                               return null;
                             }
 
-                            // Format the label
-                            const label = key.replace(/([A-Z])/g, ' $1').trim().replace(/^\w/, c => c.toUpperCase());
+                            // Skip duplicate/redundant fields (prefer more specific names)
+                            const redundantFields = [
+                              'address', // Skip if serviceAddress exists
+                              'areaSize', // Skip if surfaceArea exists
+                              'serviceTypes', // Skip if services exists
+                              'service_types' // Skip if services exists
+                            ];
+
+                            // Check if this is a redundant field that has a preferred alternative
+                            if (key === 'address' && leadData.formData.serviceAddress) return null;
+                            if (key === 'areaSize' && leadData.formData.surfaceArea) return null;
+                            if ((key === 'serviceTypes' || key === 'service_types') && leadData.formData.services) return null;
+                            if (key === 'services' && (leadData.formData.serviceTypes || leadData.formData.service_types)) {
+                              // Prefer services over serviceTypes, so don't skip
+                            }
+
+                            // Format the label with translation
+                            const label = translateLabel(key);
 
                             return (
                               <TableRow
@@ -435,7 +751,7 @@ const LeadDetailsDialog = ({
                             {leadData.user.salutation && (
                               <TableRow
                                 label={isGerman ? 'Anrede' : 'Salutation'}
-                                value={leadData.user.salutation}
+                                value={formatFormValue('salutation', leadData.user.salutation)}
                                 isContactInfo={true}
                               />
                             )}
@@ -456,7 +772,7 @@ const LeadDetailsDialog = ({
                             {leadData.user.preferredContactTime && (
                               <TableRow
                                 label={isGerman ? 'Bevorzugte Kontaktzeit' : 'Preferred Contact Time'}
-                                value={leadData.user.preferredContactTime}
+                                value={formatFormValue('preferredContactTime', leadData.user.preferredContactTime)}
                                 isContactInfo={true}
                               />
                             )}
