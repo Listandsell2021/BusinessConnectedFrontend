@@ -338,7 +338,7 @@ const RevenueChart = ({ className = "" }) => {
         </div>
 
         {/* Chart bars */}
-        <div className="ml-16 h-full flex items-end space-x-1 overflow-x-auto">
+        <div className="ml-16 h-full flex items-end space-x-1 overflow-x-auto" style={{ overflow: 'visible' }}>
           {chartData.labels.map((label, index) => (
             <motion.div
               key={index}
@@ -363,8 +363,14 @@ const RevenueChart = ({ className = "" }) => {
                   whileHover={{ scale: 1.1 }}
                 >
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    {isGerman ? 'Umzug' : 'Moving'}: €{chartData.moving[index].toFixed(2)}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
+                    style={{ zIndex: 9999 }}
+                  >
+                    <div className="font-semibold">{label}</div>
+                    <div>{isGerman ? 'Umzug' : 'Moving'}: €{chartData.moving[index].toFixed(2)}</div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
                   </div>
                 </motion.div>
 
@@ -382,8 +388,14 @@ const RevenueChart = ({ className = "" }) => {
                   whileHover={{ scale: 1.1 }}
                 >
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    {isGerman ? 'Reinigung' : 'Cleaning'}: €{chartData.cleaning[index].toFixed(2)}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
+                    style={{ zIndex: 9999 }}
+                  >
+                    <div className="font-semibold">{label}</div>
+                    <div>{isGerman ? 'Reinigung' : 'Cleaning'}: €{chartData.cleaning[index].toFixed(2)}</div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
                   </div>
                 </motion.div>
               </div>

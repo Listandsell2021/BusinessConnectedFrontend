@@ -1824,7 +1824,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           </button>
           <div className="flex items-center space-x-3">
             <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Partner Details' : 'Partner Details'}
+              {isGerman ? 'Partner-Details' : 'Partner Details'}
             </h2>
             {partnerForDetails && partnerForDetails.companyName && (
               <>
@@ -3963,7 +3963,39 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     )}
                   </div>
 
-                  {/* Company Name */}
+                  {/* Partner Type */}
+                  <div>
+                    <label
+                      htmlFor="partner-type"
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                      {isGerman ? 'Partner-Typ' : 'Partner Type'} *
+                    </label>
+                    <select
+                      id="partner-type"
+                      name="partner-type"
+                      value={partnerFormData.partnerType}
+                      onChange={(e) => handlePartnerFormChange('partnerType', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: 'var(--theme-border)',
+                        color: 'var(--theme-text)',
+                        height: '42px'
+                      }}
+                    >
+                      <option value="basic">{isGerman ? 'Standard' : 'Basic'}</option>
+                      <option value="exclusive">{isGerman ? 'Exklusiv' : 'Exclusive'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Company Name and Street */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-company"
@@ -3997,15 +4029,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
                     )}
                   </div>
-                </div>
 
-                {/* Address Fields - Two Rows */}
-                {/* Street and City - Row 1 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-street"
-                      className="block text-sm font-medium mb-1"
+                      className="block text-sm font-medium mb-2"
                       style={{ color: 'var(--theme-text)' }}
                     >
                       <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -4040,7 +4068,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.street']}</p>
                     )}
                   </div>
+                </div>
 
+                {/* City and Zip Code */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-city"
@@ -4074,10 +4105,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.city']}</p>
                     )}
                   </div>
-                </div>
 
-                {/* Zip Code and Country - Row 2 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-zipCode"
@@ -4108,7 +4136,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.zipCode']}</p>
                     )}
                   </div>
+                </div>
 
+                {/* Country */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-country"
