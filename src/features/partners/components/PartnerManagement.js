@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import Pagination from '../../../components/ui/Pagination';
 import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
+import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { API_BASE_URL } from '../../../lib/config';
 
 const PartnerManagement = ({ initialPartners = [] }) => {
@@ -587,6 +588,14 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     return colors[type] || colors.basic;
   };
 
+  const getTypeLabel = (type) => {
+    const labels = {
+      exclusive: isGerman ? 'Exklusiv' : 'Exclusive',
+      basic: isGerman ? 'Standard' : 'Basic'
+    };
+    return labels[type] || (isGerman ? 'Standard' : 'Basic');
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       active: 'bg-green-100 text-green-800',
@@ -595,6 +604,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       rejected: 'bg-gray-100 text-gray-800'
     };
     return colors[status] || colors.pending;
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      active: isGerman ? 'Aktiv' : 'Active',
+      pending: isGerman ? 'Ausstehend' : 'Pending',
+      suspended: isGerman ? 'Gesperrt' : 'Suspended',
+      rejected: isGerman ? 'Abgelehnt' : 'Rejected'
+    };
+    return labels[status] || status;
   };
 
   const handleApprovePartner = async (partnerId, partnerName) => {
@@ -1818,7 +1837,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           </div>
           {partnerForDetails && (
             <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partnerForDetails.status)}`}>
-              {partnerForDetails.status}
+              {getStatusLabel(partnerForDetails.status)}
             </span>
           )}
         </div>
@@ -1836,10 +1855,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         <div className="flex-1">
           <input
             type="text"
-            placeholder={t('partners.searchPartners')}
+            placeholder={isGerman ? 'Suchen nach ID, Name, Email...' : 'Search by ID, Name, Email...'}
             value={filters.searchTerm}
             onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
             className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+            style={{ minWidth: '100%', height: '42px' }}
           />
         </div>
 
@@ -1849,10 +1869,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             value={filters.type}
             onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
             className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+            style={{ minWidth: '100%', height: '42px' }}
           >
-            <option value="all">{t('partners.allTypes')}</option>
-            <option value="exclusive">{t('partners.exclusive')}</option>
-            <option value="basic">{t('partners.basic')}</option>
+            <option value="all">{isGerman ? 'Alle Typen' : 'All Types'}</option>
+            <option value="exclusive">{isGerman ? 'Exklusiv' : 'Exclusive'}</option>
+            <option value="basic">{isGerman ? 'Standard' : 'Basic'}</option>
           </select>
         </div>
 
@@ -1862,12 +1883,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             value={filters.status}
             onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
             className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+            style={{ minWidth: '100%', height: '42px' }}
           >
-            <option value="all">{t('partners.allStatus')}</option>
-            <option value="active">{t('partners.active')}</option>
-            <option value="pending">{t('partners.pending')}</option>
-            <option value="suspended">{t('partners.suspended')}</option>
-            <option value="rejected">{t('partners.rejected')}</option>
+            <option value="all">{isGerman ? 'Alle Status' : 'All Status'}</option>
+            <option value="active">{isGerman ? 'Aktiv' : 'Active'}</option>
+            <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
+            <option value="suspended">{isGerman ? 'Gesperrt' : 'Suspended'}</option>
+            <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
           </select>
         </div>
 
@@ -1875,10 +1897,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         <div className="flex-1">
           <input
             type="text"
-            placeholder={t('partners.cityPlaceholder')}
+            placeholder={isGerman ? 'Stadt...' : 'City...'}
             value={filters.city}
             onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
             className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+            style={{ minWidth: '100%', height: '42px' }}
           />
         </div>
 
@@ -1889,6 +1912,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               value={dateFilter.type}
               onChange={(e) => setDateFilter(prev => ({ ...prev, type: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+              style={{ minWidth: '100%', height: '42px' }}
             >
               <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
               <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
@@ -2211,7 +2235,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getTypeColor(partner.type)}`}>
-                        {partner.type}
+                        {getTypeLabel(partner.type)}
                       </span>
                     </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -2219,7 +2243,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partner.status)}`}>
-                        {partner.status}
+                        {getStatusLabel(partner.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
@@ -2832,11 +2856,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     placeholder={isGerman ? 'Lead ID, Name, E-Mail suchen...' : 'Search Lead ID, Name, Email...'}
                     value={partnerLeadsFilters.search || ''}
                     onChange={(e) => handlePartnerLeadsFilterChange('search', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
                     style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: 'var(--theme-border)',
-                      color: 'var(--theme-text)'
+                      minWidth: '100%',
+                      height: '42px'
                     }}
                   />
                 </div>
@@ -2846,11 +2869,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   <select
                     value={partnerLeadsFilters.status}
                     onChange={(e) => handlePartnerLeadsFilterChange('status', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
                     style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: 'var(--theme-border)',
-                      color: 'var(--theme-text)'
+                      minWidth: '100%',
+                      height: '42px'
                     }}
                   >
                     <option value="all">{isGerman ? 'Status - Alle' : 'Status - All'}</option>
@@ -2868,11 +2890,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     placeholder={isGerman ? 'Stadt (Abholung/Ziel)...' : 'City (Pickup/Destination)...'}
                     value={partnerLeadsFilters.city || ''}
                     onChange={(e) => handlePartnerLeadsFilterChange('city', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
                     style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: 'var(--theme-border)',
-                      color: 'var(--theme-text)'
+                      minWidth: '100%',
+                      height: '42px'
                     }}
                   />
                 </div>
@@ -2883,11 +2904,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     <select
                       value={partnerLeadsDateFilter.type}
                       onChange={(e) => setPartnerLeadsDateFilter(prev => ({ ...prev, type: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
                       style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: 'var(--theme-border)',
-                        color: 'var(--theme-text)'
+                        minWidth: '100%',
+                        height: '42px'
                       }}
                     >
                       <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
@@ -3538,9 +3558,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={handleDialogCancel}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors border"
-                  style={{ 
-                    borderColor: 'var(--theme-border)', 
+                  className="px-6 py-2 rounded-lg font-medium transition-colors border min-w-[100px]"
+                  style={{
+                    borderColor: 'var(--theme-border)',
                     color: 'var(--theme-text)',
                     backgroundColor: 'var(--theme-bg-secondary)'
                   }}
@@ -3549,11 +3569,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 </button>
                 <button
                   onClick={handleDialogConfirm}
-                  className="text-xs px-3 py-1 rounded transition-colors"
-                  style={{ 
+                  className="px-6 py-2 rounded-lg font-medium transition-colors border min-w-[100px]"
+                  style={{
                     backgroundColor: 'var(--theme-bg-secondary)',
                     color: 'var(--theme-text)',
-                    border: '1px solid var(--theme-border)'
+                    borderColor: 'var(--theme-border)'
                   }}
                   onMouseEnter={(e) => {
                     e.target.style.backgroundColor = 'var(--theme-hover)';
@@ -3567,7 +3587,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                     </svg>
                   )}
-                  {confirmDialogData.type === 'danger' && confirmDialogData.confirmText.includes('Suspend') && !confirmDialogData.confirmText.includes('Remove') && '🚫 '}
+                  {confirmDialogData.type === 'danger' && (confirmDialogData.confirmText.includes('Suspend') || confirmDialogData.confirmText.includes('Sperren')) && !confirmDialogData.confirmText.includes('Remove') && '🚫 '}
                   {confirmDialogData.confirmText}
                 </button>
               </div>
@@ -3994,23 +4014,27 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       </svg>
                       {isGerman ? 'Straße' : 'Street'} *
                     </label>
-                    <input
-                      id="partner-street"
-                      name="partner-street"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
+                    <AddressAutocomplete
                       value={partnerFormData.address.street}
-                      onChange={(e) => handlePartnerFormChange('address.street', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['address.street'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
+                      onChange={(value) => handlePartnerFormChange('address.street', value)}
+                      onPlaceSelect={(addressData) => {
+                        // Auto-fill all address fields when a place is selected
+                        handlePartnerFormChange('address.street', addressData.street);
+                        if (addressData.city) {
+                          handlePartnerFormChange('address.city', addressData.city);
+                        }
+                        if (addressData.zipCode) {
+                          handlePartnerFormChange('address.zipCode', addressData.zipCode);
+                        }
+                        if (addressData.country) {
+                          handlePartnerFormChange('address.country', addressData.country);
+                        }
                       }}
-                      placeholder={isGerman ? 'Straße und Hausnummer' : 'Street and house number'}
+                      placeholder={isGerman ? 'Adresse suchen...' : 'Search address...'}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
+                      style={{
+                        borderColor: partnerFormErrors['address.street'] ? '#ef4444' : 'var(--theme-border)'
+                      }}
                     />
                     {partnerFormErrors['address.street'] && (
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.street']}</p>
