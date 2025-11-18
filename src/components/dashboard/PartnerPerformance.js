@@ -106,7 +106,10 @@ const PartnerPerformance = ({ className = "" }) => {
   };
 
   const getPartnerTypeColor = (type) => {
-    return type === 'exclusive' ? '#f59e0b' : '#6b7280';
+    return {
+      bg: type === 'exclusive' ? '#F3E8FF' : '#D8EAFE',
+      text: type === 'exclusive' ? '#6B21A8' : '#1E40AF'
+    };
   };
 
   return (
@@ -182,9 +185,15 @@ const PartnerPerformance = ({ className = "" }) => {
                     >
                       {getServiceIcon(partner.serviceType)}
                     </motion.div>
-                    <div className="text-xs px-2 py-1 rounded-full text-white font-bold"
-                         style={{ backgroundColor: getPartnerTypeColor(partner.partnerType) }}>
-                      {partner.partnerType === 'exclusive' ? 'EXC' : 'BAS'}
+                    <div className="text-xs px-4 py-1 rounded-full font-medium"
+                         style={{
+                           backgroundColor: getPartnerTypeColor(partner.partnerType).bg,
+                           color: getPartnerTypeColor(partner.partnerType).text
+                         }}>
+                      {partner.partnerType === 'exclusive' ?
+                        (isGerman ? 'Exklusiv' : 'Exclusive') :
+                        (isGerman ? 'Standard' : 'Basic')
+                      }
                     </div>
                   </div>
 
