@@ -1591,8 +1591,12 @@ export default function Dashboard({ initialData = {} }) {
                         </p>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           user?.role === 'superadmin'
-                            ? 'bg-purple-500/20 text-purple-300'
-                            : 'bg-pink-500/20 text-pink-300'
+                            ? isDark
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-purple-600 text-white'
+                            : isDark
+                              ? 'bg-pink-500 text-white'
+                              : 'bg-pink-600 text-white'
                         }`}>
                           {user?.role === 'superadmin' ? (isGerman ? 'Admin' : 'Admin') : (isGerman ? 'Partner' : 'Partner')}
                         </span>
