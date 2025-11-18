@@ -44,7 +44,7 @@ const EnhancedIncomeInvoices = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   // Always use monthly mode for invoice generation
 
@@ -60,19 +60,29 @@ const EnhancedIncomeInvoices = () => {
   const loadPartners = async () => {
     setLoading(true);
     try {
+      // Fetch more partners to account for client-side filtering
       const params = {
-        page: currentPage,
-        limit: itemsPerPage,
+        page: 1,
+        limit: 100, // Fetch more to account for filtering
         serviceType: currentService,
-        status: 'active',
         search: filters.search || undefined,
         month: filters.month,
         year: filters.year
       };
 
-      // Get partners with invoice status for the selected period
+      // Get partners from API
       const partnersResponse = await partnersAPI.getAll(params);
-      const partnersData = partnersResponse.data.partners || [];
+      let partnersData = partnersResponse.data.partners || [];
+
+      // Client-side filtering: only show 'active' or 'suspended' status
+      // AND approvedAt date must be in selected month or before
+      const endOfSelectedMonth = new Date(filters.year, filters.month, 0);
+      partnersData = partnersData.filter(partner => {
+        const isValidStatus = ['active', 'suspended'].includes(partner.status);
+        const approvedAt = partner.approvedAt ? new Date(partner.approvedAt) : null;
+        const isApprovedBeforeOrInMonth = !approvedAt || approvedAt <= endOfSelectedMonth;
+        return isValidStatus && isApprovedBeforeOrInMonth;
+      });
 
       // For each partner, check their invoice status for the selected period
       const partnersWithInvoiceStatus = await Promise.all(
@@ -113,8 +123,15 @@ const EnhancedIncomeInvoices = () => {
         filteredPartners = partnersWithInvoiceStatus.filter(p => p.invoiceStatus === filters.invoiceStatus);
       }
 
-      setPartners(filteredPartners);
-      setTotalItems(partnersResponse.data.pagination?.total || filteredPartners.length);
+      // Set total based on filtered results
+      setTotalItems(filteredPartners.length);
+
+      // Apply client-side pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedPartners = filteredPartners.slice(startIndex, endIndex);
+
+      setPartners(paginatedPartners);
 
       // Calculate total revenue for the selected month from all invoices
       try {
@@ -310,6 +327,11 @@ const EnhancedIncomeInvoices = () => {
   };
 
   // Effects
+  // Reset to page 1 when filters or service change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.month, filters.year, filters.search, filters.invoiceStatus, currentService]);
+
   useEffect(() => {
     loadPartners();
   }, [currentPage, filters, currentService]);
