@@ -844,7 +844,6 @@ const LogsModule = () => {
             <option value="today">{isGerman ? 'Heute' : 'Today'}</option>
             <option value="7days">{isGerman ? '7 Tage' : 'Last 7 days'}</option>
             <option value="30days">{isGerman ? '30 Tage' : 'Last 30 days'}</option>
-            <option value="errors">{isGerman ? 'Nur Fehler' : 'Errors only'}</option>
           </select>
         </div>
       </motion.div>
