@@ -105,7 +105,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       isRejected: status === 'rejected',
       isCancellationRequested: status === 'cancellationRequested' ||
                               status === 'cancel_requested' ||
-                              currentPartnerAssignment?.cancellationRequested === true
+                              currentPartnerAssignment?.cancellationRequested === true,
+      invoiceGenerated: currentPartnerAssignment?.invoiceGenerated === true,
+      paymentStatus: currentPartnerAssignment?.paymentStatus || 'unpaid',
+      invoiceId: currentPartnerAssignment?.invoiceId,
+      invoiceNumber: currentPartnerAssignment?.invoiceNumber
     };
   };
   
@@ -1040,13 +1044,23 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       }
     } catch (error) {
       console.error('Error assigning lead:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to assign lead';
-      toast.error(errorMessage);
 
-      // Show business rule if available
-      if (error.response?.data?.rule) {
-        toast.error(error.response.data.rule, { duration: 5000 });
+      // Translate error messages to German if needed
+      let errorMessage = error.response?.data?.message || 'Failed to assign lead';
+
+      // German translations for common error messages
+      if (isGerman) {
+        if (errorMessage.includes('Cannot assign exclusive partner to a lead that already has basic partners')) {
+          errorMessage = 'Exklusivpartner kann nicht einem Lead zugewiesen werden, der bereits Basispartner hat';
+        } else if (errorMessage.includes('Cannot assign basic partner to a lead that already has an exclusive partner')) {
+          errorMessage = 'Basispartner kann nicht einem Lead zugewiesen werden, der bereits einen Exklusivpartner hat';
+        } else if (errorMessage.includes('Failed to assign lead')) {
+          errorMessage = 'Fehler beim Zuweisen des Leads';
+        }
       }
+
+      // Show only the main error message (no rule message to avoid duplicates)
+      toast.error(errorMessage, { duration: 5000 });
 
       // Close modal and clear state
       setShowAssignModal(false);
@@ -3694,7 +3708,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             );
 
                           case 'accepted':
-                            // Accepted: Show View and optionally Cancel Request buttons
+                            // Accepted: Show View and optionally Cancel Request buttons (or Invoice Generated badge if invoice created)
                             return (
                               <>
                                 <button
@@ -3714,7 +3728,19 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                 >
                                   👁️ {isGerman ? 'Anzeigen' : 'View'}
                                 </button>
-                                {!partnerStatus?.isCancellationRequested && !isCancellationRequestRejected(lead) && (
+                                {partnerStatus?.invoiceGenerated ? (
+                                  <button
+                                    onClick={() => {
+                                      // Navigate to My Invoices with search filter
+                                      const invoiceNumber = partnerStatus?.invoiceNumber;
+                                      router.push(`/dashboard?tab=invoices${invoiceNumber ? `&search=${encodeURIComponent(invoiceNumber)}` : ''}`);
+                                    }}
+                                    className="text-xs px-3 py-1 rounded-md font-semibold border bg-blue-100 text-blue-800 border-blue-400 flex items-center gap-1 hover:bg-blue-200 transition-colors cursor-pointer"
+                                    title={isGerman ? `Rechnung anzeigen: ${partnerStatus?.invoiceNumber || ''}` : `View Invoice: ${partnerStatus?.invoiceNumber || ''}`}
+                                  >
+                                    📄 {isGerman ? 'Rechnung erstellt' : 'Invoice Generated'}
+                                  </button>
+                                ) : !partnerStatus?.isCancellationRequested && !isCancellationRequestRejected(lead) && (
                                   <button
                                     onClick={() => handleCancelLead(lead)}
                                     className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md"

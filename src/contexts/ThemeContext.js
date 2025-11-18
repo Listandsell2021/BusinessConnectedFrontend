@@ -36,8 +36,8 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty('--theme-bg-tertiary', '#2a2a2a');
       root.style.setProperty('--theme-text', '#ffffff');
       root.style.setProperty('--theme-text-secondary', '#e0e0e0');
-      root.style.setProperty('--theme-muted', '#a0a0a0');
-      root.style.setProperty('--theme-border', '#404040');
+      root.style.setProperty('--theme-muted', '#b0b0b0');
+      root.style.setProperty('--theme-border', '#505050');
       root.style.setProperty('--theme-border-light', '#303030');
       root.style.setProperty('--theme-accent', '#ffffff');
       root.style.setProperty('--theme-accent-muted', '#cccccc');

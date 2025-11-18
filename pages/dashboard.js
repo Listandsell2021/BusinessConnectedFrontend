@@ -5,6 +5,19 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
+import {
+  BellIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  StarIcon,
+  UserPlusIcon,
+  PencilIcon,
+  ClockIcon,
+  PaperAirplaneIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -779,21 +792,24 @@ export default function Dashboard({ initialData = {} }) {
   };
 
   const getNotificationIcon = (type) => {
+    const iconClass = "w-5 h-5";
+    const iconStyle = { color: 'var(--theme-text)' };
+
     const icons = {
-      partner_welcome: '🎉',
-      lead_assigned: '🎯',
-      new_lead: '🎯',
-      quote_accepted: '✅',
-      review: '⭐',
-      partner_joined: '🤝',
-      lead_updated: '📝',
-      lead_expired: '⏰',
-      cancel_request_sent: '📤',
-      cancel_request_approved: '✅',
-      cancel_request_rejected: '❌',
-      partner_cancel_request: '⚠️'
+      partner_welcome: <SparklesIcon className={iconClass} style={iconStyle} />,
+      lead_assigned: <BellIcon className={iconClass} style={iconStyle} />,
+      new_lead: <BellIcon className={iconClass} style={iconStyle} />,
+      quote_accepted: <CheckCircleIcon className={iconClass} style={iconStyle} />,
+      review: <StarIcon className={iconClass} style={iconStyle} />,
+      partner_joined: <UserPlusIcon className={iconClass} style={iconStyle} />,
+      lead_updated: <PencilIcon className={iconClass} style={iconStyle} />,
+      lead_expired: <ClockIcon className={iconClass} style={iconStyle} />,
+      cancel_request_sent: <PaperAirplaneIcon className={iconClass} style={iconStyle} />,
+      cancel_request_approved: <CheckCircleIcon className={iconClass} style={iconStyle} />,
+      cancel_request_rejected: <XCircleIcon className={iconClass} style={iconStyle} />,
+      partner_cancel_request: <ExclamationTriangleIcon className={iconClass} style={iconStyle} />
     };
-    return icons[type] || '📋';
+    return icons[type] || <DocumentTextIcon className={iconClass} style={iconStyle} />;
   };
 
   const handleCardNavigation = (navigateData) => {
@@ -1070,7 +1086,9 @@ export default function Dashboard({ initialData = {} }) {
                         />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-shrink-0">
+                              {getNotificationIcon(notification.type)}
+                            </div>
                             <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                               {isGerman && notification.message_de ? notification.message_de : notification.message}
                             </p>
@@ -1223,13 +1241,14 @@ export default function Dashboard({ initialData = {} }) {
                       />
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
-                          <motion.span
-                            className="text-2xl"
+                          <motion.div
+                            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg"
+                            style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
                           >
                             {getNotificationIcon(notification.type)}
-                          </motion.span>
+                          </motion.div>
                           <div className="flex-1">
                             <p className="text-lg font-medium" style={{ color: 'var(--theme-text)' }}>
                               {isGerman && notification.message_de ? notification.message_de : notification.message}
@@ -1524,31 +1543,72 @@ export default function Dashboard({ initialData = {} }) {
                   </div>
                   
                   {/* User Profile Info */}
-                  <div className="flex items-center space-x-3">
+                  <motion.div
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--theme-bg-secondary)',
+                      border: '1px solid var(--theme-border)'
+                    }}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    whileHover={{ y: -2 }}
+                  >
+                    {/* Avatar with gradient */}
                     <motion.div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--theme-button-bg)', color: 'var(--theme-button-text)' }}
-                      whileHover={{ scale: 1.1 }}
+                      className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden"
+                      style={{
+                        background: user?.role === 'superadmin'
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                      }}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
                     >
+                      <div className="absolute inset-0 bg-black/10"></div>
                       {user?.role === 'superadmin' ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <svg className="w-6 h-6 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                       )}
+                      {/* Online indicator */}
+                      <motion.div
+                        className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2"
+                        style={{ borderColor: 'var(--theme-bg-secondary)' }}
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
                     </motion.div>
-                    <div className="text-sm text-right">
-                      <p className="font-bold" style={{ color: 'var(--theme-text)' }}>
-                        {getDisplayName()}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                        {user?.role === 'superadmin' ? (isGerman ? 'Super-Administrator' : 'Super Admin') : (isGerman ? 'Partner' : 'Partner')}
-                      </p>
+
+                    {/* User Info */}
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm truncate max-w-[180px]" style={{ color: 'var(--theme-text)' }} title={user?.companyName || getDisplayName()}>
+                          {user?.companyName || getDisplayName()}
+                        </p>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          user?.role === 'superadmin'
+                            ? 'bg-purple-500/20 text-purple-300'
+                            : 'bg-pink-500/20 text-pink-300'
+                        }`}>
+                          {user?.role === 'superadmin' ? (isGerman ? 'Admin' : 'Admin') : (isGerman ? 'Partner' : 'Partner')}
+                        </span>
+                      </div>
+                      {user?.email && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-70" style={{ color: 'var(--theme-text)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <p className="text-xs font-medium truncate max-w-[180px] opacity-80" style={{ color: 'var(--theme-text)' }} title={user.email}>
+                            {user.email}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  </motion.div>
                 </motion.div>
               </div>
             </div>

@@ -236,7 +236,8 @@ const EnhancedIncomeInvoices = () => {
           assignmentId: item.currentAssignment._id,
           assignmentStatus: item.currentAssignment.status,
           leadPrice: item.currentAssignment.leadPrice,
-          paymentStatus: item.paymentStatus
+          paymentStatus: item.currentAssignment.paymentStatus || 'unpaid',
+          invoiceGenerated: item.currentAssignment.invoiceGenerated || false
         }))
       });
 
@@ -399,8 +400,8 @@ const EnhancedIncomeInvoices = () => {
         });
       });
 
-      const paidLeads = assignmentItems.filter(item => item.paymentStatus === 'paid');
-      const unpaidLeads = assignmentItems.filter(item => item.paymentStatus !== 'paid');
+      const paidLeads = assignmentItems.filter(item => item.currentAssignment?.paymentStatus === 'paid');
+      const unpaidLeads = assignmentItems.filter(item => item.currentAssignment?.paymentStatus !== 'paid');
 
       setInvoiceTabData({
         paidLeads,
