@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDktMz6iF9iLh5aJP1z4bACX9sFaDJLe3o';
+const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-script';
+
 const AddressAutocomplete = ({
   value,
   onChange,
@@ -9,150 +12,223 @@ const AddressAutocomplete = ({
   style = {},
   disabled = false
 }) => {
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef(null);
-  const suggestionsRef = useRef(null);
-  const debounceRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  const onPlaceSelectRef = useRef(onPlaceSelect);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [scriptError, setScriptError] = useState(null);
 
-  // Fetch suggestions from Nominatim (OpenStreetMap)
-  const fetchSuggestions = async (query) => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
+  // Keep refs updated with latest callbacks
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    onPlaceSelectRef.current = onPlaceSelect;
+  }, [onChange, onPlaceSelect]);
+
+  // Load Google Maps Script
+  useEffect(() => {
+    // Check if script is already loaded
+    if (window.google && window.google.maps && window.google.maps.places) {
+      console.log('Google Maps already loaded');
+      setScriptLoaded(true);
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=de,at,ch`,
-        {
-          headers: {
-            'Accept-Language': 'de,en'
-          }
-        }
-      );
+    // Check if script tag exists
+    let existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data);
-        setShowSuggestions(data.length > 0);
-      }
-    } catch (error) {
-      console.error('Error fetching address suggestions:', error);
-      setSuggestions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (existingScript) {
+      console.log('Script tag exists, waiting for load...');
+      const handleLoad = () => {
+        console.log('Google Maps script loaded');
+        setScriptLoaded(true);
+      };
 
-  // Debounced search
-  useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
+      existingScript.addEventListener('load', handleLoad);
+
+      return () => {
+        existingScript.removeEventListener('load', handleLoad);
+      };
     }
 
-    debounceRef.current = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 300);
+    // Create new script tag
+    console.log('Creating new Google Maps script tag...');
+    const script = document.createElement('script');
+    script.id = GOOGLE_MAPS_SCRIPT_ID;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=de`;
+    script.async = true;
+    script.defer = true;
 
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [value]);
-
-  // Handle click outside to close suggestions
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        inputRef.current &&
-        !inputRef.current.contains(event.target) &&
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target)
-      ) {
-        setShowSuggestions(false);
-      }
+    script.onload = () => {
+      console.log('Google Maps API loaded successfully');
+      setScriptLoaded(true);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    script.onerror = (error) => {
+      console.error('Error loading Google Maps API:', error);
+      setScriptError('Failed to load Google Maps API');
+    };
+
+    document.head.appendChild(script);
   }, []);
 
-  // Parse address from Nominatim result
-  const parseAddress = (place) => {
-    const address = place.address || {};
-
-    let street = '';
-    if (address.road) {
-      street = address.road;
-      if (address.house_number) {
-        street += ' ' + address.house_number;
-      }
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    if (!scriptLoaded || !inputRef.current) {
+      return;
     }
 
-    const city = address.city || address.town || address.village || address.municipality || '';
-    const zipCode = address.postcode || '';
-    const country = address.country || '';
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      console.error('Google Maps API not available');
+      return;
+    }
+
+    // Clean up existing autocomplete if it exists
+    if (autocompleteRef.current) {
+      console.log('Cleaning up existing autocomplete instance');
+      window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      autocompleteRef.current = null;
+    }
+
+    try {
+      console.log('🚀 Initializing Google Places Autocomplete...');
+
+      // Create autocomplete instance
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: ['de', 'at', 'ch'] },
+        fields: ['address_components', 'formatted_address', 'geometry', 'name']
+      });
+
+      console.log('✅ Autocomplete instance created');
+
+      // Handle place selection using refs to get latest callbacks
+      const handlePlaceChanged = () => {
+        console.log('🔔 PLACE_CHANGED EVENT FIRED!');
+        const place = autocomplete.getPlace();
+
+        console.log('=== PLACE SELECTED ===');
+        console.log('📍 Place name:', place.name);
+        console.log('📍 Formatted address:', place.formatted_address);
+        console.log('📍 Address components:', place.address_components);
+
+        if (!place.address_components || place.address_components.length === 0) {
+          console.error('❌ No address components found!');
+          if (onChangeRef.current) {
+            onChangeRef.current(place.formatted_address || place.name || '');
+          }
+          return;
+        }
+
+        // Parse address components
+        const addressData = parseGoogleAddress(place);
+        console.log('✅ Parsed address data:', addressData);
+
+        // Update using the ref
+        if (onChangeRef.current) {
+          console.log('📤 Calling onChange with:', addressData.street);
+          onChangeRef.current(addressData.street || place.formatted_address || '');
+        }
+
+        // Call onPlaceSelect using the ref
+        if (onPlaceSelectRef.current) {
+          console.log('📤 Calling onPlaceSelect with:', addressData);
+          onPlaceSelectRef.current(addressData);
+        }
+      };
+
+      autocomplete.addListener('place_changed', handlePlaceChanged);
+      autocompleteRef.current = autocomplete;
+
+      console.log('✅ Event listener attached successfully');
+      console.log('Google Places Autocomplete initialized successfully');
+    } catch (error) {
+      console.error('❌ Error initializing Google Places Autocomplete:', error);
+      setScriptError(error.message);
+    }
+
+    // Cleanup
+    return () => {
+      if (autocompleteRef.current && window.google && window.google.maps && window.google.maps.event) {
+        console.log('🧹 Cleaning up autocomplete on unmount');
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [scriptLoaded]); // Only depend on scriptLoaded
+
+  // Parse Google Places address components
+  const parseGoogleAddress = (place) => {
+    const addressComponents = place.address_components || [];
+
+    let street = '';
+    let streetNumber = '';
+    let route = '';
+    let city = '';
+    let zipCode = '';
+    let country = '';
+    let premise = '';
+    let sublocality = '';
+
+    console.log('🔍 Parsing address components:', addressComponents);
+
+    addressComponents.forEach((component) => {
+      const types = component.types;
+
+      if (types.includes('street_number')) {
+        streetNumber = component.long_name;
+      }
+      if (types.includes('route')) {
+        route = component.long_name;
+      }
+      if (types.includes('premise')) {
+        premise = component.long_name;
+      }
+      if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+        sublocality = component.long_name;
+      }
+      if (types.includes('locality')) {
+        city = component.long_name;
+      }
+      if (types.includes('administrative_area_level_2') && !city) {
+        city = component.long_name;
+      }
+      if (types.includes('postal_town') && !city) {
+        city = component.long_name;
+      }
+      if (types.includes('postal_code')) {
+        zipCode = component.long_name;
+      }
+      if (types.includes('country')) {
+        country = component.long_name;
+      }
+    });
+
+    // Build street address
+    if (route) {
+      street = streetNumber ? `${route} ${streetNumber}` : route;
+    } else if (premise) {
+      street = premise;
+    } else if (place.name && place.name !== city) {
+      street = place.name;
+    }
+
+    if (!city && sublocality) {
+      city = sublocality;
+    }
+
+    console.log('✅ Extracted:', { street, city, zipCode, country });
 
     return {
       street,
       city,
       zipCode,
       country,
-      formattedAddress: place.display_name || ''
+      formattedAddress: place.formatted_address || '',
+      coordinates: place.geometry?.location ? {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      } : null
     };
-  };
-
-  // Handle suggestion selection
-  const handleSelect = (place) => {
-    const addressData = parseAddress(place);
-
-    // Update the input value with the street
-    if (onChange) {
-      onChange(addressData.street || place.display_name);
-    }
-
-    // Call the callback with parsed address data
-    if (onPlaceSelect) {
-      onPlaceSelect(addressData);
-    }
-
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
-  };
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e) => {
-    if (!showSuggestions || suggestions.length === 0) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          handleSelect(suggestions[selectedIndex]);
-        }
-        break;
-      case 'Escape':
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-        break;
-      default:
-        break;
-    }
   };
 
   return (
@@ -160,17 +236,7 @@ const AddressAutocomplete = ({
       <input
         ref={inputRef}
         type="text"
-        value={value}
-        onChange={(e) => {
-          onChange && onChange(e.target.value);
-          setSelectedIndex(-1);
-        }}
-        onFocus={() => {
-          if (suggestions.length > 0) {
-            setShowSuggestions(true);
-          }
-        }}
-        onKeyDown={handleKeyDown}
+        defaultValue={value}
         placeholder={placeholder}
         disabled={disabled}
         className={className}
@@ -178,7 +244,7 @@ const AddressAutocomplete = ({
         autoComplete="off"
       />
 
-      {loading && (
+      {!scriptLoaded && !scriptError && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -187,57 +253,19 @@ const AddressAutocomplete = ({
         </div>
       )}
 
-      {showSuggestions && suggestions.length > 0 && (
-        <div
-          ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
-          style={{
-            backgroundColor: 'var(--theme-bg)',
-            borderColor: 'var(--theme-border)',
-            maxHeight: '200px',
-            overflowY: 'auto'
-          }}
-        >
-          {suggestions.map((place, index) => (
-            <div
-              key={place.place_id}
-              onClick={() => handleSelect(place)}
-              onMouseEnter={() => setSelectedIndex(index)}
-              className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                index === selectedIndex ? 'bg-blue-500 text-white' : ''
-              }`}
-              style={
-                index !== selectedIndex
-                  ? {
-                      color: 'var(--theme-text)',
-                      backgroundColor: 'var(--theme-bg)'
-                    }
-                  : {}
-              }
-            >
-              <div className="flex items-start">
-                <svg
-                  className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                <span className="line-clamp-2">{place.display_name}</span>
-              </div>
-            </div>
-          ))}
+      {scriptLoaded && !scriptError && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" title="Google Maps loaded">
+          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      )}
+
+      {scriptError && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" title={scriptError}>
+          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
       )}
     </div>
