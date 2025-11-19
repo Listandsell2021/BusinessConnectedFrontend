@@ -1,7 +1,6 @@
-// Dynamic Service Configuration - Simple and Easy
+// Service Configuration - Moving Service Only
 const SERVICES = {
-  MOVING: 'moving',
-  CLEANING: 'cleaning'
+  MOVING: 'moving'
 };
 
 const serviceConfig = {
@@ -25,26 +24,6 @@ const serviceConfig = {
       { name: 'phone', label: 'Phone Number', type: 'text', required: true },
       { name: 'email', label: 'Email', type: 'email', required: true },
       { name: 'preferredContactTime', label: 'Preferred Contact Time', type: 'select', required: false }
-    ]
-  },
-
-  [SERVICES.CLEANING]: {
-    name: 'Cleaning Services',
-    domain: 'reinigungsfirma-vergleich.de',
-    providerCount: 244,
-    fields: [
-      { name: 'locationType', label: 'Location Type', type: 'select', required: true },
-      { name: 'frequency', label: 'Cleaning Frequency', type: 'select', required: true },
-      { name: 'venueType', label: 'Venue Type', type: 'select', required: true },
-      { name: 'serviceTypes', label: 'Service Types', type: 'array', required: true },
-      { name: 'startDate', label: 'Start Date', type: 'select', required: true },
-      { name: 'address', label: 'Address', type: 'text', required: true },
-      { name: 'areaSize', label: 'Area Size', type: 'select', required: true },
-      { name: 'salutation', label: 'Salutation', type: 'select', required: true },
-      { name: 'firstName', label: 'First Name', type: 'text', required: true },
-      { name: 'lastName', label: 'Last Name', type: 'text', required: true },
-      { name: 'phone', label: 'Phone Number', type: 'text', required: true },
-      { name: 'email', label: 'Email', type: 'email', required: true }
     ]
   }
 };

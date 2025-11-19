@@ -1518,13 +1518,10 @@ export default function Dashboard({ initialData = {} }) {
                         animate={{ rotate: [0, 10, -10, 0] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        {currentService === 'moving' ? '🚛' : '🧽'}
+                        🚛
                       </motion.span>
                       <span className="text-sm font-medium">
-                        {currentService === 'moving' 
-                          ? (isGerman ? 'Umzugsservice' : 'Moving Service')
-                          : (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
-                        }
+                        {isGerman ? 'Umzugsservice' : 'Moving Service'}
                       </span>
                     </motion.div>
                   )}

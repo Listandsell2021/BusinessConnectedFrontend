@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const ServiceContext = createContext();
 
@@ -11,45 +11,31 @@ export const useService = () => {
 };
 
 export const ServiceProvider = ({ children }) => {
-  const [currentService, setCurrentService] = useState('moving');
-  const [hideServiceFilter, setHideServiceFilter] = useState(false);
-
-  useEffect(() => {
-    const savedService = localStorage.getItem('selectedService');
-    if (savedService && ['moving', 'cleaning'].includes(savedService)) {
-      setCurrentService(savedService);
-    }
-  }, []);
+  // Fixed to moving service only
+  const [currentService] = useState('moving');
+  const [hideServiceFilter] = useState(true); // Always hide service filter
 
   const switchService = (service) => {
-    if (['moving', 'cleaning'].includes(service)) {
-      setCurrentService(service);
-      localStorage.setItem('selectedService', service);
-    }
+    // Only moving service is supported, ignore switches
+    console.log('Service switching disabled - only moving service supported');
   };
 
   const getServiceDisplayName = (service) => {
-    const serviceNames = {
-      moving: {
-        en: 'Moving Services',
-        de: 'Umzugsservice'
-      },
-      cleaning: {
-        en: 'Cleaning Services', 
-        de: 'Reinigungsservice'
-      }
+    // Only moving service
+    return {
+      en: 'Moving Services',
+      de: 'Umzugsservice'
     };
-    return serviceNames[service] || serviceNames.moving;
   };
 
   const value = {
     currentService,
     switchService,
     getServiceDisplayName,
-    isMovingService: currentService === 'moving',
-    isCleaningService: currentService === 'cleaning',
+    isMovingService: true, // Always true
+    isCleaningService: false, // Always false
     hideServiceFilter,
-    setHideServiceFilter
+    setHideServiceFilter: () => {} // No-op function
   };
 
   return (

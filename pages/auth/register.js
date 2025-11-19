@@ -24,7 +24,7 @@ export default function PartnerRequest() {
     lastName: '',
     phone: '',
     email: '',
-    pursue: '',
+    pursue: 'moving', // Default to moving service
     company: '',
     address: '',
     city: '',
@@ -57,8 +57,9 @@ export default function PartnerRequest() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.services) {
-            // Map the services to the format expected by the dropdown
-            setServiceTypes(data.services.map(service => ({
+            // Filter to only show moving service
+            const movingServices = data.services.filter(service => service.type === 'moving');
+            setServiceTypes(movingServices.map(service => ({
               id: service.type,
               name: service.name
             })));
@@ -70,14 +71,9 @@ export default function PartnerRequest() {
         }
       } catch (error) {
         console.error('Error fetching service types:', error);
-        // Fallback to default service types
+        // Fallback to moving service only
         setServiceTypes([
-          { id: 'moving', name: isGerman ? 'Umzugsservice' : 'Moving Service' },
-          { id: 'cleaning', name: isGerman ? 'Reinigungsservice' : 'Cleaning Service' },
-          { id: 'handyman', name: isGerman ? 'Handwerkerservice' : 'Handyman Service' },
-          { id: 'transport', name: isGerman ? 'Transportservice' : 'Transport Service' },
-          { id: 'storage', name: isGerman ? 'Lagerservice' : 'Storage Service' },
-          { id: 'other', name: isGerman ? 'Sonstiges' : 'Other' }
+          { id: 'moving', name: isGerman ? 'Umzugsservice' : 'Moving Service' }
         ]);
       } finally {
         setLoadingServiceTypes(false);
@@ -112,10 +108,7 @@ export default function PartnerRequest() {
 
       // Phone validation - removed as per request
 
-      // Pursue validation
-      if (!formData.pursue || formData.pursue.trim() === '') {
-        newErrors.pursue = isGerman ? 'Service-Typ ist erforderlich' : 'Service type is required';
-      }
+      // Service type is always 'moving', no validation needed
 
       // Company validation
       if (!formData.company.trim()) {
@@ -229,10 +222,7 @@ export default function PartnerRequest() {
 
     // Phone validation - removed as per request
 
-    // Pursue validation
-    if (!formData.pursue || formData.pursue.trim() === '') {
-      newErrors.pursue = isGerman ? 'Service-Typ ist erforderlich' : 'Service type is required';
-    }
+    // Service type is always 'moving', no validation needed
 
     // Company validation
     if (!formData.company.trim()) {
@@ -333,9 +323,7 @@ export default function PartnerRequest() {
             zipCode: formData.zipCode,
             country: formData.country === 'Other' ? formData.customCountry : formData.country
           },
-          services: [formData.pursue && formData.pursue.length === 1
-            ? (formData.pursue === 'm' ? 'moving' : formData.pursue === 'c' ? 'cleaning' : formData.pursue)
-            : (formData.pursue || 'cleaning')],
+          services: ['moving'], // Only moving service supported
           partnerType: 'basic',
           language: isGerman ? 'de' : 'en' // Add current language preference
         }),
@@ -900,70 +888,10 @@ export default function PartnerRequest() {
                     </motion.div>
                   </div>
 
-                  {/* Service Type and Company - Two Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Service Type */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.1 }}
-                    >
-                      <label 
-                        htmlFor="pursue" 
-                        className="block text-sm font-semibold mb-3"
-                        style={{ color: 'var(--theme-text)' }}
-                      >
-                        🎯 {isGerman ? 'Service-Typen' : 'Service Types'}
-                      </label>
-                      <div className="relative" ref={serviceDropdownRef}>
-                        <select
-                          id="pursue"
-                          name="pursue"
-                          required
-                          value={formData.pursue}
-                          onChange={handleChange}
-                          disabled={loadingServiceTypes}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.pursue ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
-                          style={{
-                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.pursue ? '#EF4444' : 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
-                          }}
-                        >
-                          <option value="" disabled style={{ color: 'var(--theme-muted)' }}>
-                            {isGerman ? 'Service-Typ auswählen' : 'Select service type'}
-                          </option>
-                          {!loadingServiceTypes && serviceTypes.map((serviceType) => (
-                            <option key={serviceType.id} value={serviceType.id}>
-                              {serviceType.name}
-                            </option>
-                          ))}
-                          {loadingServiceTypes && (
-                            <option value="" disabled>
-                              {isGerman ? 'Service-Typen laden...' : 'Loading service types...'}
-                            </option>
-                          )}
-                        </select>
-                      </div>
-                      {errors.pursue && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.pursue}
-                        </motion.p>
-                      )}
-                    </motion.div>
+                  {/* Service is fixed to moving - no selection needed */}
 
-                    {/* Company Name */}
+                  {/* Company Name - Half Width */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1018,71 +946,12 @@ export default function PartnerRequest() {
                         </motion.p>
                       )}
                     </motion.div>
-                  </div>
-
-                  {/* Address Row 1: Street and Zip Code */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Street Address */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.3 }}
-                    >
-                      <label
-                        htmlFor="address"
-                        className="block text-sm font-semibold mb-3"
-                        style={{ color: 'var(--theme-text)' }}
-                      >
-                        📍 {isGerman ? 'Straße und Hausnummer' : 'Street and House Number'}
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="address"
-                          name="address"
-                          type="text"
-                          required
-                          value={formData.address}
-                          onChange={handleChange}
-                          onInvalid={(e) => {
-                            e.target.setCustomValidity(
-                              isGerman
-                                ? 'Bitte füllen Sie dieses Feld aus.'
-                                : 'Please fill in this field.'
-                            );
-                          }}
-                          onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.address ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
-                          style={{
-                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.address ? '#EF4444' : 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
-                          }}
-                          placeholder={isGerman ? 'Musterstraße 123' : 'Musterstraße 123'}
-                        />
-                      </div>
-                      {errors.address && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.address}
-                        </motion.p>
-                      )}
-                    </motion.div>
 
                     {/* Zip Code */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.4 }}
+                      transition={{ delay: 1.25 }}
                     >
                       <label
                         htmlFor="zipCode"
@@ -1135,7 +1004,63 @@ export default function PartnerRequest() {
                     </motion.div>
                   </div>
 
-                  {/* Address Row 2: City and Country */}
+                  {/* Street Address - Full Width */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.3 }}
+                  >
+                    <label
+                      htmlFor="address"
+                      className="block text-sm font-semibold mb-3"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      📍 {isGerman ? 'Straße und Hausnummer' : 'Street and House Number'}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="address"
+                        name="address"
+                        type="text"
+                        required
+                        value={formData.address}
+                        onChange={handleChange}
+                        onInvalid={(e) => {
+                          e.target.setCustomValidity(
+                            isGerman
+                              ? 'Bitte füllen Sie dieses Feld aus.'
+                              : 'Please fill in this field.'
+                          );
+                        }}
+                        onInput={(e) => e.target.setCustomValidity('')}
+                        className={`
+                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                          backdrop-blur-sm transition-all duration-300
+                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
+                          ${errors.address ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
+                        `}
+                        style={{
+                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
+                          borderColor: errors.address ? '#EF4444' : 'var(--theme-border)',
+                          color: 'var(--theme-text)',
+                          backdropFilter: 'blur(10px)'
+                        }}
+                        placeholder={isGerman ? 'Musterstraße 123' : 'Musterstraße 123'}
+                      />
+                    </div>
+                    {errors.address && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2 text-sm text-red-400 flex items-center"
+                      >
+                        <span className="mr-1">❌</span>
+                        {errors.address}
+                      </motion.p>
+                    )}
+                  </motion.div>
+
+                  {/* City and Country */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* City */}
                     <motion.div

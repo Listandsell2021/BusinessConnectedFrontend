@@ -16,7 +16,7 @@ export default function Services() {
     {
       id: 'moving',
       title: isGerman ? 'Umzugsservice' : 'Moving Service',
-      description: isGerman 
+      description: isGerman
         ? 'Professionelle Umzugsunternehmen für jeden Umzugswunsch'
         : 'Professional moving companies for every relocation need',
       icon: '🚛',
@@ -29,23 +29,6 @@ export default function Services() {
       ],
       href: '/forms/enhanced-moving',
       color: 'blue'
-    },
-    {
-      id: 'cleaning',
-      title: isGerman ? 'Reinigungsservice' : 'Cleaning Service',
-      description: isGerman 
-        ? 'Zuverlässige Reinigungsunternehmen für alle Bereiche'
-        : 'Reliable cleaning companies for all areas',
-      icon: '🧽',
-      gradient: 'from-green-500 via-teal-500 to-blue-500',
-      features: [
-        isGerman ? 'Büro- und Geschäftsreinigung' : 'Office and commercial cleaning',
-        isGerman ? 'Haushaltsreinigung' : 'Household cleaning',
-        isGerman ? 'Bau- und Grundreinigung' : 'Construction and deep cleaning',
-        isGerman ? 'Fenster- und Fassadenreinigung' : 'Window and facade cleaning'
-      ],
-      href: '/forms/enhanced-cleaning',
-      color: 'green'
     }
   ];
 
@@ -56,8 +39,8 @@ export default function Services() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Services - Angebot anfordern' : 'Services - Request Quote'} - ProvenHub</title>
-        <meta name="description" content={isGerman ? 'Fordern Sie kostenlose Angebote für Umzug oder Reinigung an' : 'Request free quotes for moving or cleaning services'} />
+        <title>{isGerman ? 'Umzugsservice - Angebot anfordern' : 'Moving Service - Request Quote'} - ProvenHub</title>
+        <meta name="description" content={isGerman ? 'Fordern Sie kostenlose Angebote für Umzug an' : 'Request free quotes for moving services'} />
       </Head>
 
       <div 

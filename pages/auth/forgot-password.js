@@ -63,8 +63,7 @@ export default function ForgotPassword() {
   });
 
   const availableServices = [
-    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' },
-    { id: 'cleaning', name: { en: 'Cleaning Services', de: 'Reinigungsservice' }, icon: '🧽' }
+    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' }
   ];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -108,9 +107,7 @@ export default function ForgotPassword() {
       newErrors.email = isGerman ? 'E-Mail ist ungültig' : 'Email is invalid';
     }
 
-    if (!formData.service) {
-      newErrors.service = isGerman ? 'Service-Auswahl ist erforderlich' : 'Service selection is required';
-    }
+    // Service is always 'moving', no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -432,62 +429,7 @@ export default function ForgotPassword() {
                 {/* Step 1: Email Form */}
                 {step === 1 && (
                   <form onSubmit={handleSendOTP} className="space-y-4 sm:space-y-6">
-                    {/* Service Selection */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 }}
-                    >
-                      <label
-                        htmlFor="service"
-                        className="block text-sm font-semibold mb-3"
-                        style={{ color: 'var(--theme-text)' }}
-                      >
-                        🎯 {isGerman ? 'Service auswählen' : 'Select Service'}
-                      </label>
-                      <div className="relative">
-                        <select
-                          id="service"
-                          name="service"
-                          value={formData.service}
-                          onChange={handleChange}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.service ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-orange-400 focus:ring-orange-400'}
-                          `}
-                          style={{
-                            backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.service ? '#EF4444' : 'var(--theme-border)',
-                            color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
-                          }}
-                        >
-                          {availableServices.map((service) => (
-                            <option key={service.id} value={service.id}>
-                              {service.icon} {service.name[isGerman ? 'de' : 'en']}
-                            </option>
-                          ))}
-                        </select>
-                        {/* Custom dropdown arrow */}
-                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                            <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                      </div>
-                      {errors.service && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.service}
-                        </motion.p>
-                      )}
-                    </motion.div>
+                    {/* Service is fixed to moving - no selection needed */}
 
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -915,8 +857,8 @@ export default function ForgotPassword() {
                   {
                     step: 1,
                     icon: '📧',
-                    title: isGerman ? 'Service & E-Mail' : 'Service & Email',
-                    desc: isGerman ? 'Service wählen & E-Mail eingeben' : 'Select service & enter email',
+                    title: isGerman ? 'E-Mail' : 'Email',
+                    desc: isGerman ? 'E-Mail eingeben' : 'Enter your email',
                     active: step === 1,
                     completed: step > 1
                   },

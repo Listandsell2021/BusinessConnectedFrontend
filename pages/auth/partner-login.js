@@ -23,18 +23,13 @@ export default function PartnerLogin() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    selectedService: 'moving' // Default service selection
+    selectedService: 'moving' // Fixed to moving service only
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const redirectAfterLogin = useRef(false);
   const hasShownSuccessToast = useRef(false);
-
-  const availableServices = [
-    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' },
-    { id: 'cleaning', name: { en: 'Cleaning Services', de: 'Reinigungsservice' }, icon: '🧽' }
-  ];
 
 useEffect(() => {
   if (!loading && isAuthenticated()) {
@@ -81,10 +76,6 @@ useEffect(() => {
 
     if (!formData.password) {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
-    }
-
-    if (!formData.selectedService) {
-      newErrors.selectedService = isGerman ? 'Service-Auswahl ist erforderlich' : 'Service selection is required';
     }
 
     // Translate general error message
@@ -164,10 +155,6 @@ useEffect(() => {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
     }
 
-    if (!formData.selectedService) {
-      newErrors.selectedService = isGerman ? 'Service-Auswahl ist erforderlich' : 'Service selection is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -180,35 +167,12 @@ const handleSubmit = async (e) => {
   setIsSubmitting(true);
 
   try {
-    // First attempt regular login with selected service
-    const result = await login(formData.email, formData.password, formData.selectedService);
+    // Login with moving service only
+    const result = await login(formData.email, formData.password, 'moving');
 
     if (result && result.success) {
-      const userServices = result.user?.services || [];
-      
-      // Check if partner has the selected service
-      if (!userServices.includes(formData.selectedService)) {
-        // Service validation failed
-        const serviceDisplayName = availableServices.find(s => s.id === formData.selectedService)?.name[isGerman ? 'de' : 'en'];
-        
-        setErrors({ 
-          general: isGerman 
-            ? `Sie sind nicht für ${serviceDisplayName} registriert. Verfügbare Services: ${userServices.map(s => availableServices.find(as => as.id === s)?.name[isGerman ? 'de' : 'en']).join(', ')}`
-            : `You are not registered for ${serviceDisplayName}. Available services: ${userServices.map(s => availableServices.find(as => as.id === s)?.name[isGerman ? 'de' : 'en']).join(', ')}`
-        });
-        
-        toast.error(
-          isGerman 
-            ? `Service nicht verfügbar: ${serviceDisplayName}`
-            : `Service not available: ${serviceDisplayName}`
-        );
-        
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Service validation passed - set the service and complete login
-      switchService(formData.selectedService);
+      // Set the service to moving
+      switchService('moving');
       
       // Show success message
       toast.success(isGerman ? 'Anmeldung erfolgreich' : 'Login successful');
@@ -291,8 +255,8 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Partner-Anmeldung' : 'Partner Login'} - ProvenHub</title>
-        <meta name="description" content={isGerman ? 'Partner-Anmeldung für ProvenHub' : 'Partner login for ProvenHub'} />
+        <title>{isGerman ? 'Umzugsservice Partner-Anmeldung' : 'Moving Service Partner Login'} - ProvenHub</title>
+        <meta name="description" content={isGerman ? 'Partner-Anmeldung für Umzugsservice bei ProvenHub' : 'Partner login for moving services at ProvenHub'} />
       </Head>
 
       <div 
@@ -407,16 +371,16 @@ const handleSubmit = async (e) => {
                   >
                     {isGerman ? 'Partner-Anmeldung' : 'Partner Login'}
                   </motion.h2>
-                  <motion.p 
-                    className="text-base sm:text-lg" 
+                  <motion.p
+                    className="text-base sm:text-lg"
                     style={{ color: 'var(--theme-muted)' }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                   >
-                    {isGerman 
-                      ? 'Melden Sie sich mit Ihrem Service an'
-                      : 'Sign in with your service'
+                    {isGerman
+                      ? 'Melden Sie sich für Umzugsservice an'
+                      : 'Sign in for Moving Services'
                     }
                   </motion.p>
                 </div>
@@ -443,63 +407,6 @@ const handleSubmit = async (e) => {
                       {errors.general}
                     </motion.div>
                   )}
-
-                  {/* Service Selection */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.7 }}
-                  >
-                    <label 
-                      htmlFor="selectedService" 
-                      className="block text-sm font-semibold mb-3"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      🎯 {isGerman ? 'Service auswählen' : 'Select Service'}
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="selectedService"
-                        name="selectedService"
-                        value={formData.selectedService}
-                        onChange={handleChange}
-                        className={`
-                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                          backdrop-blur-sm transition-all duration-300
-                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                          ${errors.selectedService ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                        `}
-                        style={{
-                          backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                          borderColor: errors.selectedService ? '#EF4444' : 'var(--theme-border)',
-                          color: 'var(--theme-text)',
-                          backdropFilter: 'blur(10px)'
-                        }}
-                      >
-                        {availableServices.map((service) => (
-                          <option key={service.id} value={service.id}>
-                            {service.icon} {service.name[isGerman ? 'de' : 'en']}
-                          </option>
-                        ))}
-                      </select>
-                      {/* Custom dropdown arrow */}
-                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                          <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    </div>
-                    {errors.selectedService && (
-                      <motion.p 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-2 text-sm text-red-400 flex items-center"
-                      >
-                        <span className="mr-1">❌</span>
-                        {errors.selectedService}
-                      </motion.p>
-                    )}
-                  </motion.div>
 
                   {/* Email */}
                   <motion.div
@@ -813,8 +720,8 @@ const handleSubmit = async (e) => {
                 transition={{ delay: 0.6 }}
               >
                 {isGerman
-                  ? 'Wählen Sie Ihren Service und verwalten Sie Ihre Leads professionell mit unserem CRM-System.'
-                  : 'Select your service and manage your leads professionally with our CRM system.'
+                  ? 'Verwalten Sie Ihre Umzugs-Leads professionell mit unserem CRM-System.'
+                  : 'Manage your moving service leads professionally with our CRM system.'
                 }
               </motion.p>
 
@@ -822,9 +729,9 @@ const handleSubmit = async (e) => {
               <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-10">
                 {[
                   {
-                    icon: '🎯',
-                    title: isGerman ? 'Service-spezifische Leads' : 'Service-specific Leads',
-                    desc: isGerman ? 'Nur relevante Anfragen' : 'Only relevant inquiries'
+                    icon: '🚛',
+                    title: isGerman ? 'Umzugs-Leads' : 'Moving Service Leads',
+                    desc: isGerman ? 'Nur Umzugsanfragen' : 'Moving inquiries only'
                   },
                   {
                     icon: '🔔',
@@ -929,7 +836,7 @@ const handleSubmit = async (e) => {
                     🔒
                   </motion.span>
                   <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Sicher & Service-validiert' : 'Secure & Service-validated'}
+                    {isGerman ? 'Sicher & Geprüft für Umzugsservice' : 'Secure & Verified for Moving Services'}
                   </span>
                 </div>
               </motion.div>

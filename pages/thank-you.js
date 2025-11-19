@@ -16,12 +16,8 @@ export default function ThankYou() {
   const { mounted, isDark } = useTheme();
 
   const getServiceName = () => {
-    if (service === 'cleaning') {
-      return isGerman ? 'Reinigungsservice' : 'Cleaning Service';
-    } else if (service === 'moving') {
-      return isGerman ? 'Umzugsservice' : 'Moving Service';
-    }
-    return isGerman ? 'Service' : 'Service';
+    // Only moving service supported
+    return isGerman ? 'Umzugsservice' : 'Moving Service';
   };
 
   if (!mounted) {
