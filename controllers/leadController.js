@@ -239,8 +239,8 @@ const createLead = async (req, res) => {
         lastName: userInfo.lastName,
         email: userInfo.email,
         phone: userInfo.phone,
-        bestReachTime: userInfo.bestReachTime || '8-12',
-        preferredContactTime: userInfo.preferredContactTime || userInfo.bestReachTime || '8-12',
+        bestReachTime: userInfo.bestReachTime,
+        preferredContactTime: userInfo.preferredContactTime || userInfo.bestReachTime,
         consent: userInfo.consent || false
       };
     } else if (formData) {
@@ -250,8 +250,8 @@ const createLead = async (req, res) => {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        bestReachTime: formData.bestReachTime || '8-12',
-        preferredContactTime: formData.preferredContactTime || '8-12',
+        bestReachTime: formData.bestReachTime,
+        preferredContactTime: formData.preferredContactTime,
         consent: formData.consent || false
       };
     } else {

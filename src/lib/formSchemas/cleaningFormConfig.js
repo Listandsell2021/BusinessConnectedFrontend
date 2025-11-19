@@ -571,6 +571,38 @@ export const cleaningFormConfig = {
             en: 'your.email@example.com'
           },
           required: true
+        },
+        {
+          id: 'preferredContactTime',
+          type: 'select',
+          label: {
+            de: 'Bevorzugte Kontaktzeit',
+            en: 'Preferred Contact Time'
+          },
+          required: false,
+          options: [
+            {
+              id: '8-12',
+              label: {
+                de: '8:00 - 12:00 Uhr (Morgens)',
+                en: '8:00 AM - 12:00 PM (Morning)'
+              }
+            },
+            {
+              id: '12-16',
+              label: {
+                de: '12:00 - 16:00 Uhr (Nachmittags)',
+                en: '12:00 PM - 4:00 PM (Afternoon)'
+              }
+            },
+            {
+              id: '16-20',
+              label: {
+                de: '16:00 - 20:00 Uhr (Abends)',
+                en: '4:00 PM - 8:00 PM (Evening)'
+              }
+            }
+          ]
         }
       ]
     },
