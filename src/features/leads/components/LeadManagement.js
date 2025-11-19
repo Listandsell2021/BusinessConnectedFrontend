@@ -63,7 +63,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Initialize activeTab based on URL filter
   const getInitialActiveTab = () => {
     const urlFilter = router.query.filter;
-    return urlFilter === 'cancelled' ? 'cancelRequests' : 'leads';
+    return urlFilter === 'cancelled' ? 'cancelled' : 'leads';
   };
 
   // Add activeTab state for leads and cancelled requests tabs
@@ -188,7 +188,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         setCurrentPage(1); // Reset to page 1
       } else if (urlFilter === 'cancelled') {
         // For cancelled, switch to cancel requests tab
-        setActiveTab('cancelRequests');
+        setActiveTab('cancelled');
       }
     } else if (router.query.tab === 'leads' && !router.query.filter) {
       // If navigating to leads tab without filter, reset to 'all'
@@ -2042,7 +2042,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Load cancelled requests when activeTab changes to 'cancelled' or filters change
   useEffect(() => {
     console.log('Cancelled requests useEffect - currentService:', currentService, 'activeTab:', activeTab);
-    if (activeTab === 'cancelRequests') {
+    if (activeTab === 'cancelled') {
       loadCancelledRequests();
     }
   }, [activeTab, currentService, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, cancelledCurrentPage, filters.status, filters.city, filters.partner, filters.searchTerm]);
