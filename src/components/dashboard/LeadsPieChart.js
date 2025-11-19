@@ -45,10 +45,9 @@ const LeadsPieChart = ({ className = "" }) => {
     const byStatusForDisplay = allByStatus.filter(item => item.count > 0);
     const totalStatusCount = allByStatus.reduce((sum, item) => sum + item.count, 0);
 
-    // ALWAYS show both moving and cleaning services with REAL data from backend
+    // Only moving service is supported now
     const byService = [
-      { service: 'moving', count: stats.movingLeads || 0, color: '#667eea' },
-      { service: 'cleaning', count: stats.cleaningLeads || 0, color: '#f093fb' }
+      { service: 'moving', count: stats.movingLeads || 0, color: '#667eea' }
     ];
 
     // For display in pie, only show services with leads > 0
@@ -71,8 +70,7 @@ const LeadsPieChart = ({ className = "" }) => {
     ],
     byStatusForDisplay: [],
     byService: [
-      { service: 'moving', count: 0, color: '#667eea' },
-      { service: 'cleaning', count: 0, color: '#f093fb' }
+      { service: 'moving', count: 0, color: '#667eea' }
     ],
     byServiceForDisplay: [],
     total: 0,
@@ -176,117 +174,61 @@ const LeadsPieChart = ({ className = "" }) => {
         </h3>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status Distribution */}
-        <div>
-          <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Nach Status' : 'By Status'}
+      {/* Two-column layout: Legend on left, Pie chart on right */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        {/* Left: Status Details & Legend */}
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold mb-6" style={{ color: 'var(--theme-text)' }}>
+            {isGerman ? 'Status Übersicht' : 'Status Overview'}
           </h4>
 
-          <div className="relative">
-            {leadData.total > 0 ? (
-              <svg width="200" height="200" className="mx-auto">
-                {leadData.byStatusForDisplay.length === 1 ? (
-                  // Special case: single status gets full circle
-                  <motion.circle
-                    cx={100}
-                    cy={100}
-                    r={80}
-                    fill={leadData.byStatusForDisplay[0].color}
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="2"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.8 }}
-                  />
-                ) : (
-                  // Multiple statuses: render pie slices
-                  leadData.byStatusForDisplay.reduce((acc, data, index) => {
-                    const slice = (
-                      <PieSlice
-                        key={data.status}
-                        data={data}
-                        startAngle={acc.currentAngle}
-                        radius={80}
-                        centerX={100}
-                        centerY={100}
-                        index={index}
-                        total={leadData.total}
-                      />
-                    );
-                    acc.slices.push(slice);
-                    acc.currentAngle += (data.count / leadData.total) * 360;
-                    return acc;
-                  }, { slices: [], currentAngle: 0 }).slices
-                )}
+          {/* Total Leads Card */}
+          <motion.div
+            className="p-4 rounded-xl"
+            style={{
+              backgroundColor: 'var(--theme-card-bg)',
+              borderLeft: '4px solid #667eea'
+            }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'Gesamt Leads' : 'Total Leads'}
+            </div>
+            <div className="text-3xl font-bold mt-1" style={{ color: 'var(--theme-text)' }}>
+              {leadData.total}
+            </div>
+          </motion.div>
 
-                {/* Center label showing total */}
-                <motion.text
-                  x={100}
-                  y={95}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-2xl font-bold fill-white"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {leadData.total}
-                </motion.text>
-                <motion.text
-                  x={100}
-                  y={115}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-xs fill-gray-300"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  {isGerman ? 'Gesamt' : 'Total'}
-                </motion.text>
-              </svg>
-            ) : (
-              // No data: show empty state
-              <div className="w-[200px] h-[200px] mx-auto flex items-center justify-center bg-gray-200 rounded-full">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📊</div>
-                  <div className="text-sm text-gray-600">
-                    {isGerman ? 'Keine Daten' : 'No Data'}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Status Legend */}
-          <div className="space-y-2 mt-4">
+          {/* Status Breakdown */}
+          <div className="space-y-3">
             {leadData.byStatus.map((data, index) => (
               <motion.div
                 key={data.status}
-                className="flex items-center justify-between p-2 rounded-lg"
+                className="flex items-center justify-between p-4 rounded-xl"
                 style={{ backgroundColor: 'var(--theme-card-bg)' }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: 0.3 + index * 0.1 }}
               >
                 <div className="flex items-center space-x-3">
                   <div
-                    className="w-4 h-4 rounded"
+                    className="w-6 h-6 rounded-lg"
                     style={{ backgroundColor: data.color }}
                   ></div>
-                  <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
+                  <span className="text-base font-medium" style={{ color: 'var(--theme-text)' }}>
                     {data.status === 'pending' ? (isGerman ? 'Wartend' : 'Pending') :
                      data.status === 'assigned' ? (isGerman ? 'Zugewiesen' : 'Assigned') :
                      (isGerman ? 'Andere' : 'Other')}
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold" style={{ color: 'var(--theme-text)' }}>
+                  <div className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
                     {data.count}
                   </div>
-                  <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                    {Math.round((data.count / leadData.total) * 100)}%
+                  <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                    {leadData.total > 0 ? Math.round((data.count / leadData.total) * 100) : 0}%
                   </div>
                 </div>
               </motion.div>
@@ -294,121 +236,81 @@ const LeadsPieChart = ({ className = "" }) => {
           </div>
         </div>
 
-        {/* Service Distribution */}
-        <div>
-          <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Nach Service' : 'By Service'}
-          </h4>
+        {/* Right: Pie Chart */}
+        <div className="flex items-center justify-center">
+          {leadData.total > 0 ? (
+            <svg width="280" height="280" className="mx-auto">
+              {leadData.byStatusForDisplay.length === 1 ? (
+                // Special case: single status gets full circle
+                <motion.circle
+                  cx={140}
+                  cy={140}
+                  r={110}
+                  fill={leadData.byStatusForDisplay[0].color}
+                  stroke="rgba(255,255,255,0.2)"
+                  strokeWidth="3"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.8 }}
+                />
+              ) : (
+                // Multiple statuses: render pie slices
+                leadData.byStatusForDisplay.reduce((acc, data, index) => {
+                  const slice = (
+                    <PieSlice
+                      key={data.status}
+                      data={data}
+                      startAngle={acc.currentAngle}
+                      radius={110}
+                      centerX={140}
+                      centerY={140}
+                      index={index}
+                      total={leadData.total}
+                    />
+                  );
+                  acc.slices.push(slice);
+                  acc.currentAngle += (data.count / leadData.total) * 360;
+                  return acc;
+                }, { slices: [], currentAngle: 0 }).slices
+              )}
 
-          <div className="relative">
-            {leadData.totalService > 0 ? (
-              <svg width="200" height="200" className="mx-auto">
-                {leadData.byServiceForDisplay.length === 1 ? (
-                  // Special case: single service gets full circle
-                  <motion.circle
-                    cx={100}
-                    cy={100}
-                    r={80}
-                    fill={leadData.byServiceForDisplay[0].color}
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="2"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.8 }}
-                  />
-                ) : (
-                  // Multiple services: render pie slices
-                  leadData.byServiceForDisplay.reduce((acc, data, index) => {
-                    const serviceTotal = leadData.byService.reduce((sum, item) => sum + item.count, 0);
-                    const slice = (
-                      <PieSlice
-                        key={data.service}
-                        data={data}
-                        startAngle={acc.currentAngle}
-                        radius={80}
-                        centerX={100}
-                        centerY={100}
-                        index={index}
-                        total={serviceTotal}
-                      />
-                    );
-                    acc.slices.push(slice);
-                    acc.currentAngle += (data.count / serviceTotal) * 360;
-                    return acc;
-                  }, { slices: [], currentAngle: 0 }).slices
-                )}
-
-                {/* Center label showing total */}
-                <motion.text
-                  x={100}
-                  y={95}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-2xl font-bold fill-white"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {leadData.byService.reduce((sum, item) => sum + item.count, 0)}
-                </motion.text>
-                <motion.text
-                  x={100}
-                  y={115}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-xs fill-gray-300"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  {isGerman ? 'Gesamt' : 'Total'}
-                </motion.text>
-              </svg>
-            ) : (
-              // No data: show empty state
-              <div className="w-[200px] h-[200px] mx-auto flex items-center justify-center bg-gray-200 rounded-full">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">🔧</div>
-                  <div className="text-sm text-gray-600">
-                    {isGerman ? 'Keine Daten' : 'No Data'}
-                  </div>
+              {/* Center label showing total */}
+              <motion.text
+                x={140}
+                y={130}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-4xl font-bold fill-white"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                {leadData.total}
+              </motion.text>
+              <motion.text
+                x={140}
+                y={160}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-sm fill-gray-300"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                {isGerman ? 'Leads' : 'Leads'}
+              </motion.text>
+            </svg>
+          ) : (
+            // No data: show empty state
+            <div className="w-[280px] h-[280px] flex items-center justify-center bg-gray-200 rounded-full">
+              <div className="text-center">
+                <div className="text-6xl mb-3">📊</div>
+                <div className="text-base text-gray-600 font-medium">
+                  {isGerman ? 'Keine Daten' : 'No Data'}
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Service Legend */}
-          <div className="space-y-2 mt-4">
-            {leadData.byService.map((data, index) => (
-              <motion.div
-                key={data.service}
-                className="flex items-center justify-between p-2 rounded-lg"
-                style={{ backgroundColor: 'var(--theme-card-bg)' }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <div className="flex items-center space-x-3">
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: data.color }}
-                  ></div>
-                  <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                    {data.service === 'moving' ? (isGerman ? 'Umzugsservice' : 'Moving Service') :
-                     (isGerman ? 'Reinigungsservice' : 'Cleaning Service')}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold" style={{ color: 'var(--theme-text)' }}>
-                    {data.count}
-                  </div>
-                  <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                    {Math.round((data.count / leadData.byService.reduce((sum, item) => sum + item.count, 0)) * 100)}%
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

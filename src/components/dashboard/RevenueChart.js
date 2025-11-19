@@ -73,7 +73,6 @@ const RevenueChart = ({ className = "" }) => {
 
     let labels = [];
     let movingData = [];
-    let cleaningData = [];
     let totalData = [];
 
     if (period === 'week') {
@@ -82,23 +81,21 @@ const RevenueChart = ({ className = "" }) => {
         const date = new Date(selectedWeekStart);
         date.setDate(date.getDate() + i);
         const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-        const dayData = dataMap.get(dateStr) || { movingRevenue: 0, cleaningRevenue: 0, totalRevenue: 0 };
+        const dayData = dataMap.get(dateStr) || { movingRevenue: 0, totalRevenue: 0 };
 
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         movingData.push(dayData.movingRevenue || 0);
-        cleaningData.push(dayData.cleaningRevenue || 0);
         totalData.push(dayData.totalRevenue || 0);
       }
     } else if (period === 'year') {
       // Fill in all 12 months
       for (let m = 0; m < 12; m++) {
         const monthStr = `${selectedYear}-${String(m + 1).padStart(2, '0')}`;
-        const monthData = dataMap.get(monthStr) || { movingRevenue: 0, cleaningRevenue: 0, totalRevenue: 0 };
+        const monthData = dataMap.get(monthStr) || { movingRevenue: 0, totalRevenue: 0 };
         const date = new Date(selectedYear, m, 1);
 
         labels.push(date.toLocaleDateString('en-US', { month: 'short' }));
         movingData.push(monthData.movingRevenue || 0);
-        cleaningData.push(monthData.cleaningRevenue || 0);
         totalData.push(monthData.totalRevenue || 0);
       }
     } else {
@@ -106,12 +103,11 @@ const RevenueChart = ({ className = "" }) => {
       const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayData = dataMap.get(dateStr) || { movingRevenue: 0, cleaningRevenue: 0, totalRevenue: 0 };
+        const dayData = dataMap.get(dateStr) || { movingRevenue: 0, totalRevenue: 0 };
         const date = new Date(selectedYear, selectedMonth - 1, d);
 
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         movingData.push(dayData.movingRevenue || 0);
-        cleaningData.push(dayData.cleaningRevenue || 0);
         totalData.push(dayData.totalRevenue || 0);
       }
     }
@@ -119,7 +115,6 @@ const RevenueChart = ({ className = "" }) => {
     return {
       labels,
       moving: movingData,
-      cleaning: cleaningData,
       total: totalData
     };
   };
@@ -186,7 +181,6 @@ const RevenueChart = ({ className = "" }) => {
     return {
       labels: ['No Data'],
       moving: [0],
-      cleaning: [0],
       total: [0]
     };
   };
@@ -226,7 +220,7 @@ const RevenueChart = ({ className = "" }) => {
     );
   }
 
-  const maxValue = Math.max(...chartData.moving, ...chartData.cleaning) || 1;
+  const maxValue = Math.max(...chartData.moving) || 1;
   const getBarHeight = (value) => maxValue > 0 ? (value / maxValue) * 100 : 0;
 
   // Dynamic bar width based on time period
@@ -348,7 +342,7 @@ const RevenueChart = ({ className = "" }) => {
               transition={{ delay: index * 0.05 }}
             >
               {/* Bars container */}
-              <div className="w-full flex-1 flex items-end justify-center space-x-1">
+              <div className="w-full flex-1 flex items-end justify-center">
                 {/* Moving service bar */}
                 <motion.div
                   className={`${getBarWidth()} rounded-t-lg relative group cursor-pointer`}
@@ -373,31 +367,6 @@ const RevenueChart = ({ className = "" }) => {
                     </div>
                   </div>
                 </motion.div>
-
-                {/* Cleaning service bar */}
-                <motion.div
-                  className={`${getBarWidth()} rounded-t-lg relative group cursor-pointer`}
-                  style={{
-                    height: `${getBarHeight(chartData.cleaning[index])}%`,
-                    minHeight: chartData.cleaning[index] > 0 ? '4px' : '0px',
-                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                  }}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${getBarHeight(chartData.cleaning[index])}%` }}
-                  transition={{ delay: index * 0.05 + 0.1, duration: 0.6 }}
-                  whileHover={{ scale: 1.1 }}
-                >
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none"
-                    style={{ zIndex: 9999 }}
-                  >
-                    <div className="font-semibold">{label}</div>
-                    <div>{isGerman ? 'Reinigung' : 'Cleaning'}: €{chartData.cleaning[index].toFixed(2)}</div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                      <div className="border-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
 
               {/* X-axis label */}
@@ -417,14 +386,6 @@ const RevenueChart = ({ className = "" }) => {
           }}></div>
           <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
             {isGerman ? 'Umzugsservice' : 'Moving Service'}
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded" style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-          }}></div>
-          <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Reinigungsservice' : 'Cleaning Service'}
           </span>
         </div>
       </div>
