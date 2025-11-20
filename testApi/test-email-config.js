@@ -29,7 +29,7 @@ async function testEmailConfiguration() {
     console.log('SMTP_PORT=587');
     console.log('SMTP_USER=your-email@gmail.com');
     console.log('SMTP_PASS=your-app-password');
-    console.log('FROM_NAME=ProvenHub Team');
+    console.log('FROM_NAME=Umzug Anbieter Vergleich Team');
     console.log('FROM_EMAIL=your-email@gmail.com');
     return false;
   }
@@ -40,7 +40,7 @@ async function testEmailConfiguration() {
   try {
     const testEmailResult = await EmailService.sendEmail({
       to: process.env.SMTP_USER, // Send test email to yourself
-      subject: 'Test Email - ProvenHub Configuration',
+      subject: 'Test Email - Umzug Anbieter Vergleich Configuration',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #3d68ff; color: white; padding: 20px; text-align: center;">

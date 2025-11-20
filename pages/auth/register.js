@@ -501,9 +501,9 @@ export default function PartnerRequest() {
     <>
       <Head>
         <title>
-          {isGerman ? 'Registrieren - ProvenHub' : 'Register - ProvenHub'}
+          {isGerman ? 'Registrieren - Umzug Anbieter Vergleich' : 'Register - Umzug Anbieter Vergleich'}
         </title>
-        <meta name="description" content={isGerman ? 'Erstellen Sie Ihr kostenloses ProvenHub Konto' : 'Create your free ProvenHub account'} />
+        <meta name="description" content={isGerman ? 'Erstellen Sie Ihr kostenloses Umzug Anbieter Vergleich Konto' : 'Create your free Umzug Anbieter Vergleich account'} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
       </Head>
 
@@ -556,7 +556,7 @@ export default function PartnerRequest() {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />
@@ -638,8 +638,8 @@ export default function PartnerRequest() {
                     transition={{ delay: 0.6 }}
                   >
                     {isGerman 
-                      ? 'Erstellen Sie Ihr ProvenHub Konto'
-                      : 'Create your ProvenHub Partner account'
+                      ? 'Erstellen Sie Ihr Umzug Anbieter Vergleich Konto'
+                      : 'Create your Umzug Anbieter Vergleich Partner account'
                     }
                   </motion.p>
                 </div>

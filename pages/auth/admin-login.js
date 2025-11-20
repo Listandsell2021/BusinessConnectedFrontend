@@ -237,7 +237,7 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{t('auth.login')} - ProvenHub</title>
+        <title>{t('auth.login')} - Umzug Anbieter Vergleich</title>
         <meta name="description" content={t('auth.loginDescription')} />
       </Head>
 
@@ -302,7 +302,7 @@ const handleSubmit = async (e) => {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={150} height={42} priority />
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={150} height={42} priority />
               </Link>
               <div className="flex items-center space-x-3">
                 <LanguageToggle />

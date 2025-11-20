@@ -108,7 +108,7 @@ const MultiStepForm = ({ formType }) => {
   return (
     <>
       <Head>
-        <title>{getFormTitle()} - ProvenHub</title>
+        <title>{getFormTitle()} - Umzug Anbieter Vergleich</title>
         <meta name="description" content={getFormDescription()} />
       </Head>
 
@@ -131,7 +131,7 @@ const MultiStepForm = ({ formType }) => {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
                 </Link>
                 
                 <div className="hidden md:block text-sm" style={{ color: 'var(--theme-muted)' }}>
@@ -214,7 +214,7 @@ const MultiStepForm = ({ formType }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <div className="text-sm mb-4 md:mb-0" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 Umzug Anbieter Vergleich. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </div>
               
               <div className="flex items-center space-x-6 text-sm">

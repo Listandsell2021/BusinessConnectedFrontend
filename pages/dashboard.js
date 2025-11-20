@@ -1322,7 +1322,7 @@ export default function Dashboard({ initialData = {} }) {
           {activeTab === 'overview' 
             ? (isGerman ? 'CRM Dashboard' : 'CRM Dashboard')
             : getMenuItems().find(item => item.id === activeTab)?.label || 'Dashboard'
-          } - ProvenHub
+          } - Umzug Anbieter Vergleich
         </title>
         <meta name="description" content="Advanced CRM system for managing leads, partners, and business operations with stunning UI" />
       </Head>
@@ -1359,7 +1359,7 @@ export default function Dashboard({ initialData = {} }) {
                   transition={{ delay: 0.3 }}
                 >
                   <Link href="/" className="flex items-center">
-                    <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
+                    <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
                   </Link>
                 </motion.div>
               )}

@@ -134,7 +134,7 @@ const EnhancedMultiStepForm = ({ formType }) => {
   return (
     <>
       <Head>
-        <title>{getFormTitle()} - ProvenHub</title>
+        <title>{getFormTitle()} - Umzug Anbieter Vergleich</title>
         <meta name="description" content={getFormDescription()} />
       </Head>
 
@@ -194,7 +194,7 @@ const EnhancedMultiStepForm = ({ formType }) => {
               {/* Logo and Progress */}
               <div className="flex items-center space-x-6">
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={160} height={45} priority />
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={160} height={45} priority />
                 </Link>
                 
                 <div className="flex items-center space-x-2 md:space-x-4">

@@ -102,7 +102,7 @@ describe('Login Page - Comprehensive Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
+        expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
         expect(screen.getByText('Professional Edition')).toBeInTheDocument();
         expect(screen.getByText('Business Portal')).toBeInTheDocument();
         expect(screen.getByText('Anmelden')).toBeInTheDocument(); // Login button
@@ -173,7 +173,7 @@ describe('Login Page - Comprehensive Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByAltText('ProvenHub')).toBeInTheDocument();
+        expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
         expect(screen.getByText('Professional Edition')).toBeInTheDocument();
         expect(screen.getByText('Business Portal')).toBeInTheDocument();
         expect(screen.getByText('Sign In')).toBeInTheDocument(); // Login button

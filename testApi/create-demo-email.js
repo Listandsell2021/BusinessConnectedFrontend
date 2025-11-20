@@ -29,7 +29,7 @@ SMTP_HOST=smtp.ethereal.email
 SMTP_PORT=587
 SMTP_USER=${testAccount.user}
 SMTP_PASS=${testAccount.pass}
-FROM_NAME=ProvenHub Team (Demo)
+FROM_NAME=Umzug Anbieter Vergleich Team (Demo)
 FROM_EMAIL=${testAccount.user}`;
     
     // Replace existing email config
@@ -56,9 +56,9 @@ FROM_EMAIL=${testAccount.user}`;
     });
     
     const testMessage = {
-      from: `"ProvenHub Team (Demo)" <${testAccount.user}>`,
+      from: `"Umzug Anbieter Vergleich Team (Demo)" <${testAccount.user}>`,
       to: testAccount.user,
-      subject: 'Demo Account Test - ProvenHub Email Configuration',
+      subject: 'Demo Account Test - Umzug Anbieter Vergleich Email Configuration',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #3d68ff; color: white; padding: 20px; text-align: center;">

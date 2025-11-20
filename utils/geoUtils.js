@@ -116,7 +116,7 @@ async function geocodeAddress(address, city = '', country = 'Germany') {
         addressdetails: 1
       },
       headers: {
-        'User-Agent': 'ProvenHub/1.0' // Required by Nominatim
+        'User-Agent': 'Umzug Anbieter Vergleich/1.0' // Required by Nominatim
       },
       timeout: 5000
     });

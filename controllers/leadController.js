@@ -2711,7 +2711,7 @@ const exportLeadsToPDF = async (req, res) => {
       size: 'A4',
       info: {
         Title: 'Leads Export Report',
-        Author: 'ProvenHub'
+        Author: 'Umzug Anbieter Vergleich'
       }
     });
 
@@ -2736,7 +2736,7 @@ const exportLeadsToPDF = async (req, res) => {
       } catch (error) {
         console.error('Error loading logo for PDF:', error);
         // Fallback to text if logo fails
-        doc.fillColor('#2563eb').fontSize(20).font('Helvetica-Bold').text('ProvenHub', { align: 'left' });
+        doc.fillColor('#2563eb').fontSize(20).font('Helvetica-Bold').text('Umzug Anbieter Vergleich', { align: 'left' });
         doc.moveDown(0.15);
       }
       doc.fillColor('#1e40af').fontSize(14).font('Helvetica').text('Leads Export Report', { align: 'left' });

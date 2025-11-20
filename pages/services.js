@@ -39,7 +39,7 @@ export default function Services() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Umzugsservice - Angebot anfordern' : 'Moving Service - Request Quote'} - ProvenHub</title>
+        <title>{isGerman ? 'Umzugsservice - Angebot anfordern' : 'Moving Service - Request Quote'} - Umzug Anbieter Vergleich</title>
         <meta name="description" content={isGerman ? 'Fordern Sie kostenlose Angebote für Umzug an' : 'Request free quotes for moving services'} />
       </Head>
 
@@ -74,7 +74,7 @@ export default function Services() {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={180} height={50} priority />
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={180} height={50} priority />
                 </Link>
               </motion.div>
 
@@ -369,7 +369,7 @@ export default function Services() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="text-center">
               <p className="text-sm mb-4" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 Umzug Anbieter Vergleich. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </p>
               <div className="flex items-center justify-center space-x-6 text-sm">
                 <Link href="/privacy" className="hover:opacity-75 transition-opacity" style={{ color: 'var(--theme-muted)' }}>

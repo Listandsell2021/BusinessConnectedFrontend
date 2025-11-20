@@ -9,8 +9,8 @@ class EmailService {
   constructor() {
     this.transporter = this.createTransporter();
     this.fromEmail = process.env.FROM_EMAIL || 'no-reply@leadform.com';
-    this.companyName = process.env.COMPANY_NAME || 'ProvenHub';
-    this.companyTeam = process.env.COMPANY_TEAM || 'ProvenHub Team';
+    this.companyName = process.env.COMPANY_NAME || 'Umzug Anbieter Vergleich';
+    this.companyTeam = process.env.COMPANY_TEAM || 'Umzug Anbieter Vergleich Team';
     this.supportEmail = process.env.SUPPORT_EMAIL || 'support@leadform.com';
   }
 

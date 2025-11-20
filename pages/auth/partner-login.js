@@ -255,8 +255,8 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Umzugsservice Partner-Anmeldung' : 'Moving Service Partner Login'} - ProvenHub</title>
-        <meta name="description" content={isGerman ? 'Partner-Anmeldung für Umzugsservice bei ProvenHub' : 'Partner login for moving services at ProvenHub'} />
+        <title>{isGerman ? 'Umzugsservice Partner-Anmeldung' : 'Moving Service Partner Login'} - Umzug Anbieter Vergleich</title>
+        <meta name="description" content={isGerman ? 'Partner-Anmeldung für Umzugsservice bei Umzug Anbieter Vergleich' : 'Partner login for moving services at Umzug Anbieter Vergleich'} />
       </Head>
 
       <div 
@@ -320,7 +320,7 @@ const handleSubmit = async (e) => {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={140} height={40} priority />
+                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />

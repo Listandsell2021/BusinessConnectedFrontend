@@ -27,7 +27,7 @@ export default function ThankYou() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - ProvenHub</title>
+        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - Umzug Anbieter Vergleich</title>
         <meta name="description" content={isGerman ? 'Ihre Anfrage wurde erfolgreich gesendet' : 'Your request has been sent successfully'} />
       </Head>
 
@@ -50,7 +50,7 @@ export default function ThankYou() {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="ProvenHub" width={160} height={45} priority />
+                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={160} height={45} priority />
                 </Link>
               </motion.div>
 
@@ -224,7 +224,7 @@ export default function ThankYou() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="text-center">
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 ProvenHub. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 Umzug Anbieter Vergleich. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </p>
             </div>
           </div>

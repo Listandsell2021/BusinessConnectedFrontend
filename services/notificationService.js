@@ -15,8 +15,8 @@ class NotificationService {
         recipient: partnerId,
         recipientRole: 'partner',
         type: 'partner_welcome',
-        title: 'Welcome to ProvenHub!',
-        message: `Welcome to ProvenHub! You are now a verified ${serviceDisplayName} partner. Start receiving leads in your area!`,
+        title: 'Welcome to Umzug Anbieter Vergleich!',
+        message: `Welcome to Umzug Anbieter Vergleich! You are now a verified ${serviceDisplayName} partner. Start receiving leads in your area!`,
         priority: 'high',
         metadata: {
           service: service

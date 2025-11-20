@@ -1,7 +1,7 @@
 {
-  "name": "provenhub-client",
+  "name": "Umzug Anbieter Vergleich-client",
   "version": "1.0.0",
-  "description": "Frontend client for ProvenHub",
+  "description": "Frontend client for Umzug Anbieter Vergleich",
   "private": true,
   "scripts": {
     "dev": "next dev",
