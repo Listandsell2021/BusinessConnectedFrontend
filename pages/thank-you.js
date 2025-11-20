@@ -50,7 +50,7 @@ export default function ThankYou() {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={160} height={45} priority />
+                  <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={160} height={45} priority />
                 </Link>
               </motion.div>
 

@@ -1359,7 +1359,7 @@ export default function Dashboard({ initialData = {} }) {
                   transition={{ delay: 0.3 }}
                 >
                   <Link href="/" className="flex items-center">
-                    <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
+                    <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={200} height={56} priority />
                   </Link>
                 </motion.div>
               )}

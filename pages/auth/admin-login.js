@@ -301,8 +301,8 @@ const handleSubmit = async (e) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={150} height={42} priority />
+              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity -ml-16">
+                <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={250} height={70} priority />
               </Link>
               <div className="flex items-center space-x-3">
                 <LanguageToggle />
@@ -331,14 +331,14 @@ const handleSubmit = async (e) => {
                     className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg"
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 200, 
+                    transition={{
+                      type: "spring",
+                      stiffness: 200,
                       damping: 15,
-                      delay: 0.4 
+                      delay: 0.4
                     }}
-                    whileHover={{ 
-                      scale: 1.1, 
+                    whileHover={{
+                      scale: 1.1,
                       rotate: 10,
                       boxShadow: "0 10px 25px rgba(99, 102, 241, 0.4)"
                     }}

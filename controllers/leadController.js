@@ -2729,17 +2729,20 @@ const exportLeadsToPDF = async (req, res) => {
     const addDocHeader = () => {
       // Add logo
       const path = require('path');
-      const logoPath = path.join(__dirname, '../public/logo.png');
+      const logoPath = path.join(__dirname, '../public/logo-light.svg');
       try {
-        doc.image(logoPath, doc.page.margins.left, doc.y, { width: 100 });
-        doc.moveDown(2.5);
+        // Use text-based logo for better PDF compatibility
+        doc.fillColor('#0066cc').fontSize(18).font('Helvetica-Bold').text('umzug-anbieter-vergleich.de', { align: 'left' });
+        doc.fillColor('#0066cc').fontSize(12).font('Helvetica').text('günstig umziehen & sparen', { align: 'left' });
+        doc.moveDown(1.5);
       } catch (error) {
         console.error('Error loading logo for PDF:', error);
         // Fallback to text if logo fails
-        doc.fillColor('#2563eb').fontSize(20).font('Helvetica-Bold').text('Umzug Anbieter Vergleich', { align: 'left' });
-        doc.moveDown(0.15);
+        doc.fillColor('#0066cc').fontSize(18).font('Helvetica-Bold').text('umzug-anbieter-vergleich.de', { align: 'left' });
+        doc.fillColor('#0066cc').fontSize(12).font('Helvetica').text('günstig umziehen & sparen', { align: 'left' });
+        doc.moveDown(1.5);
       }
-      doc.fillColor('#1e40af').fontSize(14).font('Helvetica').text('Leads Export Report', { align: 'left' });
+      doc.fillColor('#1e40af').fontSize(14).font('Helvetica-Bold').text('Leads Export Report', { align: 'left' });
       doc.moveDown(0.2);
       doc.fillColor('#6b7280').fontSize(9).font('Helvetica')
         .text(`Generated: ${new Date().toLocaleString('en-GB')}    Total Records: ${leads.length}`)

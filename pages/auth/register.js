@@ -556,7 +556,7 @@ export default function PartnerRequest() {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
+                <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
               </Link>
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />

@@ -74,7 +74,7 @@ export default function Services() {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/blackThemeLogo.svg" : "/logo.png"} alt="Umzug Anbieter Vergleich" width={180} height={50} priority />
+                  <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={180} height={50} priority />
                 </Link>
               </motion.div>
 
