@@ -26,8 +26,8 @@ const getApiBaseUrl = () => {
   }
 
   // Staging/Production environment
-  if (hostname === 'dv-app-provenhub.listandsell.eu') {
-    return 'https://dv-api-provenhub.listandsell.eu/api';
+  if (hostname === 'dv-app-umzug-anbieter-vergleich.listandsell.eu') {
+    return 'https://dv-api-umzug-anbieter-vergleich.listandsell.eu/api';
   }
 
   // Fallback: construct based on current domain for other production environments
