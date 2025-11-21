@@ -165,7 +165,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       phone: ''
     },
     partnerType: 'basic',
-    serviceType: '', // Changed from services array to single serviceType
+    serviceType: 'moving', // Default to moving service (only service available)
     address: {
       street: '',
       city: '',
@@ -3845,12 +3845,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 {/* Email and Phone - Two Columns */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label 
-                      htmlFor="partner-email" 
+                    <label
+                      htmlFor="partner-email"
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      📧 E-Mail *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      E-Mail *
                     </label>
                     <input
                       id="partner-email"
@@ -3879,12 +3882,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </div>
 
                   <div>
-                    <label 
-                      htmlFor="partner-phone" 
+                    <label
+                      htmlFor="partner-phone"
                       className="block text-sm font-medium mb-1"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      📞 {isGerman ? 'Telefon' : 'Phone'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      {isGerman ? 'Telefon' : 'Phone'} *
                     </label>
                     <input
                       id="partner-phone"
@@ -3910,80 +3916,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </div>
                 </div>
 
-                {/* Service Type and Company Name - Same Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Service Type - Dropdown */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {isGerman ? 'Service-Typ' : 'Service Type'} *
-                    </label>
-                    <div className="service-dropdown-container relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
-                        className="w-full px-3 py-2 rounded-lg border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
-                        style={{
-                          backgroundColor: 'var(--theme-input-bg)',
-                          borderColor: partnerFormErrors.serviceType ? '#ef4444' : 'var(--theme-border)',
-                          color: 'var(--theme-text)'
-                        }}
-                      >
-                        <span>
-                          {!partnerFormData.serviceType
-                            ? (isGerman ? 'Service-Typ auswählen' : 'Select service type')
-                            : (() => {
-                                const selectedService = servicesData.find(s => s.id === partnerFormData.serviceType);
-                                return selectedService ? getServiceLabel(selectedService.name) : getServiceLabel(partnerFormData.serviceType);
-                              })()
-                          }
-                        </span>
-                        <svg className={`w-5 h-5 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {isServiceDropdownOpen && (
-                        <div
-                          className="absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-auto"
-                          style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}
-                        >
-                          {(servicesData && servicesData.length > 0) ? servicesData.map((service) => (
-                            <label key={service.id} className="flex items-center px-3 py-2 hover:bg-opacity-80 cursor-pointer" style={{ backgroundColor: 'transparent' }}>
-                              <input
-                                type="radio"
-                                name="serviceType"
-                                checked={partnerFormData.serviceType === service.id}
-                                onChange={() => handleServiceSelect(service.id)}
-                                className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                              />
-                              <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                                {service.id === 'moving' ? (
-                                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                )} {getServiceLabel(service.name)}
-                              </span>
-                            </label>
-                          )) : (
-                            <div className="px-3 py-2 text-sm" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Services werden geladen...' : 'Loading services...'}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    {partnerFormErrors.serviceType && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.serviceType}</p>
-                    )}
-                  </div>
+                {/* Service Type is automatically set to 'moving' (only available service) */}
 
+                {/* Partner Type and Company Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Partner Type */}
                   <div>
                     <label
@@ -4013,10 +3949,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <option value="exclusive">{isGerman ? 'Exklusiv' : 'Exclusive'}</option>
                     </select>
                   </div>
-                </div>
 
-                {/* Company Name and Street */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Company Name */}
                   <div>
                     <label
                       htmlFor="partner-company"
@@ -4050,7 +3984,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
                     )}
                   </div>
+                </div>
 
+                {/* Street and City */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-street"
@@ -4089,14 +4026,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.street']}</p>
                     )}
                   </div>
-                </div>
 
-                {/* City and Zip Code */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-city"
-                      className="block text-sm font-medium mb-1"
+                      className="block text-sm font-medium mb-2"
                       style={{ color: 'var(--theme-text)' }}
                     >
                       <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -4126,48 +4060,20 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.city']}</p>
                     )}
                   </div>
-
-                  <div>
-                    <label
-                      htmlFor="partner-zipCode"
-                      className="block text-sm font-medium mb-1"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      📮 {isGerman ? 'PLZ' : 'Zip Code'} *
-                    </label>
-                    <input
-                      id="partner-zipCode"
-                      name="partner-zipCode"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.address.zipCode}
-                      onChange={(e) => handlePartnerFormChange('address.zipCode', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['address.zipCode'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'PLZ' : 'Zip Code'}
-                    />
-                    {partnerFormErrors['address.zipCode'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.zipCode']}</p>
-                    )}
-                  </div>
                 </div>
 
-                {/* Country */}
+                {/* Country and Zip Code */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="partner-country"
-                      className="block text-sm font-medium mb-1"
+                      className="block text-sm font-medium mb-2"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      🌍 {isGerman ? 'Land' : 'Country'} *
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {isGerman ? 'Land' : 'Country'} *
                     </label>
                     <input
                       id="partner-country"
@@ -4189,6 +4095,40 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     />
                     {partnerFormErrors['address.country'] && (
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.country']}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="partner-zipCode"
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      {isGerman ? 'PLZ' : 'Zip Code'} *
+                    </label>
+                    <input
+                      id="partner-zipCode"
+                      name="partner-zipCode"
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={partnerFormData.address.zipCode}
+                      onChange={(e) => handlePartnerFormChange('address.zipCode', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: 'var(--theme-input-bg)',
+                        borderColor: partnerFormErrors['address.zipCode'] ? '#ef4444' : 'var(--theme-border)',
+                        color: 'var(--theme-text)'
+                      }}
+                      placeholder={isGerman ? 'PLZ' : 'Zip Code'}
+                    />
+                    {partnerFormErrors['address.zipCode'] && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.zipCode']}</p>
                     )}
                   </div>
                 </div>

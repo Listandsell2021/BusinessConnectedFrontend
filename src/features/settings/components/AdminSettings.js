@@ -18,14 +18,6 @@ const AdminSettings = () => {
         exclusive: {
           perLeadPrice: 30
         }
-      },
-      cleaning: {
-        basic: {
-          perLeadPrice: 15
-        },
-        exclusive: {
-          perLeadPrice: 20
-        }
       }
     },
     leadDistribution: {
@@ -35,14 +27,6 @@ const AdminSettings = () => {
         },
         exclusive: {
           leadsPerWeek: 8
-        }
-      },
-      cleaning: {
-        basic: {
-          leadsPerWeek: 5
-        },
-        exclusive: {
-          leadsPerWeek: 12
         }
       }
     },
@@ -343,292 +327,87 @@ const AdminSettings = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Moving Service Pricing */}
-        <motion.div
-          className="p-6 rounded-xl border"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-border)'
-          }}
-          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="text-3xl">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Umzugsservice' : 'Moving Service'}
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman ? 'Preis pro Lead' : 'Price per lead'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {/* Basic Partner Pricing */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Basic Partner (€)' : 'Basic Partners (€)'}
-              </label>
-              <div
-                className="flex items-center border rounded-lg px-3"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  height: '48px'
-                }}
-              >
-                <span
-                  className="text-lg font-semibold mr-3 inline-flex items-center"
-                  style={{ color: 'var(--theme-text)' }}
-                >
-                  €
-                </span>
-                <input
-                  type="number"
-                  value={settings.pricing.moving.basic.perLeadPrice}
-                  onChange={(e) =>
-                    updateNestedSetting(
-                      'pricing.moving.basic.perLeadPrice',
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  min="1"
-                  step="0.01"
-                  className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--theme-text)',
-                    border: 'none',
-                    lineHeight: '1.1',
-                    padding: 0
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Exclusive Partner Pricing */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Exclusive Partner (€)' : 'Exclusive Partners (€)'}
-              </label>
-              <div
-                className="flex items-center border rounded-lg px-3"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  height: '48px'
-                }}
-              >
-                <span
-                  className="text-lg font-semibold mr-3 inline-flex items-center"
-                  style={{ color: 'var(--theme-text)' }}
-                >
-                  €
-                </span>
-                <input
-                  type="number"
-                  value={settings.pricing.moving.exclusive.perLeadPrice}
-                  onChange={(e) =>
-                    updateNestedSetting(
-                      'pricing.moving.exclusive.perLeadPrice',
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  min="1"
-                  step="0.01"
-                  className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--theme-text)',
-                    border: 'none',
-                    lineHeight: '1.1',
-                    padding: 0
-                  }}
-                />
-              </div>
-              <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Betrag, den Partner pro zugewiesenem und akzeptiertem Moving-Lead zahlen'
-                  : 'Amount partners pay per assigned and accepted moving lead'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Cleaning Service Pricing */}
-        <motion.div
-          className="p-6 rounded-xl border"
-          style={{ 
-            backgroundColor: 'var(--theme-card-bg)', 
-            borderColor: 'var(--theme-border)' 
-          }}
-          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="text-3xl">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Reinigungsservice' : 'Cleaning Service'}
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman ? 'Preis pro Lead' : 'Price per lead'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            {/* Basic Partner Pricing */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Basic Partner (€)' : 'Basic Partners (€)'}
-              </label>
-              <div
-                className="flex items-center border rounded-lg px-3"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  height: '48px'
-                }}
-              >
-                <span
-                  className="text-lg font-semibold mr-3 inline-flex items-center"
-                  style={{ color: 'var(--theme-text)' }}
-                >
-                  €
-                </span>
-                <input
-                  type="number"
-                  value={settings.pricing.cleaning.basic.perLeadPrice}
-                  onChange={(e) =>
-                    updateNestedSetting(
-                      'pricing.cleaning.basic.perLeadPrice',
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  min="1"
-                  step="0.01"
-                  className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--theme-text)',
-                    border: 'none',
-                    lineHeight: '1.1',
-                    padding: 0
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Exclusive Partner Pricing */}
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Exclusive Partner (€)' : 'Exclusive Partners (€)'}
-              </label>
-              <div
-                className="flex items-center border rounded-lg px-3"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  height: '48px'
-                }}
-              >
-                <span
-                  className="text-lg font-semibold mr-3 inline-flex items-center"
-                  style={{ color: 'var(--theme-text)' }}
-                >
-                  €
-                </span>
-                <input
-                  type="number"
-                  value={settings.pricing.cleaning.exclusive.perLeadPrice}
-                  onChange={(e) =>
-                    updateNestedSetting(
-                      'pricing.cleaning.exclusive.perLeadPrice',
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  min="1"
-                  step="0.01"
-                  className="flex-1 h-full text-lg font-semibold focus:outline-none focus:ring-0"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--theme-text)',
-                    border: 'none',
-                    lineHeight: '1.1',
-                    padding: 0
-                  }}
-                />
-              </div>
-              <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Betrag, den Partner pro zugewiesenem und akzeptiertem Reinigungs-Lead zahlen'
-                  : 'Amount partners pay per assigned and accepted cleaning lead'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Pricing Summary */}
+      {/* Modern Compact Pricing Card */}
       <motion.div
-        className="p-6 rounded-xl border mt-8"
-        style={{ 
-          backgroundColor: 'var(--theme-card-bg)', 
-          borderColor: 'var(--theme-border)' 
+        className="p-5 rounded-xl border"
+        style={{
+          backgroundColor: 'var(--theme-card-bg)',
+          borderColor: 'var(--theme-border)'
         }}
+        whileHover={{ y: -2, transition: { duration: 0.2 } }}
       >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-          <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="flex items-center space-x-2 mb-4">
+          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
           </svg>
-          {isGerman ? 'Umsatzübersicht' : 'Revenue Overview'}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-green-600 mb-2">
-              €{settings.pricing.moving.basic.perLeadPrice}
+          <h3 className="text-base font-semibold" style={{ color: 'var(--theme-text)' }}>
+            {isGerman ? 'Umzugsservice Preise' : 'Moving Service Pricing'}
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Basic Partner */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'BASIC PARTNER' : 'BASIC PARTNER'}
+            </label>
+            <div className="flex items-center">
+              <span className="text-3xl font-bold text-green-600">€</span>
+              <input
+                type="number"
+                value={settings.pricing.moving.basic.perLeadPrice}
+                onChange={(e) =>
+                  updateNestedSetting(
+                    'pricing.moving.basic.perLeadPrice',
+                    parseFloat(e.target.value)
+                  )
+                }
+                min="1"
+                step="0.01"
+                className="text-3xl font-bold ml-1 w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
+              />
             </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Umzug Basic' : 'Moving Basic'}
-            </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'pro Lead' : 'per lead'}
+            </p>
           </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-green-700 mb-2">
-              €{settings.pricing.moving.exclusive.perLeadPrice}
+
+          {/* Exclusive Partner */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'EXCLUSIVE PARTNER' : 'EXCLUSIVE PARTNER'}
+            </label>
+            <div className="flex items-center">
+              <span className="text-3xl font-bold text-green-700">€</span>
+              <input
+                type="number"
+                value={settings.pricing.moving.exclusive.perLeadPrice}
+                onChange={(e) =>
+                  updateNestedSetting(
+                    'pricing.moving.exclusive.perLeadPrice',
+                    parseFloat(e.target.value)
+                  )
+                }
+                min="1"
+                step="0.01"
+                className="text-3xl font-bold ml-1 w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
+              />
             </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Umzug Exclusive' : 'Moving Exclusive'}
-            </div>
-          </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-blue-600 mb-2">
-              €{settings.pricing.cleaning.basic.perLeadPrice}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Reinigung Basic' : 'Cleaning Basic'}
-            </div>
-          </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-blue-700 mb-2">
-              €{settings.pricing.cleaning.exclusive.perLeadPrice}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Reinigung Exclusive' : 'Cleaning Exclusive'}
-            </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'pro Lead' : 'per lead'}
+            </p>
           </div>
         </div>
+
+        <p className="text-xs mt-3" style={{ color: 'var(--theme-muted)' }}>
+          {isGerman
+            ? 'Betrag, den Partner pro zugewiesenem und akzeptiertem Moving-Lead zahlen'
+            : 'Amount partners pay per assigned and accepted moving lead'}
+        </p>
       </motion.div>
     </motion.div>
   );
@@ -639,39 +418,33 @@ const AdminSettings = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Moving Service Lead Distribution */}
-        <motion.div
-          className="p-6 rounded-xl border"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-border)'
-          }}
-          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="text-3xl">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Umzugsservice' : 'Moving Service'}
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman ? 'Leads pro Woche' : 'Leads per week'}
-              </p>
-            </div>
-          </div>
+      {/* Modern Compact Lead Distribution Card */}
+      <motion.div
+        className="p-5 rounded-xl border"
+        style={{
+          backgroundColor: 'var(--theme-card-bg)',
+          borderColor: 'var(--theme-border)'
+        }}
+        whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      >
+        <div className="flex items-center space-x-2 mb-4">
+          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+          <h3 className="text-base font-semibold" style={{ color: 'var(--theme-text)' }}>
+            {isGerman ? 'Lead-Verteilung pro Woche' : 'Lead Distribution per Week'}
+          </h3>
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Basic Partner' : 'Basic Partners'}
-              </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Basic Partner */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'BASIC PARTNER' : 'BASIC PARTNER'}
+            </label>
+            <div className="flex items-center">
               <input
                 type="number"
                 value={settings.leadDistribution.moving.basic.leadsPerWeek}
@@ -683,24 +456,24 @@ const AdminSettings = () => {
                 }
                 min="1"
                 max="50"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
+                className="text-3xl font-bold w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
               />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Maximale Leads pro Woche für Basic Partner'
-                  : 'Maximum leads per week for basic partners'}
-              </p>
+              <span className="text-sm ml-2" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? '/Woche' : '/week'}
+              </span>
             </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'Max. Leads' : 'Max. leads'}
+            </p>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Exclusive Partner' : 'Exclusive Partners'}
-              </label>
+          {/* Exclusive Partner */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'EXCLUSIVE PARTNER' : 'EXCLUSIVE PARTNER'}
+            </label>
+            <div className="flex items-center">
               <input
                 type="number"
                 value={settings.leadDistribution.moving.exclusive.leadsPerWeek}
@@ -712,157 +485,24 @@ const AdminSettings = () => {
                 }
                 min="1"
                 max="50"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
+                className="text-3xl font-bold w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
               />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Maximale Leads pro Woche für Exclusive Partner'
-                  : 'Maximum leads per week for exclusive partners'}
-              </p>
+              <span className="text-sm ml-2" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? '/Woche' : '/week'}
+              </span>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Cleaning Service Lead Distribution */}
-        <motion.div
-          className="p-6 rounded-xl border"
-          style={{
-            backgroundColor: 'var(--theme-card-bg)',
-            borderColor: 'var(--theme-border)'
-          }}
-          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="text-3xl">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Reinigungsservice' : 'Cleaning Service'}
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman ? 'Leads pro Woche' : 'Leads per week'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Basic Partner' : 'Basic Partners'}
-              </label>
-              <input
-                type="number"
-                value={settings.leadDistribution.cleaning.basic.leadsPerWeek}
-                onChange={(e) =>
-                  updateNestedSetting(
-                    'leadDistribution.cleaning.basic.leadsPerWeek',
-                    parseInt(e.target.value)
-                  )
-                }
-                min="1"
-                max="50"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Maximale Leads pro Woche für Basic Partner'
-                  : 'Maximum leads per week for basic partners'}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Exclusive Partner' : 'Exclusive Partners'}
-              </label>
-              <input
-                type="number"
-                value={settings.leadDistribution.cleaning.exclusive.leadsPerWeek}
-                onChange={(e) =>
-                  updateNestedSetting(
-                    'leadDistribution.cleaning.exclusive.leadsPerWeek',
-                    parseInt(e.target.value)
-                  )
-                }
-                min="1"
-                max="50"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman
-                  ? 'Maximale Leads pro Woche für Exclusive Partner'
-                  : 'Maximum leads per week for exclusive partners'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Lead Distribution Summary */}
-      <motion.div
-        className="p-6 rounded-xl border mt-8"
-        style={{ 
-          backgroundColor: 'var(--theme-card-bg)', 
-          borderColor: 'var(--theme-border)' 
-        }}
-      >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-          <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          {isGerman ? 'Lead-Verteilungsübersicht' : 'Lead Distribution Overview'}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-green-600 mb-1">
-              {settings.leadDistribution.moving.basic.leadsPerWeek}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Umzug Basic' : 'Moving Basic'}
-            </div>
-          </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-green-700 mb-1">
-              {settings.leadDistribution.moving.exclusive.leadsPerWeek}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Umzug Exclusive' : 'Moving Exclusive'}
-            </div>
-          </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-blue-600 mb-1">
-              {settings.leadDistribution.cleaning.basic.leadsPerWeek}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Reinigung Basic' : 'Cleaning Basic'}
-            </div>
-          </div>
-          <div className="text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="text-2xl font-bold text-blue-700 mb-1">
-              {settings.leadDistribution.cleaning.exclusive.leadsPerWeek}
-            </div>
-            <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman ? 'Reinigung Exclusive' : 'Cleaning Exclusive'}
-            </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'Max. Leads' : 'Max. leads'}
+            </p>
           </div>
         </div>
+
+        <p className="text-xs mt-3" style={{ color: 'var(--theme-muted)' }}>
+          {isGerman
+            ? 'Maximale Anzahl von Leads, die pro Woche an Partner zugewiesen werden'
+            : 'Maximum number of leads assigned to partners per week'}
+        </p>
       </motion.div>
     </motion.div>
   );
@@ -873,77 +513,86 @@ const AdminSettings = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      {/* Lead Settings */}
-        <motion.div
-          className="p-6 rounded-xl border"
-          style={{ 
-            backgroundColor: 'var(--theme-card-bg)', 
-            borderColor: 'var(--theme-border)' 
-          }}
-          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-          <h3 className="text-lg font-semibold mb-6" style={{ color: 'var(--theme-text)' }}>
-            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+      {/* Modern Compact Lead Settings Card */}
+      <motion.div
+        className="p-5 rounded-xl border"
+        style={{
+          backgroundColor: 'var(--theme-card-bg)',
+          borderColor: 'var(--theme-border)'
+        }}
+        whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      >
+        <div className="flex items-center space-x-2 mb-4">
+          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h3 className="text-base font-semibold" style={{ color: 'var(--theme-text)' }}>
             {isGerman ? 'Lead-Einstellungen' : 'Lead Settings'}
           </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Lead-Stornierungsfrist nach Annahme (Stunden)' : 'Lead Cancellation Time Limit After Acceptance (hours)'}
-              </label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Cancellation Time Limit */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'STORNIERUNGSFRIST' : 'CANCELLATION TIME LIMIT'}
+            </label>
+            <div className="flex items-center">
               <input
                 type="number"
                 value={settings.system.autoAcceptTimeout}
                 onChange={(e) => updateNestedSetting('system.autoAcceptTimeout', parseInt(e.target.value))}
                 min="1"
                 max="72"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
+                className="text-3xl font-bold w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
               />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman 
-                  ? 'Zeitlimit nach Annahme, in dem ein Lead storniert werden kann'
-                  : 'Time limit after acceptance during which a lead can be cancelled'
-                }
-              </p>
+              <span className="text-sm ml-2" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? 'Stunden' : 'hours'}
+              </span>
             </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman
+                ? 'Nach Annahme'
+                : 'After acceptance'}
+            </p>
+          </div>
 
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Pro Lead Zuweisungslimit zu Basic Partner' : 'Per Lead Assignment Limit to Basic Partner'}
-              </label>
+          {/* Basic Partner Lead Limit */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-xs font-medium mb-2 text-gray-500">
+              {isGerman ? 'BASIC PARTNER LIMIT' : 'BASIC PARTNER LIMIT'}
+            </label>
+            <div className="flex items-center">
               <input
                 type="number"
                 value={settings.system.basicPartnerLeadLimit}
                 onChange={(e) => updateNestedSetting('system.basicPartnerLeadLimit', parseInt(e.target.value))}
                 min="1"
                 max="10"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
+                className="text-3xl font-bold w-full focus:outline-none bg-transparent"
+                style={{ color: 'var(--theme-text)' }}
               />
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {isGerman 
-                  ? 'Anzahl der Basic Partner, an die derselbe Lead gesendet werden kann'
-                  : 'Number of basic partners that can receive the same lead'
-                }
-              </p>
+              <span className="text-sm ml-2" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? 'Partner' : 'partners'}
+              </span>
             </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman
+                ? 'Pro Lead'
+                : 'Per lead'}
+            </p>
           </div>
-        </motion.div>
+        </div>
+
+        <p className="text-xs mt-3" style={{ color: 'var(--theme-muted)' }}>
+          {isGerman
+            ? 'Lead-Verwaltungseinstellungen für Stornierung und Zuweisungslimits'
+            : 'Lead management settings for cancellation and assignment limits'}
+        </p>
+      </motion.div>
     </motion.div>
   );
 

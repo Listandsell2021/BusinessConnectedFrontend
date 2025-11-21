@@ -253,13 +253,7 @@ const AddressAutocomplete = ({
         </div>
       )}
 
-      {scriptLoaded && !scriptError && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" title="Google Maps loaded">
-          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-      )}
+      {/* Green checkmark removed - Google Maps loads silently */}
 
       {scriptError && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" title={scriptError}>
