@@ -9,6 +9,7 @@ import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import Logo from '../../src/components/ui/Logo';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -346,15 +347,13 @@ export default function ForgotPassword() {
         <div className="flex-1 flex flex-col justify-center py-6 sm:py-8 lg:py-12 px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
           <div className="mx-auto w-full max-w-sm sm:max-w-md lg:w-[420px]">
             {/* Header Controls */}
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-12"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
-              </Link>
+              <Logo />
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />
                 <ThemeToggle />

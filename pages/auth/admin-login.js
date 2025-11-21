@@ -9,6 +9,7 @@ import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import Logo from '../../src/components/ui/Logo';
 
 export default function Login() {
   const router = useRouter();
@@ -295,15 +296,13 @@ const handleSubmit = async (e) => {
         <div className="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
           <div className="mx-auto w-full max-w-md lg:w-[420px]">
             {/* Header Controls */}
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between mb-12"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity -ml-16">
-                <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={250} height={70} priority />
-              </Link>
+              <Logo />
               <div className="flex items-center space-x-3">
                 <LanguageToggle />
                 <ThemeToggle />

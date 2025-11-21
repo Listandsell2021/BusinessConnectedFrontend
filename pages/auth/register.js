@@ -10,6 +10,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import ThemeToggle from '../../src/components/ui/ThemeToggle';
 import LanguageToggle from '../../src/components/ui/LanguageToggle';
 import Button from '../../src/components/ui/Button';
+import Logo from '../../src/components/ui/Logo';
 import { API_BASE_URL } from '../../src/lib/config';
 
 
@@ -549,15 +550,13 @@ export default function PartnerRequest() {
         <div className="flex-1 flex flex-col py-4 sm:py-6 px-4 sm:px-6 lg:px-8 relative z-10 overflow-y-auto">
           <div className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-2xl my-auto">
             {/* Header Controls */}
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between mb-2 sm:mb-3"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="flex items-center hover:opacity-75 transition-opacity">
-                <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={140} height={40} priority />
-              </Link>
+              <Logo />
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <LanguageToggle />
                 <ThemeToggle />
