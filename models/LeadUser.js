@@ -29,13 +29,8 @@ const LeadUserSchema = new mongoose.Schema({
   },
   bestReachTime: {
     type: String,
-    enum: ['8-12', '12-16', '16-20'],
-    default: '8-12'
-  },
-  preferredContactTime: {
-    type: String,
-    enum: ['8-12', '12-16', '16-20'],
-    default: '8-12'
+    enum: ['8-12', '12-16', '16-20', 'any_time'],
+    default: 'any_time'
   },
   consent: {
     type: Boolean,
