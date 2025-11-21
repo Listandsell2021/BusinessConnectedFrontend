@@ -46,8 +46,8 @@ app.prepare().then(() => {
     }
 
     console.log(`✅ Next.js server running on http://${host}:${port}`);
-    console.log(`🌐 Frontend should be accessible at: https://dv-app-umzug-anbieter-vergleich.listandsell.eu`);
-    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://dv-api-umzug-anbieter-vergleich.listandsell.eu/'}`);
+    console.log(`🌐 Frontend should be accessible at: https://app.umzug-anbieter-vergleich.de`);
+    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://api.umzug-anbieter-vergleich.de/'}`);
   });
 
   // Graceful shutdown

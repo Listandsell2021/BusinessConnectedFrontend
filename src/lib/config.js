@@ -26,8 +26,8 @@ const getApiBaseUrl = () => {
   }
 
   // Staging/Production environment
-  if (hostname === 'dv-app-umzug-anbieter-vergleich.listandsell.eu') {
-    return 'https://dv-api-umzug-anbieter-vergleich.listandsell.eu/api';
+  if (hostname === 'app.umzug-anbieter-vergleich.de') {
+    return 'https://api.umzug-anbieter-vergleich.de/api';
   }
 
   // Fallback: construct based on current domain for other production environments
