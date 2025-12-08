@@ -4,12 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
-import Logo from '../../src/components/ui/Logo';
+import { useAuth } from '../src/contexts/AuthContext';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import ThemeToggle from '../src/components/ui/ThemeToggle';
+import LanguageToggle from '../src/components/ui/LanguageToggle';
+import Logo from '../src/components/ui/Logo';
 
 export default function Login() {
   const router = useRouter();
@@ -592,7 +592,7 @@ const handleSubmit = async (e) => {
                       {isGerman ? 'Oder melden Sie sich als Partner an:' : 'Or sign in as partner:'}
                     </p>
                     <Link
-                      href="/auth/login"
+                      href="/partner-login"
                       className="text-sm font-medium transition-all duration-200 hover:underline"
                       style={{ color: 'var(--theme-accent)' }}
                     >

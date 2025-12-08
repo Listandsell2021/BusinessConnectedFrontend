@@ -4,11 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
+import { useAuth } from '../src/contexts/AuthContext';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import ThemeToggle from '../src/components/ui/ThemeToggle';
+import LanguageToggle from '../src/components/ui/LanguageToggle';
 
 export default function Login() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function Login() {
 
   // Redirect to partner login page by default
   useEffect(() => {
-    router.replace('/auth/partner-login');
+    router.replace('/partner-login');
   }, [router]);
   
   const [formData, setFormData] = useState({
@@ -413,9 +413,9 @@ const handleSubmit = async (e) => {
                     transition={{ delay: 0.9 }}
                   >
                     <div className="text-sm">
-                      <Link 
-                        href="/auth/forgot-password" 
-                        className="font-medium transition-all duration-200 hover:underline flex items-center" 
+                      <Link
+                        href="/forgot-password"
+                        className="font-medium transition-all duration-200 hover:underline flex items-center"
                         style={{ color: 'var(--theme-accent)' }}
                       >
                         <span className="mr-1">🔑</span>
@@ -496,7 +496,7 @@ const handleSubmit = async (e) => {
                       {isGerman ? 'Oder melden Sie sich als Admin an:' : 'Or sign in as admin:'}
                     </p>
                     <Link
-                      href="/auth/admin-login"
+                      href="/admin-login"
                       className="text-sm font-medium transition-all duration-200 hover:underline"
                       style={{ color: 'var(--theme-accent)' }}
                     >
@@ -513,7 +513,7 @@ const handleSubmit = async (e) => {
                     <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                       {t('auth.noAccount')}{' '}
                       <Link
-                        href="/auth/register"
+                        href="/register"
                         className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                       >
                         {t('auth.signUp')}

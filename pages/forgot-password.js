@@ -5,11 +5,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
-import Logo from '../../src/components/ui/Logo';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import ThemeToggle from '../src/components/ui/ThemeToggle';
+import LanguageToggle from '../src/components/ui/LanguageToggle';
+import Logo from '../src/components/ui/Logo';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -248,7 +248,7 @@ export default function ForgotPassword() {
 
         // Redirect to appropriate login page
         setTimeout(() => {
-          router.push('/auth/partner-login');
+          router.push('/partner-login');
         }, 2000);
       } else {
         const errorMessage = translateError(data.message || data.error || 'Failed to reset password');
@@ -814,9 +814,9 @@ export default function ForgotPassword() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1.1 }}
                 >
-                  <Link 
-                    href="/auth/partner-login" 
-                    className="inline-flex items-center space-x-2 text-sm font-medium transition-all duration-200 hover:underline px-4 py-2 rounded-lg hover:bg-gray-100/10" 
+                  <Link
+                    href="/partner-login"
+                    className="inline-flex items-center space-x-2 text-sm font-medium transition-all duration-200 hover:underline px-4 py-2 rounded-lg hover:bg-gray-100/10"
                     style={{ color: 'var(--theme-accent)' }}
                   >
                     <span>←</span>

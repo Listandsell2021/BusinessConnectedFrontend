@@ -89,7 +89,7 @@ export default function Dashboard({ initialData = {} }) {
 
   useEffect(() => {
     if (!loading && !isAuthenticated()) {
-      router.push('/auth/login');
+      router.push('/partner-login');
     }
   }, [isAuthenticated, loading, router]);
 
@@ -452,7 +452,7 @@ export default function Dashboard({ initialData = {} }) {
 
   const handleLogout = () => {
     logout();
-    router.push('/auth/login');
+    router.push('/partner-login');
   };
 
   // SVG Icons for menu items

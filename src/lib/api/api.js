@@ -94,7 +94,7 @@ api.interceptors.response.use(
         delete api.defaults.headers.common['Authorization'];
         
         processQueue(error, null);
-        window.location.href = '/auth/login';
+        window.location.href = '/partner-login';
         
       } catch (refreshError) {
         processQueue(refreshError, null);
@@ -104,7 +104,7 @@ api.interceptors.response.use(
         localStorage.removeItem('refreshToken');
         delete api.defaults.headers.common['Authorization'];
         
-        window.location.href = '/auth/login';
+        window.location.href = '/partner-login';
       } finally {
         isRefreshing = false;
       }

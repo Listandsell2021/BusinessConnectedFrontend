@@ -487,7 +487,7 @@ class EmailService {
           </ul>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Access Dashboard
             </a>
@@ -619,7 +619,7 @@ class EmailService {
           </div>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" style="background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            <a href="${process.env.CLIENT_URL}/partner-login" style="background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
               🚀 Dashboard aufrufen
             </a>
           </div>
@@ -701,7 +701,7 @@ class EmailService {
           </ul>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Access Dashboard
             </a>
@@ -744,7 +744,7 @@ class EmailService {
           </ul>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Dashboard aufrufen
             </a>
@@ -1029,7 +1029,7 @@ class EmailService {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Access Your Dashboard
             </a>
@@ -1060,7 +1060,7 @@ class EmailService {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Dashboard aufrufen
             </a>
@@ -1148,7 +1148,7 @@ class EmailService {
           `}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: ${bgColor}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Access Your Dashboard
             </a>
@@ -1194,7 +1194,7 @@ class EmailService {
           `}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL}/auth/partner-login" 
+            <a href="${process.env.CLIENT_URL}/partner-login" 
                style="background: ${bgColor}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
               🚀 Dashboard aufrufen
             </a>
@@ -1467,7 +1467,7 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.CLIENT_URL}${isPartner ? '/auth/partner-login' : '/auth/admin-login'}" 
+              <a href="${process.env.CLIENT_URL}${isPartner ? '/partner-login' : '/admin-login'}" 
                  style="background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Login to Your Account
               </a>
@@ -1511,7 +1511,7 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.CLIENT_URL}${isPartner ? '/auth/partner-login' : '/auth/admin-login'}" 
+              <a href="${process.env.CLIENT_URL}${isPartner ? '/partner-login' : '/admin-login'}" 
                  style="background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Bei Ihrem Konto anmelden
               </a>

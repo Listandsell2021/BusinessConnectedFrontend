@@ -86,8 +86,8 @@ export default function Services() {
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
                 {/* Business Login Button */}
-                <Link 
-                  href="/auth/login"
+                <Link
+                  href="/partner-login"
                   className="hidden sm:inline-flex items-center px-4 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 border-2"
                   style={{
                     borderColor: 'var(--theme-border)',
@@ -343,8 +343,8 @@ export default function Services() {
                   : 'Become our partner and receive qualified customer inquiries.'
                 }
               </p>
-              <Link 
-                href="/auth/login"
+              <Link
+                href="/partner-login"
                 className="inline-flex items-center px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
                 style={{
                   backgroundColor: 'var(--theme-button-bg)',

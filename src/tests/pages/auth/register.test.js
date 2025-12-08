@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/router';
-import PartnerRequest from '../../../pages/auth/register';
+import PartnerRequest from '../../../../pages/register';
 import { AuthProvider } from '../../../contexts/AuthContext';
 import { LanguageProvider } from '../../../contexts/LanguageContext';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
@@ -90,7 +90,7 @@ describe('Partner Request Form', () => {
     });
 
     const backButton = screen.getByRole('link', { name: /zurück zur anmeldung|back to login/i });
-    expect(backButton).toHaveAttribute('href', '/auth/login');
+    expect(backButton).toHaveAttribute('href', '/partner-login');
   });
 
   it('should display validation errors for required fields', async () => {

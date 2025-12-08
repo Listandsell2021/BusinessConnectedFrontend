@@ -4,14 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
-import Button from '../../src/components/ui/Button';
-import Logo from '../../src/components/ui/Logo';
-import { API_BASE_URL } from '../../src/lib/config';
+import { useAuth } from '../src/contexts/AuthContext';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import ThemeToggle from '../src/components/ui/ThemeToggle';
+import LanguageToggle from '../src/components/ui/LanguageToggle';
+import Button from '../src/components/ui/Button';
+import Logo from '../src/components/ui/Logo';
+import { API_BASE_URL } from '../src/lib/config';
 
 
 export default function PartnerRequest() {
@@ -480,7 +480,7 @@ export default function PartnerRequest() {
           </motion.div>
 
           <motion.button
-            onClick={() => router.push('/auth/login')}
+            onClick={() => router.push('/partner-login')}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -586,8 +586,8 @@ export default function PartnerRequest() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Link 
-                    href="/auth/login" 
+                  <Link
+                    href="/partner-login"
                     className="inline-flex items-center text-sm font-medium transition-all duration-200 hover:opacity-75"
                     style={{ color: 'var(--theme-accent)' }}
                   >
@@ -1310,8 +1310,8 @@ export default function PartnerRequest() {
                   >
                     <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                       {isGerman ? 'Bereits registriert?' : 'Already registered?'}{' '}
-                      <Link 
-                        href="/auth/login" 
+                      <Link
+                        href="/partner-login"
                         className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                       >
                         {isGerman ? 'Anmelden' : 'Sign In'}

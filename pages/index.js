@@ -13,7 +13,7 @@ export default function Home() {
         router.replace('/dashboard');
       } else {
         // Redirect non-logged-in users to login
-        router.replace('/auth/login');
+        router.replace('/partner-login');
       }
     }
   }, [router, isAuthenticated, loading]);

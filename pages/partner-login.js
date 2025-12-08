@@ -5,14 +5,14 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import { useService } from '../../src/contexts/ServiceContext';
-import ThemeToggle from '../../src/components/ui/ThemeToggle';
-import LanguageToggle from '../../src/components/ui/LanguageToggle';
-import Button from '../../src/components/ui/Button';
-import Logo from '../../src/components/ui/Logo';
+import { useAuth } from '../src/contexts/AuthContext';
+import { useLanguage } from '../src/contexts/LanguageContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { useService } from '../src/contexts/ServiceContext';
+import ThemeToggle from '../src/components/ui/ThemeToggle';
+import LanguageToggle from '../src/components/ui/LanguageToggle';
+import Button from '../src/components/ui/Button';
+import Logo from '../src/components/ui/Logo';
 
 export default function PartnerLogin() {
   const router = useRouter();
@@ -59,7 +59,7 @@ useEffect(() => {
     );
 
     // Clean URL without triggering navigation
-    router.replace('/auth/partner-login', undefined, { shallow: true });
+    router.replace('/partner-login', undefined, { shallow: true });
   }
 }, [router.query.message, router.isReady, isGerman, router]);
 
@@ -539,9 +539,9 @@ const handleSubmit = async (e) => {
                     transition={{ delay: 1.0 }}
                   >
                     <div className="text-sm">
-                      <Link 
-                        href="/auth/forgot-password" 
-                        className="font-medium transition-all duration-200 hover:underline flex items-center" 
+                      <Link
+                        href="/forgot-password"
+                        className="font-medium transition-all duration-200 hover:underline flex items-center"
                         style={{ color: 'var(--theme-accent)' }}
                       >
                         <span className="mr-1">🔑</span>
@@ -601,7 +601,7 @@ const handleSubmit = async (e) => {
                     <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
                       {isGerman ? 'Noch kein Partner?' : 'Not a partner yet?'}{' '}
                       <Link
-                        href="/auth/register"
+                        href="/register"
                         className="font-semibold transition-all duration-200 hover:underline bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                       >
                         {isGerman ? 'Registrieren' : 'Sign Up'}
@@ -609,7 +609,7 @@ const handleSubmit = async (e) => {
                     </span>
                     <div className="mt-2">
                       <Link
-                        href="/auth/admin-login"
+                        href="/admin-login"
                         className="text-sm font-medium transition-all duration-200 hover:underline"
                         style={{ color: 'var(--theme-accent)' }}
                       >

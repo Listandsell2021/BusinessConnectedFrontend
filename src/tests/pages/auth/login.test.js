@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/router';
-import Login from '../../../pages/auth/login';
+import Login from '../../../../pages/login';
 import { AuthProvider } from '../../../contexts/AuthContext';
 import { LanguageProvider } from '../../../contexts/LanguageContext';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
@@ -242,7 +242,7 @@ describe('Login Page', () => {
     });
 
     const registerLink = screen.getByRole('link', { name: /sign up/i });
-    expect(registerLink).toHaveAttribute('href', '/auth/register');
+    expect(registerLink).toHaveAttribute('href', '/register');
   });
 
   it('should have link to forgot password', async () => {
@@ -257,7 +257,7 @@ describe('Login Page', () => {
     });
 
     const forgotPasswordLink = screen.getByRole('link', { name: /forgot password/i });
-    expect(forgotPasswordLink).toHaveAttribute('href', '/auth/forgot-password');
+    expect(forgotPasswordLink).toHaveAttribute('href', '/forgot-password');
   });
 
   it('should redirect to dashboard when already authenticated', () => {

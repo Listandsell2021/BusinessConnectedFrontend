@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/router';
-import Login from '../../../pages/auth/login';
+import Login from '../../../../pages/login';
 import { AuthProvider, useAuth } from '../../../contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '../../../contexts/LanguageContext';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
