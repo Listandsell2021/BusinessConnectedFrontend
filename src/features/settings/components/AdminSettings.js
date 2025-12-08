@@ -4,6 +4,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { settingsAPI } from '../../../lib/api/api';
+import FormSettings from './FormSettings';
 
 const AdminSettings = () => {
   const { t, isGerman } = useLanguage();
@@ -318,7 +319,8 @@ const AdminSettings = () => {
   const tabs = [
     { id: 'pricing', label: isGerman ? 'Pricing' : 'Pricing' },
     { id: 'leads', label: isGerman ? 'Lead-Verteilung' : 'Lead Distribution' },
-    { id: 'system', label: isGerman ? 'System' : 'System' }
+    { id: 'system', label: isGerman ? 'System' : 'System' },
+    { id: 'formSettings', label: isGerman ? 'Formular' : 'Form Settings' }
   ];
 
   const renderPricingTab = () => (
@@ -817,6 +819,17 @@ const AdminSettings = () => {
     </motion.div>
   );
 
+  const renderFormSettingsTab = () => (
+    <motion.div
+      key="formSettings"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    >
+      <FormSettings />
+    </motion.div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'pricing':
@@ -825,6 +838,8 @@ const AdminSettings = () => {
         return renderLeadDistributionTab();
       case 'system':
         return renderSystemTab();
+      case 'formSettings':
+        return renderFormSettingsTab();
       default:
         return renderPricingTab();
     }

@@ -264,4 +264,12 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data)
 };
 
+export const formConfigAPI = {
+  getMovingConfig: () => api.get('/form-config/moving'),
+  updateMovingConfig: (data) => api.put('/form-config/moving', data),
+  updateFormStep: (stepId, data) => api.put(`/form-config/moving/step/${stepId}`, data),
+  resetMovingConfig: () => api.post('/form-config/moving/reset'),
+  getConfigHistory: () => api.get('/form-config/moving/history')
+};
+
 export default api;

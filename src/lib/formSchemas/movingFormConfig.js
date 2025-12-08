@@ -15,10 +15,6 @@ export const movingFormConfig = {
         de: 'Umzugsart',
         en: 'Move Type'
       },
-      description: {
-        de: 'Welche Art von Umzug planen Sie?',
-        en: 'What type of move are you planning?'
-      },
       type: 'radio',
       required: true,
       options: [
