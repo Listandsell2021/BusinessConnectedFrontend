@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  experimental: {
-    appDir: false
-  },
   i18n: {
     locales: ['en', 'de'],
     defaultLocale: 'de',
