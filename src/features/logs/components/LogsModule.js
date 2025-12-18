@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { logsAPI, adminLogsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
+import { formatTimeGerman, formatDateGerman } from '../../../lib/dateFormatter';
 
 const LogsModule = () => {
   const { currentService } = useService();
@@ -637,14 +638,7 @@ const LogsModule = () => {
   };
 
   const formatTimestamp = (timestamp) => {
-    return timestamp.toLocaleString(isGerman ? 'de-DE' : 'en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return `${formatDateGerman(timestamp)}, ${formatTimeGerman(timestamp)}`;
   };
 
   return (
@@ -1108,8 +1102,8 @@ const LogsModule = () => {
                   {/* Timestamp */}
                   <td className="px-4 py-3 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                     <div className="flex flex-col">
-                      <span className="font-medium">{log.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      <span className="text-xs opacity-70">{log.timestamp.toLocaleDateString()}</span>
+                      <span className="font-medium">{formatTimeGerman(log.timestamp)}</span>
+                      <span className="text-xs opacity-70">{formatDateGerman(log.timestamp)}</span>
                     </div>
                   </td>
 

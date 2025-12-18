@@ -255,7 +255,7 @@ class EmailService {
             <h3>Request Details:</h3>
             <p><strong>Reference ID:</strong> ${lead.leadId}</p>
             <p><strong>Service:</strong> ${lead.serviceType}</p>
-            <p><strong>Submitted:</strong> ${new Date(lead.createdAt).toLocaleDateString()}</p>
+            <p><strong>Submitted:</strong> ${new Date(lead.createdAt).toLocaleDateString('de-DE')}</p>
           </div>
           
           <p>We will connect you with up to 3 qualified service providers who will contact you soon with quotes.</p>
@@ -299,7 +299,7 @@ class EmailService {
             <p><strong>Service:</strong> ${lead.serviceType}</p>
             <p><strong>Customer:</strong> ${customerName}</p>
             <p><strong>Location:</strong> ${location}</p>
-            <p><strong>Assigned:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Assigned:</strong> ${new Date().toLocaleString('de-DE')}</p>
           </div>
           
           <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -372,7 +372,7 @@ class EmailService {
               <tr><td style="padding: 8px 0; font-weight: bold;">Phone:</td><td style="padding: 8px 0;">${partner.contactPerson.phone}</td></tr>
               <tr><td style="padding: 8px 0; font-weight: bold;">Services:</td><td style="padding: 8px 0;">${services}</td></tr>
               <tr><td style="padding: 8px 0; font-weight: bold;">Address:</td><td style="padding: 8px 0;">${partner.address.street}, ${partner.address.city}${partner.address.postalCode ? ', ' + partner.address.postalCode : ''}${partner.address.country ? ', ' + partner.address.country : ''}</td></tr>
-              <tr><td style="padding: 8px 0; font-weight: bold;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleDateString('en-GB')}</td></tr>
+              <tr><td style="padding: 8px 0; font-weight: bold;">Date:</td><td style="padding: 8px 0;">${new Date().toLocaleDateString('de-DE')}</td></tr>
             </table>
           </div>
 
@@ -1259,13 +1259,13 @@ class EmailService {
         <div style="padding: 20px;">
           <p>Dear ${partner.contactPerson.firstName},</p>
           
-          <p>Please find attached your invoice for the period ${new Date(invoice.billingPeriod.from).toLocaleDateString()} to ${new Date(invoice.billingPeriod.to).toLocaleDateString()}.</p>
+          <p>Please find attached your invoice for the period ${new Date(invoice.billingPeriod.from).toLocaleDateString('de-DE')} to ${new Date(invoice.billingPeriod.to).toLocaleDateString('de-DE')}.</p>
           
           <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3>Invoice Summary:</h3>
             <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
             <p><strong>Total Amount:</strong> €${invoice.total.toFixed(2)}</p>
-            <p><strong>Due Date:</strong> ${new Date(invoice.dueAt).toLocaleDateString()}</p>
+            <p><strong>Due Date:</strong> ${new Date(invoice.dueAt).toLocaleDateString('de-DE')}</p>
             <p><strong>Items:</strong> ${invoice.items.length} leads</p>
           </div>
           
@@ -1445,7 +1445,7 @@ class EmailService {
             
             <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
               <h3 style="margin: 0 0 10px 0; color: #155724;">✅ Password Updated Successfully</h3>
-              <p style="margin: 0;">Your password change was completed at: <strong>${new Date().toLocaleString('en-GB')}</strong></p>
+              <p style="margin: 0;">Your password change was completed at: <strong>${new Date().toLocaleString('de-DE')}</strong></p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border: 1px solid #dee2e6;">

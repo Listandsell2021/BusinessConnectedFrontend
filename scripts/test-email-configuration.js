@@ -46,7 +46,7 @@ async function testEmailConfiguration() {
               <p><strong>SMTP Host:</strong> ${process.env.SMTP_HOST}</p>
               <p><strong>From Email:</strong> ${process.env.FROM_EMAIL}</p>
               <p><strong>Company:</strong> ${process.env.COMPANY_NAME}</p>
-              <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+              <p><strong>Test Time:</strong> ${new Date().toLocaleString('de-DE')}</p>
             </div>
 
             <p>All email functions are now ready for production use.</p>

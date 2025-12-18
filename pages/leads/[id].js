@@ -448,24 +448,24 @@ const LeadDetailPage = () => {
               <tbody>
                 <TableRow 
                   label={t('leads.createdAt')}
-                  value={new Date(lead.createdAt).toLocaleString()}
+                  value={new Date(lead.createdAt).toLocaleString('de-DE')}
                 />
                 {lead.assignedAt && (
                   <TableRow 
                     label={isGerman ? 'Zugewiesen am' : 'Assigned At'}
-                    value={new Date(lead.assignedAt).toLocaleString()}
+                    value={new Date(lead.assignedAt).toLocaleString('de-DE')}
                   />
                 )}
                 {lead.acceptedAt && (
                   <TableRow 
                     label={isGerman ? 'Akzeptiert am' : 'Accepted At'}
-                    value={new Date(lead.acceptedAt).toLocaleString()}
+                    value={new Date(lead.acceptedAt).toLocaleString('de-DE')}
                   />
                 )}
                 {lead.updatedAt && lead.updatedAt !== lead.createdAt && (
                   <TableRow 
                     label={isGerman ? 'Zuletzt aktualisiert' : 'Last Updated'}
-                    value={new Date(lead.updatedAt).toLocaleString()}
+                    value={new Date(lead.updatedAt).toLocaleString('de-DE')}
                   />
                 )}
               </tbody>

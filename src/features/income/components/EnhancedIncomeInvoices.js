@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { partnersAPI, invoicesAPI, leadsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
+import { formatDateGerman, formatDateLongGerman, getGermanMonthName } from '../../../lib/dateFormatter';
 
 const EnhancedIncomeInvoices = () => {
   const { currentService } = useService();
@@ -656,11 +657,7 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString(isGerman ? 'de-DE' : 'en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+    return formatDateGerman(new Date(date));
   };
 
   // Partner Details Component (Full Page View like Partner Management)
@@ -976,7 +973,10 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                   {invoice.billingPeriod ?
-                    `${new Date(invoice.billingPeriod.from).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}` :
+                    (() => {
+                      const date = new Date(invoice.billingPeriod.from);
+                      return `${getGermanMonthName(date.getMonth())} ${date.getFullYear()}`;
+                    })() :
                     'N/A'
                   }
                 </td>
@@ -1566,7 +1566,7 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
           >
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
-                {new Date(0, i).toLocaleString(isGerman ? 'de-DE' : 'en-US', { month: 'long' })}
+                {getGermanMonthName(i)}
               </option>
             ))}
           </select>
@@ -1639,10 +1639,7 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
                 {isGerman ? 'Gesamtumsatz' : 'Total Revenue'}
               </div>
               <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                {new Date(filters.year, filters.month - 1).toLocaleString(isGerman ? 'de-DE' : 'en-US', {
-                  month: 'long',
-                  year: 'numeric'
-                })}
+                {filters.month && filters.year ? `${getGermanMonthName(filters.month - 1)} ${filters.year}` : 'N/A'}
               </div>
             </div>
           </div>

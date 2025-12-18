@@ -7,6 +7,7 @@ import DashboardStats from './DashboardStats';
 import RevenueChart from './RevenueChart';
 import LeadsPieChart from './LeadsPieChart';
 import PartnerPerformance from './PartnerPerformance';
+import { formatDateTimeGerman, formatTimeGerman } from '../../lib/dateFormatter';
 
 const EnhancedDashboard = ({ onNavigate }) => {
   const { isGerman } = useLanguage();
@@ -162,7 +163,7 @@ const EnhancedDashboard = ({ onNavigate }) => {
         {dashboardData?.lastUpdated && (
           <p className="text-sm mt-2" style={{ color: 'var(--theme-muted)' }}>
             {isGerman ? 'Zuletzt aktualisiert: ' : 'Last updated: '}
-            {new Date(dashboardData.lastUpdated).toLocaleString()}
+            {formatDateTimeGerman(new Date(dashboardData.lastUpdated))}
           </p>
         )}
       </motion.div>
@@ -201,7 +202,7 @@ const EnhancedDashboard = ({ onNavigate }) => {
           {isGerman
             ? 'Dashboard wird automatisch alle 5 Minuten aktualisiert. Letzte Aktualisierung: '
             : 'Dashboard automatically refreshes every 5 minutes. Last update: '}
-          {dashboardData?.lastUpdated ? new Date(dashboardData.lastUpdated).toLocaleTimeString() : 'Just now'}
+          {dashboardData?.lastUpdated ? formatTimeGerman(new Date(dashboardData.lastUpdated)) : 'Just now'}
         </p>
       </motion.div>
     </motion.div>

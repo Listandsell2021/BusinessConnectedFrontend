@@ -2564,11 +2564,11 @@ const exportLeadsToExcel = async (req, res) => {
         areaSize: formData.areaSize || '',
         additionalServices: additionalServices,
         preferredContactTime: lead.user?.preferredContactTime || formData.preferredContactTime || '',
-        createdAt: new Date(lead.createdAt).toLocaleDateString('en-GB'),
-        assignedAt: lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString('en-GB') : '',
-        acceptedAt: lead.acceptedAt ? new Date(lead.acceptedAt).toLocaleDateString('en-GB') : '',
+        createdAt: new Date(lead.createdAt).toLocaleDateString('de-DE'),
+        assignedAt: lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString('de-DE') : '',
+        acceptedAt: lead.acceptedAt ? new Date(lead.acceptedAt).toLocaleDateString('de-DE') : '',
         updatedAt: lead.updatedAt && lead.updatedAt !== lead.createdAt ? 
-          new Date(lead.updatedAt).toLocaleDateString('en-GB') : ''
+          new Date(lead.updatedAt).toLocaleDateString('de-DE') : ''
       });
     });
 
@@ -2745,7 +2745,7 @@ const exportLeadsToPDF = async (req, res) => {
       doc.fillColor('#1e40af').fontSize(14).font('Helvetica-Bold').text('Leads Export Report', { align: 'left' });
       doc.moveDown(0.2);
       doc.fillColor('#6b7280').fontSize(9).font('Helvetica')
-        .text(`Generated: ${new Date().toLocaleString('en-GB')}    Total Records: ${leads.length}`)
+        .text(`Generated: ${new Date().toLocaleString('de-DE')}    Total Records: ${leads.length}`)
         .moveDown(0.5);
       // separator
       doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#e5e7eb').stroke();
@@ -2790,7 +2790,7 @@ const exportLeadsToPDF = async (req, res) => {
       const city = (lead.location && lead.location.city) ? s(lead.location.city) : s(lead.city, '');
       const statusText = s(lead.status, '');
       const partner = lead.assignedPartner ? s(lead.assignedPartner.companyName, '') : s(lead.partnerName, '');
-      const created = lead.createdAt ? new Date(lead.createdAt).toLocaleString('en-GB') : '';
+      const created = lead.createdAt ? new Date(lead.createdAt).toLocaleString('de-DE') : '';
 
       const values = [leadId, name, serviceTypeText, city, statusText, partner, created];
 
@@ -2970,7 +2970,7 @@ const exportLeadsToPDF = async (req, res) => {
 //       doc.fillColor('#1e40af').fontSize(14).text('Leads Export Report', { align: 'left' });
 //       doc.moveDown(0.2);
 //       doc.fillColor('#6b7280').fontSize(9)
-//         .text(`Generated: ${new Date().toLocaleString('en-GB')}`)
+//         .text(`Generated: ${new Date().toLocaleString('de-DE')}`)
 //         .text(`Total Records: ${leads.length}`);
 //       doc.moveDown(0.4);
 //       doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).strokeColor('#e5e7eb').stroke();

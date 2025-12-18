@@ -10,6 +10,7 @@ import { leadsAPI, partnersAPI, settingsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
 import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
+import { formatDateGerman, formatDateTimeGerman } from '../../../lib/dateFormatter';
 
 const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   const router = useRouter();
@@ -1294,20 +1295,20 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           // Check for fixed date
           if (lead.formData.fixedDate) {
             pickupDate = new Date(lead.formData.fixedDate);
-            dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+            dateDisplay = formatDateGerman(pickupDate);
           }
           // Check for flexible date range
           else if (lead.formData.flexibleDateRange) {
             const startDate = new Date(lead.formData.flexibleDateRange.startDate);
             const endDate = new Date(lead.formData.flexibleDateRange.endDate);
-            dateDisplay = `${startDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')} - ${endDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}`;
+            dateDisplay = `${formatDateGerman(startDate)} - ${formatDateGerman(endDate)}`;
             pickupDate = startDate; // Use start date for filtering
           }
           // Check for flexible period with startDate/endDate
           else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.startDate && lead.formData.flexiblePeriod.endDate) {
             const startDate = new Date(lead.formData.flexiblePeriod.startDate);
             const endDate = new Date(lead.formData.flexiblePeriod.endDate);
-            dateDisplay = `${startDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')} - ${endDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}`;
+            dateDisplay = `${formatDateGerman(startDate)} - ${formatDateGerman(endDate)}`;
             pickupDate = startDate; // Use start date for filtering
           }
           // Check for flexible period with month/year format
@@ -1317,7 +1318,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           // Check for moveDateType with corresponding dates
           else if (lead.formData.moveDateType === 'fixed' && (lead.formData.moveDate || lead.formData.desiredMoveDate)) {
             pickupDate = new Date(lead.formData.moveDate || lead.formData.desiredMoveDate);
-            dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+            dateDisplay = formatDateGerman(pickupDate);
           }
         }
 
@@ -1448,7 +1449,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         let pickupDate = null;
         if (lead.formData?.fixedDate) {
           pickupDate = new Date(lead.formData.fixedDate);
-          dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+          dateDisplay = formatDateGerman(pickupDate);
         }
 
         // Base lead data for current page
@@ -2874,12 +2875,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         }
         // Handle date objects
         if (value instanceof Date) {
-          return value.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+          return formatDateGerman(value);
         }
         // Handle date strings
         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
           try {
-            return new Date(value).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+            return formatDateGerman(new Date(value));
           } catch (e) {
             return value;
           }
@@ -3590,7 +3591,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                    {lead.dateDisplay || new Date(lead.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                    {lead.dateDisplay || formatDateGerman(new Date(lead.createdAt))}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -3984,7 +3985,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {request.pickupDateDisplay ? new Date(request.pickupDateDisplay).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB') : new Date(request.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                        {request.pickupDateDisplay ? formatDateGerman(new Date(request.pickupDateDisplay)) : formatDateGerman(new Date(request.createdAt))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
@@ -4181,7 +4182,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                        {new Date(request.createdAt).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                        {formatDateGerman(new Date(request.createdAt))}
                       </td>
                       {isSuperAdmin && (
                         <td className="px-3 py-4 text-sm font-medium min-w-0">
@@ -5111,7 +5112,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             {assignment.assignedAt && (
                               <div className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
                                 {isGerman ? 'Zugewiesen am:' : 'Assigned at:'}{' '}
-                                {new Date(assignment.assignedAt).toLocaleString(isGerman ? 'de-DE' : 'en-US')}
+                                {formatDateTimeGerman(new Date(assignment.assignedAt))}
                               </div>
                             )}
                           </div>

@@ -363,15 +363,15 @@ const generateInvoicePDF = (invoice) => {
   // This is a simplified text-based version
   const content = `
 INVOICE: ${invoice.invoiceNumber}
-Date: ${invoice.createdAt.toLocaleDateString()}
-Due Date: ${invoice.dueDate.toLocaleDateString()}
+Date: ${invoice.createdAt.toLocaleDateString('de-DE')}
+Due Date: ${invoice.dueDate.toLocaleDateString('de-DE')}
 
 BILL TO:
 ${invoice.partnerId.companyName}
 ${invoice.partnerId.contactPerson.firstName} ${invoice.partnerId.contactPerson.lastName}
 ${invoice.partnerId.contactPerson.email}
 
-PERIOD: ${invoice.billingPeriod.startDate.toLocaleDateString()} - ${invoice.billingPeriod.endDate.toLocaleDateString()}
+PERIOD: ${invoice.billingPeriod.startDate.toLocaleDateString('de-DE')} - ${invoice.billingPeriod.endDate.toLocaleDateString('de-DE')}
 
 ITEMS:
 ${invoice.items.map(item => 
@@ -383,7 +383,7 @@ TAX (${invoice.taxRate}%): €${invoice.taxAmount}
 TOTAL: €${invoice.total}
 
 STATUS: ${invoice.status.toUpperCase()}
-${invoice.paidAt ? `PAID ON: ${invoice.paidAt.toLocaleDateString()}` : ''}
+${invoice.paidAt ? `PAID ON: ${invoice.paidAt.toLocaleDateString('de-DE')}` : ''}
   `;
   
   return content;

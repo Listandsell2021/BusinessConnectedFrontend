@@ -13,6 +13,7 @@ import Pagination from '../../../components/ui/Pagination';
 import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { API_BASE_URL } from '../../../lib/config';
+import { formatDateGerman, formatDateTimeGerman } from '../../../lib/dateFormatter';
 
 const PartnerManagement = ({ initialPartners = [] }) => {
   const router = useRouter();
@@ -1435,7 +1436,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         if (lead.formData?.pickupDate) {
           pickupDate = new Date(lead.formData.pickupDate);
           if (!isNaN(pickupDate.getTime())) {
-            dateDisplay = pickupDate.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+            dateDisplay = formatDateGerman(pickupDate);
           }
         }
 
@@ -2271,7 +2272,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       {partner.leadsCount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      {partner.registeredAt.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB')}
+                      {formatDateGerman(partner.registeredAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
@@ -2572,9 +2573,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           {isGerman ? 'Registriert am' : 'Registered At'}:
                         </td>
                         <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.registeredAt ? 
-                            new Date(partnerForDetails.registeredAt).toLocaleString() : 
-                            new Date(partnerForDetails.createdAt).toLocaleString()
+                          {partnerForDetails.registeredAt ?
+                            formatDateTimeGerman(new Date(partnerForDetails.registeredAt)) :
+                            formatDateTimeGerman(new Date(partnerForDetails.createdAt))
                           }
                         </td>
                       </tr>
@@ -3188,7 +3189,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {(lead.partnerAssignedAt || lead.assignedAt) ? new Date(lead.partnerAssignedAt || lead.assignedAt).toLocaleDateString() : '-'}
+                              {(lead.partnerAssignedAt || lead.assignedAt) ? formatDateGerman(new Date(lead.partnerAssignedAt || lead.assignedAt)) : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button

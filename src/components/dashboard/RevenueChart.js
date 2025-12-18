@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useService } from '../../contexts/ServiceContext';
 import { dashboardAPI } from '../../lib/api/api';
+import { formatDateGerman, getGermanMonthName } from '../../lib/dateFormatter';
 
 const RevenueChart = ({ className = "" }) => {
   const { isGerman } = useLanguage();
@@ -83,7 +84,8 @@ const RevenueChart = ({ className = "" }) => {
         const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
         const dayData = dataMap.get(dateStr) || { movingRevenue: 0, totalRevenue: 0 };
 
-        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        // Format as DD.MM for German format
+        labels.push(`${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`);
         movingData.push(dayData.movingRevenue || 0);
         totalData.push(dayData.totalRevenue || 0);
       }
@@ -94,7 +96,8 @@ const RevenueChart = ({ className = "" }) => {
         const monthData = dataMap.get(monthStr) || { movingRevenue: 0, totalRevenue: 0 };
         const date = new Date(selectedYear, m, 1);
 
-        labels.push(date.toLocaleDateString('en-US', { month: 'short' }));
+        // Use German month names
+        labels.push(getGermanMonthName(m));
         movingData.push(monthData.movingRevenue || 0);
         totalData.push(monthData.totalRevenue || 0);
       }
@@ -106,7 +109,8 @@ const RevenueChart = ({ className = "" }) => {
         const dayData = dataMap.get(dateStr) || { movingRevenue: 0, totalRevenue: 0 };
         const date = new Date(selectedYear, selectedMonth - 1, d);
 
-        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        // Format as DD.MM for German format
+        labels.push(`${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`);
         movingData.push(dayData.movingRevenue || 0);
         totalData.push(dayData.totalRevenue || 0);
       }
@@ -163,14 +167,12 @@ const RevenueChart = ({ className = "" }) => {
     if (timePeriod === 'week') {
       const weekEnd = new Date(selectedWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
-      const startStr = selectedWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const endStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const startStr = formatDateGerman(selectedWeekStart);
+      const endStr = formatDateGerman(weekEnd);
       return `${startStr} - ${endStr}`;
     } else if (timePeriod === 'month') {
-      const monthNames = isGerman
-        ? ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-        : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      return `${monthNames[selectedMonth - 1]} ${selectedYear}`;
+      const monthName = getGermanMonthName(selectedMonth - 1);
+      return `${monthName} ${selectedYear}`;
     } else if (timePeriod === 'year') {
       return `${selectedYear}`;
     }

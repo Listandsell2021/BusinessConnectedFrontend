@@ -1094,7 +1094,7 @@ export default function Dashboard({ initialData = {} }) {
                             </p>
                           </div>
                           <p className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                            {new Date(notification.createdAt).toLocaleString()}
+                            {new Date(notification.createdAt).toLocaleString('de-DE')}
                           </p>
                         </div>
                       </motion.div>
@@ -1255,7 +1255,7 @@ export default function Dashboard({ initialData = {} }) {
                             </p>
                             <div className="flex items-center space-x-4 mt-1">
                               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                                {new Date(notification.createdAt).toLocaleString()}
+                                {new Date(notification.createdAt).toLocaleString('de-DE')}
                               </p>
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 notification.priority === 'high' ? 'bg-red-100 text-red-700' :

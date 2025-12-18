@@ -28,12 +28,12 @@ const LeadDetailsDialog = ({
         }
         // Handle date objects
         if (value instanceof Date) {
-          return value.toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+          return value.toLocaleDateString('de-DE');
         }
         // Handle date strings
         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
           try {
-            return new Date(value).toLocaleDateString(isGerman ? 'de-DE' : 'en-GB');
+            return new Date(value).toLocaleDateString('de-DE');
           } catch (e) {
             return value;
           }
@@ -791,24 +791,24 @@ const LeadDetailsDialog = ({
                       <tbody>
                         <TableRow
                           label={t('leads.createdAt')}
-                          value={new Date(leadData.createdAt).toLocaleString()}
+                          value={new Date(leadData.createdAt).toLocaleString('de-DE')}
                         />
                         {leadData.assignedAt && (
                           <TableRow
                             label={isGerman ? 'Zugewiesen am' : 'Assigned At'}
-                            value={new Date(leadData.assignedAt).toLocaleString()}
+                            value={new Date(leadData.assignedAt).toLocaleString('de-DE')}
                           />
                         )}
                         {leadData.acceptedAt && (
                           <TableRow
                             label={isGerman ? 'Akzeptiert am' : 'Accepted At'}
-                            value={new Date(leadData.acceptedAt).toLocaleString()}
+                            value={new Date(leadData.acceptedAt).toLocaleString('de-DE')}
                           />
                         )}
                         {leadData.updatedAt && leadData.updatedAt !== leadData.createdAt && (
                           <TableRow
                             label={isGerman ? 'Zuletzt aktualisiert' : 'Last Updated'}
-                            value={new Date(leadData.updatedAt).toLocaleString()}
+                            value={new Date(leadData.updatedAt).toLocaleString('de-DE')}
                           />
                         )}
                       </tbody>
