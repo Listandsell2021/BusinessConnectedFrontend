@@ -5,6 +5,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useService } from '../../../contexts/ServiceContext';
 import { partnersAPI, authAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
+import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
+import { validatePasswordStrength } from '../../../../utils/passwordGenerator';
 
 const PartnerSettingsNew = () => {
   const { isGerman } = useLanguage();
@@ -588,13 +590,15 @@ const PartnerSettingsNew = () => {
       return;
     }
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error(isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match');
+    // Validate password strength (12 chars + complexity)
+    const validation = validatePasswordStrength(passwordData.newPassword);
+    if (!validation.isValid) {
+      toast.error(validation.messages[0]);
       return;
     }
 
-    if (passwordData.newPassword.length < 8) {
-      toast.error(isGerman ? 'Passwort muss mindestens 8 Zeichen lang sein' : 'Password must be at least 8 characters long');
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error(isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match');
       return;
     }
 
@@ -605,7 +609,8 @@ const PartnerSettingsNew = () => {
       const response = await authAPI.changePartnerPassword({
         partnerId: user.id,
         newPassword: passwordData.newPassword,
-        email: partnerData?.contactPerson?.email || user.email
+        email: partnerData?.contactPerson?.email || user.email,
+        isGerman: isGerman
       });
 
       console.log('Password change response:', response.data);
@@ -2447,7 +2452,7 @@ const PartnerSettingsNew = () => {
                       borderColor: 'var(--theme-border)',
                       color: 'var(--theme-text)'
                     }}
-                    placeholder={isGerman ? 'Mindestens 8 Zeichen' : 'At least 8 characters'}
+                    placeholder={isGerman ? 'Mindestens 12 Zeichen' : 'At least 12 characters'}
                     disabled={changingPassword}
                   />
                   <button
@@ -2468,6 +2473,8 @@ const PartnerSettingsNew = () => {
                     )}
                   </button>
                 </div>
+                {/* Password Strength Indicator */}
+                <PasswordStrengthIndicator password={passwordData.newPassword} isGerman={isGerman} />
               </div>
 
               <div>

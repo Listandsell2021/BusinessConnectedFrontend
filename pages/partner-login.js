@@ -79,39 +79,10 @@ useEffect(() => {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
     }
 
-    // Translate general error message
+    // Keep general error message as-is (already properly set in handleSubmit with correct language)
+    // Server error messages already contain detailed information with proper translations
     if (errors.general) {
-      const generalError = errors.general;
-
-      if (isGerman) {
-        // Translate to German
-        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials') {
-          newErrors.general = 'Ungültige Anmeldedaten';
-        } else if (generalError === 'Validation error' || generalError.toLowerCase().includes('validation error')) {
-          newErrors.general = 'Validierungsfehler';
-        } else if (generalError.toLowerCase().includes('login failed') || generalError.toLowerCase().includes('authentication failed')) {
-          newErrors.general = 'Anmeldung fehlgeschlagen';
-        } else if (generalError.includes('not registered for') || generalError.includes('Service not available')) {
-          // Keep service-specific errors as is (they're already translated in handleSubmit)
-          newErrors.general = errors.general;
-        } else {
-          newErrors.general = 'Ungültige Anmeldedaten';
-        }
-      } else {
-        // Translate to English
-        if (generalError.includes('Ungültige Anmeldedaten')) {
-          newErrors.general = 'Invalid credentials';
-        } else if (generalError.includes('Validierungsfehler')) {
-          newErrors.general = 'Validation error';
-        } else if (generalError.includes('Anmeldung fehlgeschlagen')) {
-          newErrors.general = 'Login failed';
-        } else if (generalError.includes('nicht für') || generalError.includes('Service nicht verfügbar')) {
-          // Keep service-specific errors as is
-          newErrors.general = errors.general;
-        } else {
-          newErrors.general = 'Invalid credentials';
-        }
-      }
+      newErrors.general = errors.general;
     }
 
     // Update errors only if there were existing errors for those fields
@@ -193,14 +164,15 @@ const handleSubmit = async (e) => {
       // Use backend error message with language support
       let errorMessage = result?.error || result?.message;
 
-      // Check if backend provided German translation
-      if (result?.messageDE && isGerman) {
+      // Check if backend provided language-specific translation
+      if (isGerman && result?.messageDE) {
+        // Use backend's German translation (includes lockout messages, etc.)
         errorMessage = result.messageDE;
-      }
-
-      // Translate common error messages to German
-      if (isGerman) {
-        // Comprehensive translation for all error message variations
+      } else if (!isGerman && result?.message) {
+        // Use backend's English message
+        errorMessage = result.message;
+      } else if (isGerman) {
+        // Fallback manual translation for generic errors only
         if (!errorMessage) {
           errorMessage = 'Anmeldung fehlgeschlagen';
         } else if (errorMessage === 'Validation error' || errorMessage.toLowerCase().includes('validation error')) {
@@ -209,9 +181,6 @@ const handleSubmit = async (e) => {
           errorMessage = 'Ungültige Anmeldedaten';
         } else if (errorMessage.toLowerCase().includes('login failed') || errorMessage.toLowerCase().includes('authentication failed')) {
           errorMessage = 'Anmeldung fehlgeschlagen';
-        } else {
-          // Default fallback for any unknown error
-          errorMessage = 'Ungültige Anmeldedaten';
         }
       }
 

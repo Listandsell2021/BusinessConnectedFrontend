@@ -5,6 +5,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { settingsAPI } from '../../../lib/api/api';
 import FormSettings from './FormSettings';
+import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
+import { validatePasswordStrength } from '../../../../utils/passwordGenerator';
 
 const AdminSettings = () => {
   const { t, isGerman } = useLanguage();
@@ -204,18 +206,20 @@ const AdminSettings = () => {
   };
 
   const handlePasswordReset = async () => {
-    if (passwordReset.newPassword !== passwordReset.confirmPassword) {
+    // Validate password strength (12 chars + complexity)
+    const validation = validatePasswordStrength(passwordReset.newPassword);
+    if (!validation.isValid) {
       setPasswordReset(prev => ({
         ...prev,
-        message: isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match'
+        message: validation.messages[0]
       }));
       return;
     }
 
-    if (passwordReset.newPassword.length < 8) {
+    if (passwordReset.newPassword !== passwordReset.confirmPassword) {
       setPasswordReset(prev => ({
         ...prev,
-        message: isGerman ? 'Passwort muss mindestens 8 Zeichen lang sein' : 'Password must be at least 8 characters long'
+        message: isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match'
       }));
       return;
     }
@@ -745,7 +749,7 @@ const AdminSettings = () => {
                     type="password"
                     value={passwordReset.newPassword}
                     onChange={(e) => setPasswordReset(prev => ({ ...prev, newPassword: e.target.value }))}
-                    placeholder={isGerman ? 'Mindestens 8 Zeichen' : 'At least 8 characters'}
+                    placeholder={isGerman ? 'Mindestens 12 Zeichen' : 'At least 12 characters'}
                     className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
                     style={{
                       backgroundColor: 'var(--theme-input-bg)',
@@ -754,6 +758,8 @@ const AdminSettings = () => {
                     }}
                     disabled={passwordReset.loading}
                   />
+                  {/* Password Strength Indicator */}
+                  <PasswordStrengthIndicator password={passwordReset.newPassword} isGerman={isGerman} />
                 </div>
                 <div>
                   <label className="block text-sm mb-2" style={{ color: 'var(--theme-text)' }}>

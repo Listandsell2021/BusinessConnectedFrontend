@@ -76,7 +76,17 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setLoading(false);
       const message = error.response?.data?.message || 'Login failed';
-      return { success: false, error: message };
+      const messageDE = error.response?.data?.messageDE;
+      const accountLocked = error.response?.data?.accountLocked;
+      const remainingMinutes = error.response?.data?.remainingMinutes;
+      return {
+        success: false,
+        error: message,
+        message: message,
+        messageDE: messageDE,
+        accountLocked: accountLocked,
+        remainingMinutes: remainingMinutes
+      };
     }
   };
 

@@ -818,8 +818,64 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     });
   };
 
+  const handleUnlockPartner = async (partnerId, partnerName) => {
+    const confirmMessage = isGerman
+      ? 'Sind Sie sicher, dass Sie das Konto dieses Partners entsperren möchten? Der Partner kann sich dann wieder anmelden.'
+      : 'Are you sure you want to unlock this partner\'s account? They will be able to log in again.';
+
+    showConfirmation({
+      title: partnerName,
+      message: confirmMessage,
+      confirmText: isGerman ? 'Entsperren' : 'Unlock',
+      cancelText: isGerman ? 'Abbrechen' : 'Cancel',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          console.log('Unlocking account for partner:', partnerId);
+          setLoading(true);
+
+          const response = await fetch(`/api/partners/${partnerId}/unlock-account`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          // Try to parse JSON response
+          let data;
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+          } else {
+            const text = await response.text();
+            console.error('Non-JSON response from server:', text.substring(0, 100));
+            throw new Error('Server returned non-JSON response');
+          }
+
+          console.log('Unlock response:', data);
+
+          if (response.ok) {
+            // Force reload partners
+            await loadPartners();
+
+            toast.success(isGerman ? 'Konto erfolgreich entsperrt' : 'Account unlocked successfully');
+          } else {
+            throw new Error(data.message || 'Failed to unlock account');
+          }
+
+        } catch (error) {
+          console.error('Error unlocking account:', error);
+          toast.error(isGerman ? 'Fehler beim Entsperren des Kontos' : 'Failed to unlock account');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   const handleChangePartnerType = async (partnerId, newType, currentType, partnerName) => {
-    const confirmMessage = newType === 'exclusive' 
+    const confirmMessage = newType === 'exclusive'
       ? (isGerman ? 'Sind Sie sicher, dass Sie diesen Partner von Basic zu Exklusiv ändern möchten?' : 'Are you sure you want to change this partner from Basic to Exclusive?')
       : (isGerman ? 'Sind Sie sicher, dass Sie diesen Partner von Exklusiv zu Basic ändern möchten?' : 'Are you sure you want to change this partner from Exclusive to Basic?');
 
@@ -2396,6 +2452,30 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                             </svg>
                             {isGerman ? 'Sperrung aufheben' : 'Remove Suspension'}
+                          </button>
+                        )}
+                        {partner.accountLockedUntil && new Date(partner.accountLockedUntil) > new Date() && (
+                          <button
+                            onClick={() => handleUnlockPartner(partner.id, partner.companyName || partner.name)}
+                            disabled={loading}
+                            className="text-xs px-3 py-1 rounded transition-colors disabled:opacity-50"
+                            style={{
+                              backgroundColor: 'var(--theme-bg-secondary)',
+                              color: 'var(--theme-text)',
+                              border: '1px solid var(--theme-border)'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!loading) e.target.style.backgroundColor = 'var(--theme-hover)';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!loading) e.target.style.backgroundColor = 'var(--theme-bg-secondary)';
+                            }}
+                            title={isGerman ? "Konto entsperren" : "Unlock account"}
+                          >
+                            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {isGerman ? 'Entsperren' : 'Unlock'}
                           </button>
                         )}
                       </div>

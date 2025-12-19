@@ -10,6 +10,8 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import ThemeToggle from '../src/components/ui/ThemeToggle';
 import LanguageToggle from '../src/components/ui/LanguageToggle';
 import Logo from '../src/components/ui/Logo';
+import PasswordStrengthIndicator from '../src/components/ui/PasswordStrengthIndicator';
+import { validatePasswordStrength } from '../utils/passwordGenerator';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -129,16 +131,19 @@ export default function ForgotPassword() {
     const newErrors = {};
     if (!formData.newPassword) {
       newErrors.newPassword = isGerman ? 'Neues Passwort ist erforderlich' : 'New password is required';
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = isGerman ? 'Passwort muss mindestens 8 Zeichen haben' : 'Password must be at least 8 characters';
+    } else {
+      const validation = validatePasswordStrength(formData.newPassword);
+      if (!validation.isValid) {
+        newErrors.newPassword = validation.messages[0];
+      }
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = isGerman ? 'Passwort bestätigen ist erforderlich' : 'Confirm password is required';
     } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = isGerman ? 'Passwörter stimmen nicht überein' : 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -628,13 +633,9 @@ export default function ForgotPassword() {
                 {/* Step 3: New Password Form */}
                 {step === 3 && (
                   <form onSubmit={handleResetPassword} className="space-y-4 sm:space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 }}
-                    >
-                      <label 
-                        htmlFor="newPassword" 
+                    <div>
+                      <label
+                        htmlFor="newPassword"
                         className="block text-sm font-semibold mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
@@ -690,7 +691,7 @@ export default function ForgotPassword() {
                         </button>
                       </div>
                       {errors.newPassword && (
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-2 text-sm text-red-400 flex items-center"
@@ -699,13 +700,11 @@ export default function ForgotPassword() {
                           {errors.newPassword}
                         </motion.p>
                       )}
-                    </motion.div>
+                      {/* Password Strength Indicator */}
+                      <PasswordStrengthIndicator password={formData.newPassword} isGerman={isGerman} />
+                    </div>
 
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.8 }}
-                    >
+                    <div>
                       <label 
                         htmlFor="confirmPassword" 
                         className="block text-sm font-semibold mb-3"
@@ -763,7 +762,7 @@ export default function ForgotPassword() {
                         </button>
                       </div>
                       {errors.confirmPassword && (
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-2 text-sm text-red-400 flex items-center"
@@ -772,7 +771,7 @@ export default function ForgotPassword() {
                           {errors.confirmPassword}
                         </motion.p>
                       )}
-                    </motion.div>
+                    </div>
 
                     <motion.button
                       type="submit"

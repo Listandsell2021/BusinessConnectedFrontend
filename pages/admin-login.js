@@ -48,41 +48,10 @@ useEffect(() => {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
     }
 
-    // Translate general error message
+    // Keep general error message as-is (already properly set in handleSubmit with correct language)
+    // Server error messages already contain detailed information with proper translations
     if (errors.general) {
-      const generalError = errors.general;
-
-      if (isGerman) {
-        // Translate to German
-        if (generalError.toLowerCase().includes('invalid') || generalError === 'Invalid credentials' || generalError === 'Invalid admin credentials') {
-          newErrors.general = 'Ungültige Admin-Anmeldedaten';
-        } else if (generalError === 'Validation error' || generalError.toLowerCase().includes('validation error')) {
-          newErrors.general = 'Validierungsfehler';
-        } else if (generalError.toLowerCase().includes('access denied') || generalError.toLowerCase().includes('admin privileges')) {
-          newErrors.general = 'Zugriff verweigert. Admin-Berechtigungen erforderlich.';
-        } else if (generalError.toLowerCase().includes('login failed') || generalError.toLowerCase().includes('authentication failed')) {
-          newErrors.general = 'Anmeldung fehlgeschlagen';
-        } else if (generalError.toLowerCase().includes('unexpected error')) {
-          newErrors.general = 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
-        } else {
-          newErrors.general = 'Ungültige Admin-Anmeldedaten';
-        }
-      } else {
-        // Translate to English
-        if (generalError.includes('Ungültige Anmeldedaten') || generalError.includes('Ungültige Admin-Anmeldedaten')) {
-          newErrors.general = 'Invalid admin credentials';
-        } else if (generalError.includes('Validierungsfehler')) {
-          newErrors.general = 'Validation error';
-        } else if (generalError.includes('Zugriff verweigert') || generalError.includes('Admin-Berechtigungen')) {
-          newErrors.general = 'Access denied. Admin privileges required.';
-        } else if (generalError.includes('Anmeldung fehlgeschlagen')) {
-          newErrors.general = 'Login failed';
-        } else if (generalError.includes('unerwarteter Fehler')) {
-          newErrors.general = 'An unexpected error occurred. Please try again.';
-        } else {
-          newErrors.general = 'Invalid admin credentials';
-        }
-      }
+      newErrors.general = errors.general;
     }
 
     // Update errors
@@ -170,13 +139,15 @@ const handleSubmit = async (e) => {
       // Use backend error message with language support
       let errorMessage = result?.error || result?.message;
 
-      // Check if backend provided German translation
-      if (result?.messageDE && isGerman) {
+      // Check if backend provided language-specific translation
+      if (isGerman && result?.messageDE) {
+        // Use backend's German translation (includes lockout messages, etc.)
         errorMessage = result.messageDE;
-      }
-
-      // Translate common error messages
-      if (isGerman) {
+      } else if (!isGerman && result?.message) {
+        // Use backend's English message
+        errorMessage = result.message;
+      } else if (isGerman) {
+        // Fallback manual translation for generic errors only
         if (!errorMessage || errorMessage === 'Login failed' || errorMessage === 'Authentication failed') {
           errorMessage = 'Anmeldung fehlgeschlagen';
         } else if (errorMessage === 'Invalid credentials' || errorMessage === 'Invalid admin credentials') {

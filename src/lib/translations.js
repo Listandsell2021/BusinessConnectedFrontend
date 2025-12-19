@@ -111,7 +111,15 @@ export const translations = {
       'Invalid service type': 'Ungültiger Service-Typ',
       'Services must be a non-empty array': 'Mindestens ein Service ist erforderlich',
       'Password must be at least 6 characters': 'Passwort muss mindestens 6 Zeichen lang sein',
-      'Invalid email address': 'Ungültige E-Mail-Adresse'
+      'Password must be at least 12 characters long': 'Passwort muss mindestens 12 Zeichen lang sein',
+      'Password must contain at least one uppercase letter': 'Passwort muss einen Großbuchstaben enthalten',
+      'Password must contain at least one lowercase letter': 'Passwort muss einen Kleinbuchstaben enthalten',
+      'Password must contain at least one number': 'Passwort muss eine Zahl enthalten',
+      'Password must contain at least one symbol (!@#$%&*)': 'Passwort muss ein Symbol enthalten (!@#$%&*)',
+      'Invalid email address': 'Ungültige E-Mail-Adresse',
+      // Password Strength Indicator
+      'Password Strength': 'Passwort Stärke',
+      'Requirements': 'Anforderungen'
     },
 
     // Navigation
@@ -658,7 +666,15 @@ export const translations = {
       'Invalid service type': 'Invalid service type',
       'Services must be a non-empty array': 'Services must be a non-empty array',
       'Password must be at least 6 characters': 'Password must be at least 6 characters',
-      'Invalid email address': 'Invalid email address'
+      'Password must be at least 12 characters long': 'Password must be at least 12 characters long',
+      'Password must contain at least one uppercase letter': 'Password must contain at least one uppercase letter',
+      'Password must contain at least one lowercase letter': 'Password must contain at least one lowercase letter',
+      'Password must contain at least one number': 'Password must contain at least one number',
+      'Password must contain at least one symbol (!@#$%&*)': 'Password must contain at least one symbol (!@#$%&*)',
+      'Invalid email address': 'Invalid email address',
+      // Password Strength Indicator
+      'Password Strength': 'Password Strength',
+      'Requirements': 'Requirements'
     },
 
     // Navigation
