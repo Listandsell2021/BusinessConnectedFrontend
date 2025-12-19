@@ -93,7 +93,25 @@ export const translations = {
       invalidData: 'Ungültige Daten eingegeben. Bitte überprüfen Sie Ihre Eingaben.',
       requestTimeout: 'Anfrage-Timeout. Bitte versuchen Sie es erneut.',
       unknownError: 'Ein unbekannter Fehler ist aufgetreten',
-      pleaseFillAllRequiredFields: 'Bitte füllen Sie alle erforderlichen Felder aus'
+      pleaseFillAllRequiredFields: 'Bitte füllen Sie alle erforderlichen Felder aus',
+      // Server error message translations (from express-validator)
+      'Phone is required': 'Telefonnummer ist erforderlich',
+      'Phone number is required': 'Telefonnummer ist erforderlich',
+      'First name is required': 'Vorname ist erforderlich',
+      'Last name is required': 'Nachname ist erforderlich',
+      'Valid email is required': 'Gültige E-Mail ist erforderlich',
+      'Company name is required': 'Firmenname ist erforderlich',
+      'Street address is required': 'Straßenadresse ist erforderlich',
+      'City is required': 'Stadt ist erforderlich',
+      'Zip code is required': 'Postleitzahl ist erforderlich',
+      'Country is required': 'Land ist erforderlich',
+      'Service is required': 'Service ist erforderlich',
+      'Service type is required': 'Service-Typ ist erforderlich',
+      'Service type must be either moving or cleaning': 'Service-Typ muss entweder Umzug oder Reinigung sein',
+      'Invalid service type': 'Ungültiger Service-Typ',
+      'Services must be a non-empty array': 'Mindestens ein Service ist erforderlich',
+      'Password must be at least 6 characters': 'Passwort muss mindestens 6 Zeichen lang sein',
+      'Invalid email address': 'Ungültige E-Mail-Adresse'
     },
 
     // Navigation
@@ -622,7 +640,25 @@ export const translations = {
       invalidData: 'Invalid data entered. Please check your inputs.',
       requestTimeout: 'Request timeout. Please try again.',
       unknownError: 'An unknown error occurred',
-      pleaseFillAllRequiredFields: 'Please fill in all required fields'
+      pleaseFillAllRequiredFields: 'Please fill in all required fields',
+      // Server error message translations (from express-validator)
+      'Phone is required': 'Phone is required',
+      'Phone number is required': 'Phone number is required',
+      'First name is required': 'First name is required',
+      'Last name is required': 'Last name is required',
+      'Valid email is required': 'Valid email is required',
+      'Company name is required': 'Company name is required',
+      'Street address is required': 'Street address is required',
+      'City is required': 'City is required',
+      'Zip code is required': 'Zip code is required',
+      'Country is required': 'Country is required',
+      'Service is required': 'Service is required',
+      'Service type is required': 'Service type is required',
+      'Service type must be either moving or cleaning': 'Service type must be either moving or cleaning',
+      'Invalid service type': 'Invalid service type',
+      'Services must be a non-empty array': 'Services must be a non-empty array',
+      'Password must be at least 6 characters': 'Password must be at least 6 characters',
+      'Invalid email address': 'Invalid email address'
     },
 
     // Navigation

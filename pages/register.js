@@ -12,6 +12,7 @@ import LanguageToggle from '../src/components/ui/LanguageToggle';
 import Button from '../src/components/ui/Button';
 import Logo from '../src/components/ui/Logo';
 import { API_BASE_URL } from '../src/lib/config';
+import { translations } from '../src/lib/translations';
 
 
 export default function PartnerRequest() {
@@ -36,6 +37,7 @@ export default function PartnerRequest() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [loadingServiceTypes, setLoadingServiceTypes] = useState(true);
@@ -199,7 +201,14 @@ export default function PartnerRequest() {
     }
   };
 
+  // Translate server error messages using translations file
+  const getTranslatedError = (errorMsg) => {
+    const lang = isGerman ? 'de' : 'en';
+    const trans = translations[lang];
 
+    // Try to find the error message in translations
+    return trans.auth[errorMsg] || errorMsg;
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -338,6 +347,7 @@ export default function PartnerRequest() {
 
         // Clear any existing errors
         setErrors({});
+        setServerError('');
 
         // Do not auto-redirect - let user click the button
       } else {
@@ -346,40 +356,49 @@ export default function PartnerRequest() {
           const newErrors = {};
           result.errors.forEach(error => {
             const field = error.path || error.param;
+            const translatedMsg = getTranslatedError(error.msg);
             // Map backend nested fields to frontend flat fields
-            if (field === 'contactPerson.firstName') newErrors.firstName = error.msg;
-            else if (field === 'contactPerson.lastName') newErrors.lastName = error.msg;
-            else if (field === 'contactPerson.email') newErrors.email = error.msg;
-            else if (field === 'contactPerson.phone') newErrors.phone = error.msg;
-            else if (field === 'companyName') newErrors.company = error.msg;
-            else if (field === 'address.street') newErrors.address = error.msg;
-            else if (field === 'address.city') newErrors.city = error.msg;
-            else if (field === 'address.zipCode' || field === 'address.postalCode') newErrors.zipCode = error.msg;
-            else if (field === 'address.country') newErrors.country = error.msg;
-            else if (field === 'services') newErrors.pursue = error.msg;
-            else newErrors.email = error.msg; // Default to email field
+            if (field === 'contactPerson.firstName') newErrors.firstName = translatedMsg;
+            else if (field === 'contactPerson.lastName') newErrors.lastName = translatedMsg;
+            else if (field === 'contactPerson.email') newErrors.email = translatedMsg;
+            else if (field === 'contactPerson.phone') newErrors.phone = translatedMsg;
+            else if (field === 'companyName') newErrors.company = translatedMsg;
+            else if (field === 'address.street') newErrors.address = translatedMsg;
+            else if (field === 'address.city') newErrors.city = translatedMsg;
+            else if (field === 'address.zipCode' || field === 'address.postalCode') newErrors.zipCode = translatedMsg;
+            else if (field === 'address.country') newErrors.country = translatedMsg;
+            else if (field === 'services') newErrors.pursue = translatedMsg;
+            else newErrors.email = translatedMsg; // Default to email field
           });
           setErrors(newErrors);
+          setServerError('');
         } else {
-          // Handle specific error messages
+          // Handle specific error messages - show as server error
+          setErrors({});
           if (result.message?.includes('email already exists')) {
-            setErrors({ 
-              email: isGerman 
-                ? 'Ein Partner mit dieser E-Mail-Adresse existiert bereits.' 
-                : 'A partner with this email address already exists.' 
-            });
+            setServerError(
+              isGerman
+                ? 'Ein Partner mit dieser E-Mail-Adresse existiert bereits.'
+                : 'A partner with this email address already exists.'
+            );
+          } else if (result.message?.includes('Services already registered')) {
+            setServerError(
+              isGerman
+                ? 'Services bereits registriert: ' + (result.message?.includes('moving') ? 'Umzug' : result.message?.includes('cleaning') ? 'Reinigung' : 'Service') + '. Duplizierte Services können nicht registriert werden, es sei denn, sie wurden zuvor abgelehnt.'
+                : result.message
+            );
           } else if (result.message?.includes('company name already exists') || result.message?.includes('Company') && result.message?.includes('already offers')) {
-            setErrors({
-              company: isGerman
+            setServerError(
+              isGerman
                 ? 'Ein Partner mit diesem Firmennamen bietet bereits diesen Service an.'
                 : 'A partner with this company name already offers this service.'
-            });
+            );
           } else {
-            setErrors({ 
-              email: result.message || (isGerman 
-                ? 'Partner-Registrierung fehlgeschlagen' 
-                : 'Partner registration failed') 
-            });
+            setServerError(
+              result.message || (isGerman
+                ? 'Partner-Registrierung fehlgeschlagen'
+                : 'Partner registration failed')
+            );
           }
         }
       }
@@ -644,25 +663,19 @@ export default function PartnerRequest() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                  {/* General Error Message */}
-                  {getFirstError() && (
+                  {/* Server Error Message */}
+                  {serverError && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 rounded-xl border border-red-400/30 bg-gradient-to-r from-red-50 to-red-100 text-red-700 text-sm text-center backdrop-blur-sm"
-                      style={{ 
+                      className="p-4 rounded-xl border border-red-400/30 bg-red-50 text-red-700 text-sm text-center"
+                      style={{
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        borderColor: 'rgba(239, 68, 68, 0.3)'
+                        borderColor: 'rgba(239, 68, 68, 0.3)',
+                        color: '#991b1b'
                       }}
                     >
-                      <motion.span
-                        animate={{ rotate: [0, -5, 5, 0] }}
-                        transition={{ duration: 0.5 }}
-                        className="inline-block mr-2"
-                      >
-                        ⚠️
-                      </motion.span>
-                      {getFirstError().message}
+                      ⚠️ {serverError}
                     </motion.div>
                   )}
 
@@ -697,31 +710,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.firstName ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.firstName ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'Vorname eingeben' : 'Enter first name'}
                         />
                       </div>
-                      {errors.firstName && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.firstName}
-                        </motion.p>
-                      )}
                     </motion.div>
 
                     {/* Last Name */}
@@ -753,31 +750,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.lastName ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.lastName ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'Nachname eingeben' : 'Enter last name'}
                         />
                       </div>
-                      {errors.lastName && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.lastName}
-                        </motion.p>
-                      )}
                     </motion.div>
                   </div>
 
@@ -812,31 +793,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.email ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'E-Mail-Adresse eingeben' : 'Enter email address'}
                         />
                       </div>
-                      {errors.email && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.email}
-                        </motion.p>
-                      )}
                     </motion.div>
 
                     {/* Phone */}
@@ -857,33 +822,26 @@ export default function PartnerRequest() {
                           id="phone"
                           name="phone"
                           type="tel"
+                          required
                           value={formData.phone}
                           onChange={handleChange}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          onInvalid={(e) => {
+                            e.target.setCustomValidity(
+                              isGerman
+                                ? 'Bitte füllen Sie dieses Feld aus.'
+                                : 'Please fill in this field.'
+                            );
+                          }}
+                          onInput={(e) => e.target.setCustomValidity('')}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.phone ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'Telefonnummer eingeben' : 'Enter phone number'}
                         />
                       </div>
-                      {errors.phone && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.phone}
-                        </motion.p>
-                      )}
                     </motion.div>
                   </div>
 
@@ -919,31 +877,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.company ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.company ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'Firmenname eingeben' : 'Enter company name'}
                         />
                       </div>
-                      {errors.company && (
-                        <motion.p 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.company}
-                        </motion.p>
-                      )}
                     </motion.div>
 
                     {/* Zip Code */}
@@ -975,31 +917,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.zipCode ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.zipCode ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? '10115' : '10115'}
                         />
                       </div>
-                      {errors.zipCode && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.zipCode}
-                        </motion.p>
-                      )}
                     </motion.div>
                   </div>
 
@@ -1032,31 +958,15 @@ export default function PartnerRequest() {
                           );
                         }}
                         onInput={(e) => e.target.setCustomValidity('')}
-                        className={`
-                          appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                          backdrop-blur-sm transition-all duration-300
-                          focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                          ${errors.address ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                        `}
+                        className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                         style={{
                           backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                          borderColor: errors.address ? '#EF4444' : 'var(--theme-border)',
                           color: 'var(--theme-text)',
                           backdropFilter: 'blur(10px)'
                         }}
                         placeholder={isGerman ? 'Musterstraße 123' : 'Musterstraße 123'}
                       />
                     </div>
-                    {errors.address && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-2 text-sm text-red-400 flex items-center"
-                      >
-                        <span className="mr-1">❌</span>
-                        {errors.address}
-                      </motion.p>
-                    )}
                   </motion.div>
 
                   {/* City and Country */}
@@ -1090,31 +1000,15 @@ export default function PartnerRequest() {
                             );
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
-                          className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                            backdrop-blur-sm transition-all duration-300
-                            focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                            ${errors.city ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                          `}
+                          className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                           style={{
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                            borderColor: errors.city ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
                             backdropFilter: 'blur(10px)'
                           }}
                           placeholder={isGerman ? 'Berlin' : 'Berlin'}
                         />
                       </div>
-                      {errors.city && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.city}
-                        </motion.p>
-                      )}
                     </motion.div>
 
                     {/* Country */}
@@ -1152,15 +1046,9 @@ export default function PartnerRequest() {
                               );
                             }}
                             onInput={(e) => e.target.setCustomValidity('')}
-                            className={`
-                              appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                              backdrop-blur-sm transition-all duration-300
-                              focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                              ${errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                            `}
+                            className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                             style={{
                               backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                              borderColor: errors.country ? '#EF4444' : 'var(--theme-border)',
                               color: 'var(--theme-text)',
                               backdropFilter: 'blur(10px)'
                             }}
@@ -1173,15 +1061,17 @@ export default function PartnerRequest() {
                             required
                             value={formData.country}
                             onChange={handleChange}
-                            className={`
-                              appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
-                              backdrop-blur-sm transition-all duration-300
-                              focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
-                              ${errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 dark:border-gray-200/30 focus:border-blue-400 focus:ring-blue-400'}
-                            `}
+                            onInvalid={(e) => {
+                              e.target.setCustomValidity(
+                                isGerman
+                                  ? 'Bitte füllen Sie dieses Feld aus.'
+                                  : 'Please fill in this field.'
+                              );
+                            }}
+                            onInput={(e) => e.target.setCustomValidity('')}
+                            className="appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 border-gray-300 dark:border-gray-200/30 rounded-xl backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-30 focus:border-blue-400 focus:scale-105 text-sm sm:text-base"
                             style={{
                               backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05))',
-                              borderColor: errors.country ? '#EF4444' : 'var(--theme-border)',
                               color: 'var(--theme-text)',
                               backdropFilter: 'blur(10px)'
                             }}
@@ -1197,16 +1087,6 @@ export default function PartnerRequest() {
                           </select>
                         )}
                       </div>
-                      {errors.country && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-400 flex items-center"
-                        >
-                          <span className="mr-1">❌</span>
-                          {errors.country}
-                        </motion.p>
-                      )}
                     </motion.div>
                   </div>
 
@@ -1247,16 +1127,6 @@ export default function PartnerRequest() {
                             : 'Accept privacy policy and terms *'
                           }
                         </label>
-                        {errors.agreeToTerms && (
-                          <motion.p 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-1 text-sm text-red-400 flex items-center"
-                          >
-                            <span className="mr-1">❌</span>
-                            {errors.agreeToTerms}
-                          </motion.p>
-                        )}
                       </div>
                     </div>
                   </motion.div>
