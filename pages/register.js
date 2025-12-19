@@ -42,6 +42,7 @@ export default function PartnerRequest() {
   const [serviceTypes, setServiceTypes] = useState([]);
   const [loadingServiceTypes, setLoadingServiceTypes] = useState(true);
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const serviceDropdownRef = useRef(null);
   const previousErrorsRef = useRef({});
 
@@ -1122,9 +1123,28 @@ export default function PartnerRequest() {
                       />
                       <div className="flex-1">
                         <label htmlFor="agreeToTerms" className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                          {isGerman 
-                            ? 'Datenschutzerklärung und AGB akzeptieren *'
-                            : 'Accept privacy policy and terms *'
+                          {isGerman
+                            ? <>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsPrivacyModalOpen(true)}
+                                  className="text-blue-600 hover:text-blue-700 underline font-semibold transition-colors duration-200"
+                                >
+                                  Datenschutzerklärung
+                                </button>
+                                {' und AGB akzeptieren *'}
+                              </>
+                            : <>
+                                {'Accept '}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsPrivacyModalOpen(true)}
+                                  className="text-blue-600 hover:text-blue-700 underline font-semibold transition-colors duration-200"
+                                >
+                                  privacy policy
+                                </button>
+                                {' and terms *'}
+                              </>
                           }
                         </label>
                       </div>
@@ -1189,6 +1209,242 @@ export default function PartnerRequest() {
                     </span>
                   </motion.div>
                 </form>
+
+                {/* Privacy Policy Modal */}
+                {isPrivacyModalOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setIsPrivacyModalOpen(false)}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                    >
+                      <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 flex justify-between items-center z-10">
+                        <h2 className="text-2xl font-bold text-white">
+                          {isGerman ? 'Datenschutz' : 'Data Protection'}
+                        </h2>
+                        <button
+                          onClick={() => setIsPrivacyModalOpen(false)}
+                          className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors duration-200"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="p-6 space-y-4 text-sm leading-relaxed" style={{ color: 'var(--theme-text)' }}>
+                        {isGerman ? (
+                          <>
+                            <h3 className="text-lg font-bold mb-4">Datenschutz- und Sicherheitsrichtlinie</h3>
+                            <p>Der Schutz Ihrer Privatsphäre ist uns wichtig, und wir verpflichten uns, Ihre personenbezogenen Daten gemäß strengen Standards zu schützen.</p>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">1. Sicherheit</h4>
+                              <p>Die Sicherheit Ihrer personenbezogenen Daten hat für uns höchste Priorität. Wir verwenden Secure Sockets Layer (SSL)-Technologie, um Ihre Daten zu schützen. Wenn Ihr Browser SSL unterstützt, werden die Informationen, die Sie auf sicheren Seiten eingeben, automatisch verschlüsselt, bevor sie über das Internet gesendet werden.</p>
+                              <p className="mt-2">Ein geschlossenes Vorhängeschloss oder ein ungebrochenes Schlüsselsymbol in Ihrem Browser zeigt an, dass Sie mit unserem sicheren Server verbunden sind und Ihre Daten geschützt sind.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">2. Cookies</h4>
+                              <p>Wir verwenden Cookies, kleine Textdateien, die von Ihrem Browser auf Ihrem Computer gespeichert werden, um zu analysieren, wie Kunden mit unserer Website interagieren.</p>
+                              <p className="mt-2">Diese Cookies helfen uns, unsere Website zu verbessern und an Ihre Präferenzen anzupassen. Die gesammelten Daten werden ausschließlich zur Optimierung Ihrer Benutzererfahrung verwendet und nicht an Dritte weitergegeben.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">3. Registrierung</h4>
+                              <p>Wir empfehlen Ihnen, sich auf unserer Website zu registrieren und anzumelden, um personalisierte Funktionen wie Bestellstatus und individuelle Informationen zu Ihrem Konto zu nutzen.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">4. Bestellungen aufgeben</h4>
+                              <p>Wenn Sie eine Bestellung aufgeben, erheben wir die erforderlichen Informationen, darunter:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Ihren Namen</li>
+                                <li>Ihre Rechnungs- und Lieferadresse</li>
+                                <li>Ihre Zahlungsinformationen</li>
+                                <li>Ihre Kontaktdaten</li>
+                              </ul>
+                              <p className="mt-2">Diese Daten helfen uns, Ihre Bestellung reibungslos abzuwickeln und Ihnen ein angenehmes Einkaufserlebnis zu bieten. Ihre Daten werden ausschließlich für die Abwicklung Ihrer Transaktion verwendet.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">5. Weitergabe von Informationen</h4>
+                              <p>Um Ihnen unsere Dienstleistungen bereitzustellen, einschließlich Verifizierung, Betrugsprävention, Zahlungsabwicklung und Versand, können wir Ihre Daten mit vertrauenswürdigen Geschäftspartnern teilen.</p>
+                              <p className="mt-2">In bestimmten Fällen, z.B. zur Betrugserkennung, können personenbezogene Daten an Behörden oder andere Organisationen weitergegeben werden, die diese Informationen speichern und später darauf zugreifen können.</p>
+                              <p className="mt-2">Wir können Daten auch weitergeben, wenn dies gesetzlich vorgeschrieben ist oder zum Schutz unserer Rechte und unseres Eigentums erforderlich ist.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">6. Datenspeicherung</h4>
+                              <p>Wir bewahren Ihre personenbezogenen Daten nur so lange auf, wie es für die Zwecke erforderlich ist, für die sie erhoben wurden. Dies umfasst gesetzliche, buchhalterische oder Berichtspflichten.</p>
+                              <p className="mt-2">Sobald Ihre Daten nicht mehr benötigt werden, ergreifen wir geeignete Maßnahmen, um sie sicher zu löschen oder zu anonymisieren.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">7. Ihre Datenschutzrechte</h4>
+                              <p>Abhängig von Ihrem Standort haben Sie möglicherweise folgende Rechte:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Auskunft über Ihre personenbezogenen Daten zu verlangen</li>
+                                <li>Die Berichtigung oder Löschung Ihrer Daten zu verlangen</li>
+                                <li>Der Verarbeitung Ihrer Daten in bestimmten Fällen zu widersprechen</li>
+                              </ul>
+                              <p className="mt-2">Um diese Rechte auszuüben, kontaktieren Sie uns bitte über die unten angegebenen Kontaktdaten.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">8. Abmeldung von Marketing-Mitteilungen</h4>
+                              <p>Wenn Sie keine Marketing-E-Mails mehr von uns erhalten möchten, können Sie sich jederzeit abmelden:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Nutzen Sie den Abmeldelink am Ende unserer E-Mails.</li>
+                                <li>Kontaktieren Sie uns direkt</li>
+                              </ul>
+                              <p className="mt-2">Bitte beachten Sie, dass Sie auch nach der Abmeldung von Werbe-E-Mails weiterhin wichtige transaktionsbezogene oder administrative Nachrichten zu Ihren Bestellungen oder Ihrem Konto erhalten können.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">9. Datenschutz für Kinder</h4>
+                              <p>Unsere Website und Dienstleistungen sind nicht für Kinder unter 13 Jahren bestimmt.</p>
+                              <p className="mt-2">Wir erheben oder speichern wissentlich keine personenbezogenen Daten von Kindern unter 13 Jahren. Wenn wir feststellen, dass ein Kind unter 13 Jahren uns personenbezogene Daten übermittelt hat, werden wir diese umgehend löschen.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">10. Änderungen dieser Datenschutzrichtlinie</h4>
+                              <p>Wir behalten uns das Recht vor, diese Datenschutzrichtlinie von Zeit zu Zeit zu aktualisieren.</p>
+                              <p className="mt-2">Alle Änderungen werden auf dieser Seite veröffentlicht, und das Datum der letzten Aktualisierung wird oben in der Richtlinie angepasst.</p>
+                              <p className="mt-2">Wir empfehlen Ihnen, diese Richtlinie regelmäßig zu überprüfen, um informiert zu bleiben, wie wir Ihre personenbezogenen Daten schützen.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">11. Internationale Datenübertragungen</h4>
+                              <p>Wenn Sie sich außerhalb der Region befinden, in der unsere Website betrieben wird, beachten Sie bitte, dass Ihre personenbezogenen Daten in ein anderes Land übertragen und dort verarbeitet werden können.</p>
+                              <p className="mt-2">Durch die Nutzung unserer Website und die Bereitstellung Ihrer Informationen stimmen Sie solchen Übertragungen und der Verarbeitung Ihrer Daten zu.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">Kontakt</h4>
+                              <p>Wenn Sie Fragen oder Bedenken bezüglich unserer Datenschutzrichtlinie oder der Verarbeitung Ihrer personenbezogenen Daten haben, können Sie uns unter folgender Adresse kontaktieren:</p>
+                              <p className="mt-2"><strong>E-Mail:</strong> <a href="mailto:info@umzug-anbieter-vergleich.de" className="text-blue-600 hover:text-blue-700 underline transition-colors duration-200">info@umzug-anbieter-vergleich.de</a></p>
+                              <p className="mt-2">Wir sind stets bemüht, Ihre Datenschutzanliegen zu behandeln und ermutigen Sie, uns zu kontaktieren, wenn Sie Fragen oder Beschwerden zu unserer Datenschutzrichtlinie haben.</p>
+                              <p className="mt-2 text-gray-500">Zuletzt aktualisiert: 5. Februar 2025</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <h3 className="text-lg font-bold mb-4">Privacy and Security Policy</h3>
+                            <p>Protecting your privacy is important to us, and we are committed to protecting your personal data according to strict standards.</p>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">1. Safety</h4>
+                              <p>The security of your personal data is our highest priority. We use Secure Sockets Layer (SSL) technology to protect your data. If your browser supports SSL, the information you enter on secure pages will be automatically encrypted before being sent over the internet.</p>
+                              <p className="mt-2">A closed padlock or an unbroken key symbol in your browser indicates that you are connected to our secure server and your data is protected.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">2. Cookies</h4>
+                              <p>We use cookies, small text files that are stored on your computer by your browser, to analyze how customers interact with our website.</p>
+                              <p className="mt-2">These cookies help us improve our website and tailor it to your preferences. The data collected is used exclusively to optimize your user experience and is not shared with third parties.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">3. Registration</h4>
+                              <p>We recommend that you register and log in to our website to use personalized features such as order status and individual information about your account.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">4. Place orders</h4>
+                              <p>When you place an order, we collect the necessary information, including:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Your name</li>
+                                <li>Your billing and shipping address</li>
+                                <li>Your payment information</li>
+                                <li>Your contact details</li>
+                              </ul>
+                              <p className="mt-2">This data helps us to process your order smoothly and provide you with a pleasant shopping experience. Your data will be used exclusively for processing your transaction.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">5. Sharing of information</h4>
+                              <p>In order to provide you with our services, including verification, fraud prevention, payment processing and shipping, we may share your data with trusted business partners.</p>
+                              <p className="mt-2">In certain cases, e.g. for fraud detection, personal data may be passed on to authorities or other organizations that store this information and can access it later.</p>
+                              <p className="mt-2">We may also share data if required by law or necessary to protect our rights and property.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">6. Data storage</h4>
+                              <p>We retain your personal data only for as long as necessary for the purposes for which it was collected. This includes legal, accounting, or reporting obligations.</p>
+                              <p className="mt-2">Once your data is no longer needed, we will take appropriate measures to securely delete or anonymize it.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">7. Your data protection rights</h4>
+                              <p>Depending on your location, you may have the following rights:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>To request information about your personal data</li>
+                                <li>To request the correction or deletion of your data</li>
+                                <li>To object to the processing of your data in certain cases</li>
+                              </ul>
+                              <p className="mt-2">To exercise these rights, please contact us using the contact details provided below.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">8. Unsubscribing from marketing communications</h4>
+                              <p>If you no longer wish to receive marketing emails from us, you can unsubscribe at any time:</p>
+                              <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Use the unsubscribe link at the bottom of our emails.</li>
+                                <li>Contact us directly</li>
+                              </ul>
+                              <p className="mt-2">Please note that even after unsubscribing from promotional emails, you may still receive important transactional or administrative messages regarding your orders or account.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">9. Data protection for children</h4>
+                              <p>Our website and services are not intended for children under 13 years of age.</p>
+                              <p className="mt-2">We do not knowingly collect or store personal data from children under the age of 13. If we discover that a child under the age of 13 has provided us with personal data, we will delete it immediately.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">10. Changes to this Privacy Policy</h4>
+                              <p>We reserve the right to update this privacy policy from time to time.</p>
+                              <p className="mt-2">All changes will be published on this page, and the date of the last update will be adjusted at the top of the policy.</p>
+                              <p className="mt-2">We recommend that you check this policy regularly to stay informed about how we protect your personal data.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">11. International Data Transfers</h4>
+                              <p>If you are located outside the region where our website is operated, please note that your personal data may be transferred to and processed in another country.</p>
+                              <p className="mt-2">By using our website and providing your information, you consent to such transfers and the processing of your data.</p>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold mt-4 mb-2">Contact</h4>
+                              <p>If you have any questions or concerns regarding our privacy policy or the processing of your personal data, you can contact us at the following address:</p>
+                              <p className="mt-2"><strong>Email:</strong> <a href="mailto:info@umzug-anbieter-vergleich.de" className="text-blue-600 hover:text-blue-700 underline transition-colors duration-200">info@umzug-anbieter-vergleich.de</a></p>
+                              <p className="mt-2">We are always committed to addressing your privacy concerns and encourage you to contact us if you have any questions or complaints about our privacy policy.</p>
+                              <p className="mt-2 text-gray-500">Last updated: February 5, 2025</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="sticky bottom-0 bg-gray-100 dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                        <button
+                          onClick={() => setIsPrivacyModalOpen(false)}
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                          {isGerman ? 'Schließen' : 'Close'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
 
