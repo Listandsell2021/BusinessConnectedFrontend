@@ -18,6 +18,18 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Log all requests
+    if (config.url && config.url.includes('invoices/generate')) {
+      const dataToLog = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : null;
+      console.log('📤 API REQUEST - Invoice Generate:', {
+        method: config.method,
+        url: config.url,
+        baseURL: config.baseURL,
+        fullUrl: `${config.baseURL}${config.url}`,
+        data: dataToLog,
+        hasAuth: !!token
+      });
+    }
     return config;
   },
   (error) => {
@@ -110,6 +122,17 @@ api.interceptors.response.use(
       }
     }
     
+    // Log invoice-related errors
+    if (error.config?.url?.includes('invoices/generate')) {
+      console.error('❌ API ERROR - Invoice Generate Failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data,
+        fullError: error
+      });
+    }
+
     // Don't show error toast for 401s as they're handled above
     // Also don't show automatic toasts for partner creation and lead access to avoid duplicates
     if (error.response?.status !== 401 && !error.config?.url?.includes('/partners') && !error.config?.url?.includes('/leads/')) {
@@ -124,7 +147,7 @@ api.interceptors.response.use(
         toast.error(error.message);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

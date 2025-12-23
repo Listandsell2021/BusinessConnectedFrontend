@@ -113,7 +113,7 @@ const getPartnerInvoices = async (req, res) => {
 // @access  Private (Superadmin)
 const generateInvoice = async (req, res) => {
   try {
-    const { partnerId, serviceType, billingPeriod } = req.body;
+    const { partnerId, serviceType, billingPeriod, items } = req.body;
 
     if (!partnerId || !serviceType || !billingPeriod) {
       return res.status(400).json({
@@ -129,12 +129,32 @@ const generateInvoice = async (req, res) => {
       });
     }
 
-    // Use billing service to generate invoice based on accepted partner assignments
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one lead must be selected for invoice generation'
+      });
+    }
+
+    // Extract selected lead IDs from items array
+    const selectedLeadIds = items.map(item => item.leadId);
+
+    console.log('🎯 DEBUG - invoiceController.generateInvoice:', {
+      partnerId,
+      serviceType,
+      itemsCount: items.length,
+      selectedLeadIds: selectedLeadIds.map(id => id.toString ? id.toString() : String(id)),
+      billingPeriodDates: `${billingPeriod.startDate} to ${billingPeriod.endDate}`
+    });
+
+    // Use billing service to generate invoice based on selected leads only
     const invoice = await BillingService.generatePartnerInvoice(
       partnerId,
       serviceType,
       billingPeriod,
-      req.user.id
+      req.user.id,
+      selectedLeadIds,  // Pass selected leads to limit invoice to these leads only
+      items  // Pass the full items array with amounts for custom pricing
     );
 
     await invoice.populate('partnerId', 'companyName contactPerson.email');

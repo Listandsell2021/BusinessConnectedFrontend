@@ -1,4 +1,5 @@
 // Billing Service - Invoice and Income Management based on Accepted Leads
+const mongoose = require('mongoose');
 const Lead = require('../models/Lead');
 const Partner = require('../models/Partner');
 const Invoice = require('../models/Invoice');
@@ -15,18 +16,40 @@ class BillingService {
    * @param {String} createdBy - User ID who created the invoice
    * @returns {Object} Invoice data
    */
-  static async generatePartnerInvoice(partnerId, serviceType, billingPeriod, createdBy) {
+  static async generatePartnerInvoice(partnerId, serviceType, billingPeriod, createdBy, selectedLeadIds, items) {
     try {
+      console.log('📝 DEBUG - generatePartnerInvoice called with:', {
+        partnerId,
+        serviceType,
+        selectedLeadIds: selectedLeadIds ? selectedLeadIds.length : 0,
+        itemsCount: items ? items.length : 0,
+        selectedLeadIdsList: selectedLeadIds?.slice(0, 5) // Show first 5 for debugging
+      });
+
       const partner = await Partner.findById(partnerId);
       if (!partner) {
         throw new Error('Partner not found');
       }
 
-      // Find all leads with accepted assignments for this partner in the billing period
-      const acceptedLeads = await this.getAcceptedLeadsForBilling(partnerId, serviceType, billingPeriod);
+      // Find leads with accepted assignments for this partner in the billing period
+      // Filter by selectedLeadIds if provided (to support selective invoice generation)
+      const acceptedLeads = await this.getAcceptedLeadsForBilling(partnerId, serviceType, billingPeriod, selectedLeadIds);
+
+      console.log('✅ DEBUG - Invoice will include:', {
+        totalLeadsInInvoice: acceptedLeads.length,
+        leadIds: acceptedLeads.map(l => l._id.toString()).slice(0, 5)
+      });
 
       if (acceptedLeads.length === 0) {
-        throw new Error('No accepted leads found for the billing period');
+        throw new Error('No accepted leads found for the selected leads');
+      }
+
+      // Create a map of items for quick lookup of amounts and descriptions from frontend
+      const itemsMap = new Map();
+      if (items && items.length > 0) {
+        items.forEach(item => {
+          itemsMap.set(item.leadId.toString(), item);
+        });
       }
 
       // Calculate invoice totals
@@ -40,19 +63,23 @@ class BillingService {
         );
 
         if (acceptedAssignment && acceptedAssignment.leadPrice) {
+          // Use amount from items if provided, otherwise use leadPrice from assignment
+          const itemData = itemsMap.get(lead._id.toString());
+          const amount = itemData?.amount || acceptedAssignment.leadPrice;
+
           invoiceItems.push({
             leadId: lead._id,
             leadNumber: lead.leadId,
             serviceType: lead.serviceType,
             acceptedDate: acceptedAssignment.acceptedAt,
-            amount: acceptedAssignment.leadPrice,
-            description: `${lead.serviceType === 'moving' ? 'Moving' : 'Cleaning'} Lead - ${lead.leadId}`,
+            amount: amount,
+            description: itemData?.description || `${lead.serviceType === 'moving' ? 'Moving' : 'Cleaning'} Lead - ${lead.leadId}`,
             customerInfo: {
               name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}` : 'Unknown',
               city: lead.serviceLocation?.city || lead.city || 'Unknown'
             }
           });
-          subtotal += acceptedAssignment.leadPrice;
+          subtotal += amount;
         }
       }
 
@@ -98,9 +125,18 @@ class BillingService {
    * @param {String} partnerId
    * @param {String} serviceType
    * @param {Object} billingPeriod
+   * @param {Array} selectedLeadIds - Optional array of specific lead IDs to filter by
    * @returns {Array} Accepted leads
    */
-  static async getAcceptedLeadsForBilling(partnerId, serviceType, billingPeriod) {
+  static async getAcceptedLeadsForBilling(partnerId, serviceType, billingPeriod, selectedLeadIds) {
+    console.log('📍 DEBUG - getAcceptedLeadsForBilling called with:', {
+      partnerId,
+      serviceType,
+      hasSelectedLeadIds: !!selectedLeadIds,
+      selectedLeadIdsLength: selectedLeadIds ? selectedLeadIds.length : 0,
+      selectedLeadIdsValues: selectedLeadIds ? selectedLeadIds.slice(0, 3) : 'NONE'
+    });
+
     const query = {
       serviceType,
       'partnerAssignments': {
@@ -115,9 +151,45 @@ class BillingService {
       }
     };
 
-    return await Lead.find(query)
+    console.log('📋 DEBUG - Initial query (before selective filter):', JSON.stringify(query, null, 2));
+
+    // Get all leads matching the partner/service/period criteria
+    // (without ID filter for now - we'll filter by ID in JavaScript)
+    const allResults = await Lead.find(query)
       .populate('user', 'firstName lastName email')
       .populate('partnerAssignments.partner', 'companyName partnerType');
+
+    console.log('✅ DEBUG - All accepted leads for period/partner:', {
+      count: allResults.length,
+      leadIds: allResults.map(l => l.leadId).slice(0, 5)
+    });
+
+    // If selectedLeadIds are provided, filter the results in JavaScript
+    let results = allResults;
+    if (selectedLeadIds && selectedLeadIds.length > 0) {
+      console.log('🔍 DEBUG - APPLYING SELECTIVE FILTER IN JAVASCRIPT:', {
+        selectedLeadCount: selectedLeadIds.length,
+        selectedIds: selectedLeadIds.slice(0, 5),
+        totalAvailableLeads: allResults.length
+      });
+
+      // Convert selectedLeadIds to strings for comparison (in case they're ObjectIds)
+      const selectedIds = selectedLeadIds.map(id => id.toString ? id.toString() : String(id));
+
+      // Filter to only include selected leads
+      results = allResults.filter(lead =>
+        selectedIds.includes(lead._id.toString())
+      );
+
+      console.log('✅ DEBUG - After selective filter:', {
+        filteredCount: results.length,
+        resultIds: results.map(r => r.leadId).slice(0, 5)
+      });
+    } else {
+      console.log('⚠️  WARNING - NO SELECTIVE FILTER - Using all leads');
+    }
+
+    return results;
   }
 
   /**
