@@ -58,6 +58,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
   // Partners for filtering
   const [allPartners, setAllPartners] = useState([]);
   const [currentView, setCurrentView] = useState('table'); // 'table' or 'details'
+
+  // Partner auto-accept setting
+  const [partnerRequiresManualAcceptance, setPartnerRequiresManualAcceptance] = useState(true);
   const [leadForDetails, setLeadForDetails] = useState(null);
   const [showLeadDetails, setShowLeadDetails] = useState(false);
   
@@ -197,6 +200,28 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       setFilters(prev => ({ ...prev, status: 'all' }));
     }
   }, [router.query.filter, router.query.tab]);
+
+  // Fetch partner's manual acceptance setting
+  useEffect(() => {
+    const fetchPartnerSettings = async () => {
+      if (isPartner && user?.id) {
+        try {
+          const response = await partnersAPI.getMyProfile();
+          if (response && response.data) {
+            setPartnerRequiresManualAcceptance(
+              response.data?.leadAcceptance?.requireManualAcceptance ?? true
+            );
+          }
+        } catch (error) {
+          console.error('Failed to fetch partner settings:', error);
+          // Default to true (manual acceptance) if fetch fails
+          setPartnerRequiresManualAcceptance(true);
+        }
+      }
+    };
+
+    fetchPartnerSettings();
+  }, [isPartner, user?.id]);
 
   // Filter partners based on selected tab and search query
   const filteredPartners = useMemo(() => {
@@ -3643,68 +3668,86 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
                         switch(partnerStatus?.status) {
                           case 'pending':
-                            // Pending: Show Reject and Accept buttons
+                            // Pending: Show Accept/Reject buttons OR auto-accepted badge based on partner setting
                             return (
                               <>
-                                <button
-                                  onClick={() => {
-                                    console.log('Reject button clicked - Lead:', {
-                                      id: lead.id,
-                                      originalLeadId: lead.originalLeadId,
-                                      leadId: lead.leadId
-                                    });
-                                    handleRejectLead(lead);
-                                  }}
-                                  className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md border"
-                                  style={{
-                                    backgroundColor: '#f3f4f6',
-                                    color: '#374151',
-                                    borderColor: '#d1d5db'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#f87171';
-                                    e.target.style.color = 'white';
-                                    e.target.style.borderColor = '#ef4444';
-                                    e.target.style.transform = 'translateY(-1px)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = '#f3f4f6';
-                                    e.target.style.color = '#374151';
-                                    e.target.style.borderColor = '#d1d5db';
-                                    e.target.style.transform = 'translateY(0)';
-                                  }}
-                                  title={isGerman ? 'Lead ablehnen' : 'Reject lead'}
-                                >
-                                  ✖️ {isGerman ? 'Ablehnen' : 'Reject'}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    console.log('Accept button clicked - Lead:', {
-                                      id: lead.id,
-                                      originalLeadId: lead.originalLeadId,
-                                      idToUse: lead.originalLeadId || lead.id,
-                                      leadId: lead.leadId,
-                                      currentAssignment: lead.currentAssignment,
-                                      assignmentId: lead.currentAssignment?._id
-                                    });
-                                    handleAcceptLead(lead.originalLeadId || lead.id, user?.id, lead.currentAssignment?._id);
-                                  }}
-                                  className="text-xs px-3 py-1 rounded transition-colors"
-                                  style={{
-                                    backgroundColor: '#10b981',
-                                    color: 'white',
-                                    border: '1px solid #10b981'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#059669';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = '#10b981';
-                                  }}
-                                  title={isGerman ? 'Lead akzeptieren' : 'Accept lead'}
-                                >
-                                  ✅ {isGerman ? 'Akzeptieren' : 'Accept'}
-                                </button>
+                                {partnerRequiresManualAcceptance ? (
+                                  // Show Accept/Reject buttons when manual acceptance is required
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        console.log('Reject button clicked - Lead:', {
+                                          id: lead.id,
+                                          originalLeadId: lead.originalLeadId,
+                                          leadId: lead.leadId
+                                        });
+                                        handleRejectLead(lead);
+                                      }}
+                                      className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md border"
+                                      style={{
+                                        backgroundColor: '#f3f4f6',
+                                        color: '#374151',
+                                        borderColor: '#d1d5db'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.backgroundColor = '#f87171';
+                                        e.target.style.color = 'white';
+                                        e.target.style.borderColor = '#ef4444';
+                                        e.target.style.transform = 'translateY(-1px)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.backgroundColor = '#f3f4f6';
+                                        e.target.style.color = '#374151';
+                                        e.target.style.borderColor = '#d1d5db';
+                                        e.target.style.transform = 'translateY(0)';
+                                      }}
+                                      title={isGerman ? 'Lead ablehnen' : 'Reject lead'}
+                                    >
+                                      ✖️ {isGerman ? 'Ablehnen' : 'Reject'}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        console.log('Accept button clicked - Lead:', {
+                                          id: lead.id,
+                                          originalLeadId: lead.originalLeadId,
+                                          idToUse: lead.originalLeadId || lead.id,
+                                          leadId: lead.leadId,
+                                          currentAssignment: lead.currentAssignment,
+                                          assignmentId: lead.currentAssignment?._id
+                                        });
+                                        handleAcceptLead(lead.originalLeadId || lead.id, user?.id, lead.currentAssignment?._id);
+                                      }}
+                                      className="text-xs px-3 py-1 rounded transition-colors"
+                                      style={{
+                                        backgroundColor: '#10b981',
+                                        color: 'white',
+                                        border: '1px solid #10b981'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.backgroundColor = '#059669';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.backgroundColor = '#10b981';
+                                      }}
+                                      title={isGerman ? 'Lead akzeptieren' : 'Accept lead'}
+                                    >
+                                      ✅ {isGerman ? 'Akzeptieren' : 'Accept'}
+                                    </button>
+                                  </>
+                                ) : (
+                                  // Show auto-accepted badge when manual acceptance is NOT required
+                                  <div
+                                    className="text-xs px-3 py-1 rounded border"
+                                    style={{
+                                      backgroundColor: '#DBEAFE',
+                                      color: '#1E40AF',
+                                      border: '1px solid #3B82F6'
+                                    }}
+                                    title={isGerman ? 'Automatisch akzeptiert' : 'Automatically accepted'}
+                                  >
+                                    ⚡ {isGerman ? 'Auto-Akzeptiert' : 'Auto-Accepted'}
+                                  </div>
+                                )}
                               </>
                             );
 

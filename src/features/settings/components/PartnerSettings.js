@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
+import { partnersAPI } from '../../../lib/api/api';
 
 const PartnerSettings = () => {
   const { currentService } = useService();
@@ -12,18 +13,20 @@ const PartnerSettings = () => {
   const [settings, setSettings] = useState({
     // Services
     services: [],
-    
+
     // Lead Preferences
     cities: [],
     countries: [],
     radius: 50,
     avgLeadsPerWeek: 5,
-    
+
     // Moving Service specific
     fromRadius: 50,
     toRadius: 50,
-    
-    
+
+    // Lead Acceptance Settings
+    requireManualAcceptance: true,
+
     // Contact Info
     companyName: '',
     contactPerson: '',
@@ -64,23 +67,53 @@ const PartnerSettings = () => {
   });
 
   useEffect(() => {
-    // Load user settings - replace with API call
-    if (isPartner) {
-      setSettings({
-        services: user?.services || ['moving'], // Load from user data or default to moving
-        cities: ['Berlin', 'Hamburg'],
-        countries: ['Germany'],
-        radius: 50,
-        avgLeadsPerWeek: 5,
-        fromRadius: 50,
-        toRadius: 50,
-        companyName: user?.name || 'MoveIt Pro GmbH',
-        contactPerson: 'John Doe',
-        phone: '+49 30 12345678',
-        email: user?.email || 'info@moveitpro.de',
-        address: 'Hauptstr. 123, 10117 Berlin'
-      });
-    }
+    // Load user settings from API
+    const loadPartnerSettings = async () => {
+      if (isPartner && user?.id) {
+        try {
+          const response = await partnersAPI.getMyProfile();
+          const data = response.data || response;
+          if (data.success && data.partner) {
+            const partner = data.partner;
+            setSettings({
+              services: partner.services || user?.services || ['moving'],
+              cities: ['Berlin', 'Hamburg'],
+              countries: ['Germany'],
+              radius: 50,
+              avgLeadsPerWeek: 5,
+              fromRadius: 50,
+              toRadius: 50,
+              requireManualAcceptance: partner.leadAcceptance?.requireManualAcceptance ?? true,
+              companyName: partner.companyName || user?.name || 'MoveIt Pro GmbH',
+              contactPerson: partner.contactPerson?.firstName + ' ' + partner.contactPerson?.lastName || 'John Doe',
+              phone: partner.contactPerson?.phone || '+49 30 12345678',
+              email: partner.contactPerson?.email || user?.email || 'info@moveitpro.de',
+              address: partner.address?.street + ', ' + partner.address?.postalCode + ' ' + partner.address?.city || 'Hauptstr. 123, 10117 Berlin'
+            });
+          }
+        } catch (error) {
+          console.error('Error loading partner profile:', error);
+          // Fallback to default values
+          setSettings({
+            services: user?.services || ['moving'],
+            cities: ['Berlin', 'Hamburg'],
+            countries: ['Germany'],
+            radius: 50,
+            avgLeadsPerWeek: 5,
+            fromRadius: 50,
+            toRadius: 50,
+            requireManualAcceptance: true,
+            companyName: user?.name || 'MoveIt Pro GmbH',
+            contactPerson: 'John Doe',
+            phone: '+49 30 12345678',
+            email: user?.email || 'info@moveitpro.de',
+            address: 'Hauptstr. 123, 10117 Berlin'
+          });
+        }
+      }
+    };
+
+    loadPartnerSettings();
   }, [isPartner, user]);
 
   const handleCityChange = (city, checked) => {
@@ -123,12 +156,30 @@ const PartnerSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // API call would go here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      // Use the /my/settings endpoint for updating own settings
+      const response = await fetch('/api/partners/my/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          leadAcceptance: {
+            requireManualAcceptance: settings.requireManualAcceptance
+          }
+        })
+      });
 
-      setMessage(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
-      setTimeout(() => setMessage(''), 3000);
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage(isGerman ? 'Einstellungen erfolgreich gespeichert!' : 'Settings saved successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        throw new Error(result.message || (isGerman ? 'Fehler beim Speichern' : 'Error saving settings'));
+      }
     } catch (error) {
+      console.error('Error saving settings:', error);
       setMessage(isGerman ? 'Fehler beim Speichern der Einstellungen' : 'Error saving settings');
       setTimeout(() => setMessage(''), 3000);
     } finally {
@@ -602,6 +653,56 @@ const PartnerSettings = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
+          {/* Lead Acceptance Settings - Moved to top for visibility */}
+          <div className="p-6 rounded-lg border" style={{
+            backgroundColor: 'var(--theme-bg-secondary)',
+            borderColor: 'var(--theme-border)'
+          }}>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+              ⚡ {isGerman ? 'Lead-Annahme' : 'Lead Acceptance'}
+            </h3>
+
+            <div className="space-y-4">
+              <label className="flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md"
+                style={{
+                  borderColor: !settings.requireManualAcceptance ? '#3B82F6' : 'var(--theme-border)',
+                  backgroundColor: !settings.requireManualAcceptance ? 'rgba(59, 130, 246, 0.1)' : 'var(--theme-bg)'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!settings.requireManualAcceptance}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    requireManualAcceptance: !e.target.checked
+                  }))}
+                  className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                    {isGerman
+                      ? 'Leads automatisch akzeptieren'
+                      : 'Automatically Accept Leads'}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                    {isGerman
+                      ? 'Wenn aktiviert, werden Ihnen zugewiesene Leads automatisch akzeptiert. Sie müssen Leads nicht mehr manuell annehmen.'
+                      : 'When enabled, leads assigned to you will be automatically accepted. You won\'t need to manually accept leads.'}
+                  </div>
+                  <div className="mt-2 text-xs px-3 py-2 rounded" style={{
+                    backgroundColor: !settings.requireManualAcceptance ? '#DBEAFE' : '#FEF3C7',
+                    color: !settings.requireManualAcceptance ? '#1E40AF' : '#92400E'
+                  }}>
+                    {!settings.requireManualAcceptance
+                      ? (isGerman ? '✓ Aktiviert: Leads werden automatisch akzeptiert' : '✓ Enabled: Leads will be auto-accepted')
+                      : (isGerman ? '✗ Deaktiviert: Manuelle Annahme erforderlich' : '✗ Disabled: Manual acceptance required')
+                    }
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
           {/* Contact Information */}
           <div className="p-6 rounded-lg space-y-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             <h3 className="text-lg font-semibold" style={{ color: 'var(--theme-text)' }}>
@@ -693,7 +794,6 @@ const PartnerSettings = () => {
               />
             </div>
           </div>
-
 
           {/* Password Reset Section */}
           <div className="p-6 rounded-lg border" style={{

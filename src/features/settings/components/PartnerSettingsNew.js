@@ -126,7 +126,10 @@ const PartnerSettingsNew = () => {
       postalCode: '',
       country: 'DE'
     },
-    
+
+    // Lead Acceptance Settings
+    requireManualAcceptance: true,
+
     // Service Preferences - pickup and destination directly under preferences
     preferences: {
       pickup: {
@@ -303,6 +306,7 @@ const PartnerSettingsNew = () => {
           postalCode: '',
           country: 'DE'
         },
+        requireManualAcceptance: partner.leadAcceptance?.requireManualAcceptance ?? true,
         preferences: {
           pickup: {
             countries: pickupCountries,
@@ -550,6 +554,9 @@ const PartnerSettingsNew = () => {
         companyName: settings.companyName,
         contactPerson: settings.contactPerson,
         address: settings.address,
+        leadAcceptance: {
+          requireManualAcceptance: settings.requireManualAcceptance
+        },
         preferences: preferences
       };
 
@@ -1290,7 +1297,7 @@ const PartnerSettingsNew = () => {
   const tabs = [
     {
       id: 'contact',
-      label: isGerman ? 'Kontaktinformationen' : 'Contact Information'
+      label: isGerman ? 'Kontoeinstellungen' : 'Account Settings'
     },
     {
       id: 'services',
@@ -1509,6 +1516,56 @@ const PartnerSettingsNew = () => {
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Lead Acceptance Settings */}
+        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            ⚡ {isGerman ? 'Lead-Annahme' : 'Lead Acceptance'}
+          </h3>
+
+          <div className="space-y-4">
+            <label className="flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md"
+              style={{
+                borderColor: !settings.requireManualAcceptance ? '#3B82F6' : 'var(--theme-border)',
+                backgroundColor: !settings.requireManualAcceptance ? 'rgba(59, 130, 246, 0.1)' : 'var(--theme-bg)'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!settings.requireManualAcceptance}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  requireManualAcceptance: !e.target.checked
+                }))}
+                className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+              />
+              <div className="flex-1">
+                <div className="font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman
+                    ? 'Leads automatisch akzeptieren'
+                    : 'Automatically Accept Leads'}
+                </div>
+                <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                  {isGerman
+                    ? 'Wenn aktiviert, werden Ihnen zugewiesene Leads automatisch akzeptiert. Sie müssen Leads nicht mehr manuell annehmen.'
+                    : 'When enabled, leads assigned to you will be automatically accepted. You won\'t need to manually accept leads.'}
+                </div>
+                <div className="mt-2 text-xs px-3 py-2 rounded" style={{
+                  backgroundColor: !settings.requireManualAcceptance ? '#DBEAFE' : '#FEF3C7',
+                  color: !settings.requireManualAcceptance ? '#1E40AF' : '#92400E'
+                }}>
+                  {!settings.requireManualAcceptance
+                    ? (isGerman ? '✓ Aktiviert: Leads werden automatisch akzeptiert' : '✓ Enabled: Leads will be auto-accepted')
+                    : (isGerman ? '✗ Deaktiviert: Manuelle Annahme erforderlich' : '✗ Disabled: Manual acceptance required')
+                  }
+                </div>
+              </div>
+            </label>
           </div>
         </div>
 
