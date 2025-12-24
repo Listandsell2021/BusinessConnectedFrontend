@@ -19,6 +19,10 @@ const nextConfig = {
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
     pagesBufferLength: 5
+  },
+  // Skip static generation for all pages since we're using getServerSideProps
+  experimental: {
+    isrMemoryCacheSize: 0
   }
 }
 
