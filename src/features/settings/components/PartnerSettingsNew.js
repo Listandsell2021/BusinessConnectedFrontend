@@ -130,6 +130,12 @@ const PartnerSettingsNew = () => {
     // Lead Acceptance Settings
     requireManualAcceptance: true,
 
+    // Custom Pricing Settings
+    customPricing: {
+      perLeadPrice: null,
+      leadsPerWeek: null
+    },
+
     // Service Preferences - pickup and destination directly under preferences
     preferences: {
       pickup: {
@@ -307,6 +313,10 @@ const PartnerSettingsNew = () => {
           country: 'DE'
         },
         requireManualAcceptance: partner.leadAcceptance?.requireManualAcceptance ?? true,
+        customPricing: {
+          perLeadPrice: partner.customPricing?.perLeadPrice || null,
+          leadsPerWeek: partner.customPricing?.leadsPerWeek || null
+        },
         preferences: {
           pickup: {
             countries: pickupCountries,
@@ -556,6 +566,10 @@ const PartnerSettingsNew = () => {
         address: settings.address,
         leadAcceptance: {
           requireManualAcceptance: settings.requireManualAcceptance
+        },
+        customPricing: {
+          perLeadPrice: settings.customPricing?.perLeadPrice || null,
+          leadsPerWeek: settings.customPricing?.leadsPerWeek || null
         },
         preferences: preferences
       };
@@ -1302,6 +1316,10 @@ const PartnerSettingsNew = () => {
     {
       id: 'services',
       label: isGerman ? 'Service-Präferenzen' : 'Service Preferences'
+    },
+    {
+      id: 'pricing',
+      label: isGerman ? 'Partner-Einstellungen' : 'Partner Settings'
     }
   ];
 
@@ -2414,6 +2432,125 @@ const PartnerSettingsNew = () => {
     </div>
   );
 
+  const renderPricingTab = () => (
+    <div className="space-y-6">
+      {/* Partner-specific Settings */}
+      <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>
+          <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          {isGerman ? 'Partner-spezifische Einstellungen' : 'Partner-specific Settings'}
+        </h3>
+        <p className="text-sm mb-6" style={{ color: 'var(--theme-muted)' }}>
+          {isGerman
+            ? 'Verwalten Sie Ihre individuellen Preiseinstellungen. Diese Einstellungen gelten speziell für Ihr Partnerkonto und überschreiben die globalen Admin-Standardeinstellungen.'
+            : 'Manage your custom pricing settings. These settings apply specifically to your partner account and override global admin default settings.'
+          }
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Price per Lead */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Preis pro Lead (€)' : 'Price per Lead (€)'}
+            </label>
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="number"
+                value={settings.customPricing?.perLeadPrice || ''}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  customPricing: {
+                    ...prev.customPricing,
+                    perLeadPrice: e.target.value ? parseFloat(e.target.value) : null
+                  }
+                }))}
+                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+                placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
+                min="1"
+                step="0.01"
+              />
+              {settings.customPricing?.perLeadPrice ? (
+                <span className="text-sm font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
+                  ✓ {isGerman ? 'Benutzerdefiniert' : 'Custom'}
+                </span>
+              ) : (
+                <span className="text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                  {isGerman ? 'Standard' : 'Default'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman
+                ? 'Eindeutige Vergütung pro zugewiesenem Lead'
+                : 'Unique compensation per assigned lead'
+              }
+            </p>
+          </div>
+
+          {/* Leads per Week */}
+          <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
+            </label>
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="number"
+                value={settings.customPricing?.leadsPerWeek || ''}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  customPricing: {
+                    ...prev.customPricing,
+                    leadsPerWeek: e.target.value ? parseInt(e.target.value) : null
+                  }
+                }))}
+                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+                placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
+                min="1"
+                max="50"
+              />
+              {settings.customPricing?.leadsPerWeek ? (
+                <span className="text-sm font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
+                  ✓ {isGerman ? 'Benutzerdefiniert' : 'Custom'}
+                </span>
+              ) : (
+                <span className="text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                  {isGerman ? 'Standard' : 'Default'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman
+                ? 'Maximale Anzahl von Leads pro Woche (1-50)'
+                : 'Maximum number of leads per week (1-50)'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-6 p-4 rounded-lg border-l-4" style={{ backgroundColor: 'var(--theme-bg)', borderLeftColor: '#10b981' }}>
+          <p className="text-sm" style={{ color: 'var(--theme-text)' }}>
+            <strong>{isGerman ? '✓ Hinweis:' : '✓ Note:'}</strong> {isGerman
+              ? ' Sie können Ihre Preiseinstellungen hier anpassen und speichern. Lassen Sie die Felder leer, um die globalen Admin-Standardeinstellungen zu verwenden.'
+              : ' You can adjust your pricing settings here and save them. Leave fields empty to use global admin default settings.'
+            }
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -2471,6 +2608,7 @@ const PartnerSettingsNew = () => {
       {/* Tab Content */}
       {activeTab === 'contact' && renderContactTab()}
       {activeTab === 'services' && renderServicesTab()}
+      {activeTab === 'pricing' && renderPricingTab()}
 
       {/* Password Change Dialog */}
       {showPasswordDialog && (
