@@ -14,6 +14,8 @@ import Logo from '../src/components/ui/Logo';
 import { API_BASE_URL } from '../src/lib/config';
 import { translations } from '../src/lib/translations';
 
+// Force dynamic rendering since this page uses useRouter()
+export const dynamic = 'force-dynamic';
 
 export default function PartnerRequest() {
   const router = useRouter();

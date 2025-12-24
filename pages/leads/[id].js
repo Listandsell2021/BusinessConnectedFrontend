@@ -6,6 +6,9 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { leadsAPI } from '../../src/lib/api/api';
 import { toast } from 'react-hot-toast';
 
+// Force dynamic rendering since this page uses useRouter()
+export const dynamic = 'force-dynamic';
+
 const LeadDetailPage = () => {
   const router = useRouter();
   const { id } = router.query;

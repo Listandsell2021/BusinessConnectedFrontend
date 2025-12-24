@@ -10,6 +10,9 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import ThemeToggle from '../src/components/ui/ThemeToggle';
 import LanguageToggle from '../src/components/ui/LanguageToggle';
 
+// Force dynamic rendering since this page uses useRouter()
+export const dynamic = 'force-dynamic';
+
 export default function Login() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();

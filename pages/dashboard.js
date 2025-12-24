@@ -5,6 +5,9 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
+
+// Force dynamic rendering since this page uses useRouter()
+export const dynamic = 'force-dynamic';
 import {
   BellIcon,
   DocumentTextIcon,

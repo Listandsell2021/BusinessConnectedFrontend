@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/contexts/AuthContext';
 
+// Force dynamic rendering since this page uses useRouter()
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
