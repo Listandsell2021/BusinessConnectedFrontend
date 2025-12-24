@@ -3,15 +3,17 @@ import { getMessages } from 'next-intl/server';
 
 export default async function LocaleLayout({ children, params }) {
   const messages = await getMessages();
+  const locale = params.locale;
+
+  // Update the html lang attribute
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale;
+  }
 
   return (
-    <html lang={params.locale}>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      {children}
+    </NextIntlClientProvider>
   );
 }
 
