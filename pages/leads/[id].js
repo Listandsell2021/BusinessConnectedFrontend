@@ -6,9 +6,6 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { leadsAPI } from '../../src/lib/api/api';
 import { toast } from 'react-hot-toast';
 
-// Force dynamic rendering since this page uses useRouter()
-export const dynamic = 'force-dynamic';
-
 const LeadDetailPage = () => {
   const router = useRouter();
   const { id } = router.query;
@@ -479,5 +476,12 @@ const LeadDetailPage = () => {
     </div>
   );
 };
+
+// Force server-side rendering to avoid NextRouter errors during static generation
+export async function getServerSideProps() {
+  return {
+    props: {}
+  };
+}
 
 export default LeadDetailPage;

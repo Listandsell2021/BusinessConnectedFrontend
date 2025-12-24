@@ -13,9 +13,6 @@ import Logo from '../src/components/ui/Logo';
 import PasswordStrengthIndicator from '../src/components/ui/PasswordStrengthIndicator';
 import { validatePasswordStrength } from '../utils/passwordGenerator';
 
-// Force dynamic rendering since this page uses useRouter()
-export const dynamic = 'force-dynamic';
-
 export default function ForgotPassword() {
   const router = useRouter();
   const { isGerman } = useLanguage();
@@ -943,4 +940,11 @@ export default function ForgotPassword() {
       </div>
     </>
   );
+}
+
+// Force server-side rendering to avoid NextRouter errors during static generation
+export async function getServerSideProps() {
+  return {
+    props: {}
+  };
 }

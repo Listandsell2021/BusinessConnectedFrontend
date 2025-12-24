@@ -11,9 +11,6 @@ import ThemeToggle from '../src/components/ui/ThemeToggle';
 import LanguageToggle from '../src/components/ui/LanguageToggle';
 import Logo from '../src/components/ui/Logo';
 
-// Force dynamic rendering since this page uses useRouter()
-export const dynamic = 'force-dynamic';
-
 export default function Login() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();
@@ -802,4 +799,11 @@ const handleSubmit = async (e) => {
       </div>
     </>
   );
+}
+
+// Force server-side rendering to avoid NextRouter errors during static generation
+export async function getServerSideProps() {
+  return {
+    props: {}
+  };
 }

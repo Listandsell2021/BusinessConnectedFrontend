@@ -14,9 +14,6 @@ import Logo from '../src/components/ui/Logo';
 import { API_BASE_URL } from '../src/lib/config';
 import { translations } from '../src/lib/translations';
 
-// Force dynamic rendering since this page uses useRouter()
-export const dynamic = 'force-dynamic';
-
 export default function PartnerRequest() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
@@ -1658,4 +1655,11 @@ export default function PartnerRequest() {
       </div>
     </>
   );
+}
+
+// Force server-side rendering to avoid NextRouter errors during static generation
+export async function getServerSideProps() {
+  return {
+    props: {}
+  };
 }

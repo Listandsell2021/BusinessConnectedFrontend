@@ -2,9 +2,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/contexts/AuthContext';
 
-// Force dynamic rendering since this page uses useRouter()
-export const dynamic = 'force-dynamic';
-
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
@@ -30,4 +27,11 @@ export default function Home() {
       <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--theme-text)' }}></div>
     </div>
   );
+}
+
+// Force server-side rendering to avoid NextRouter errors during static generation
+export async function getServerSideProps() {
+  return {
+    props: {}
+  };
 }
