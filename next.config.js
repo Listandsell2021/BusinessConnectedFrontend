@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
+const withNextIntl = require('next-intl/plugin')('./i18n.js');
+
 const nextConfig = {
   reactStrictMode: true,
-  i18n: {
-    locales: ['en', 'de'],
-    defaultLocale: 'de',
-    localeDetection: false
-  },
   env: {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY,
@@ -25,4 +22,4 @@ const nextConfig = {
   }
 }
 
-module.exports = nextConfig
+module.exports = withNextIntl(nextConfig)
