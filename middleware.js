@@ -1,11 +1,7 @@
-import createMiddleware from 'next-intl/middleware';
-
-export default createMiddleware({
-  locales: ['en', 'de'],
-  defaultLocale: 'de',
-  localePrefix: 'as-needed' // /de/page or /page (for default locale)
-});
+// Middleware disabled - using pure Pages Router
+// Language is managed by LanguageContext (localStorage)
+// No middleware needed for URL routing
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: []  // Empty matcher = middleware does nothing
 };
