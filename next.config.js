@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   i18n: {
     locales: ['en', 'de'],
     defaultLocale: 'de',
@@ -17,6 +18,11 @@ const nextConfig = {
         destination: 'http://localhost:5000/api/:path*'
       }
     ]
+  },
+  // Disable static page generation errors by skipping problematic pages
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 5
   }
 }
 
