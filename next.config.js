@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const withNextIntl = require('next-intl/plugin')('./i18n.js');
-
 const nextConfig = {
   reactStrictMode: true,
   env: {
@@ -19,11 +17,7 @@ const nextConfig = {
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
     pagesBufferLength: 5
-  },
-  // Skip static generation for all pages since we're using getServerSideProps
-  experimental: {
-    isrMemoryCacheSize: 0
   }
 }
 
-module.exports = withNextIntl(nextConfig)
+module.exports = nextConfig
