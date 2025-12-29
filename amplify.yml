@@ -16,9 +16,10 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-
-backend:
-  phases:
-    build:
-      commands:
-        - echo "Backend build skipped"
+customHeaders:
+  - pattern: '**/*'
+    headers:
+      - key: 'X-Frame-Options'
+        value: 'SAMEORIGIN'
+      - key: 'X-Content-Type-Options'
+        value: 'nosniff'
