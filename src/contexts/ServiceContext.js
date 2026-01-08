@@ -11,20 +11,20 @@ export const useService = () => {
 };
 
 export const ServiceProvider = ({ children }) => {
-  // Fixed to moving service only
-  const [currentService] = useState('moving');
+  // Fixed to security services only
+  const [currentService] = useState('security');
   const [hideServiceFilter] = useState(true); // Always hide service filter
 
   const switchService = (service) => {
-    // Only moving service is supported, ignore switches
-    console.log('Service switching disabled - only moving service supported');
+    // Only security service is supported, ignore switches
+    console.log('Service switching disabled - only security services supported');
   };
 
   const getServiceDisplayName = (service) => {
-    // Only moving service
+    // Only security services
     return {
-      en: 'Moving Services',
-      de: 'Umzugsservice'
+      en: 'Security Services',
+      de: 'Sicherheitsservices'
     };
   };
 
@@ -32,8 +32,7 @@ export const ServiceProvider = ({ children }) => {
     currentService,
     switchService,
     getServiceDisplayName,
-    isMovingService: true, // Always true
-    isCleaningService: false, // Always false
+    isSecurityService: true, // Always true
     hideServiceFilter,
     setHideServiceFilter: () => {} // No-op function
   };

@@ -477,22 +477,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       return timePrefs[value] || value.replace(/_/g, ' ');
     }
 
-    // Move date flexibility
-    if (key === 'moveDateType' || key === 'flexibility') {
-      const flexibility = {
-        'flexible': isGerman ? 'Flexibel' : 'Flexible',
-        'fixed': isGerman ? 'Fest' : 'Fixed',
-        'urgent': isGerman ? 'Dringend' : 'Urgent',
-        'within_week': isGerman ? 'Innerhalb einer Woche' : 'Within a Week',
-        'within_month': isGerman ? 'Innerhalb eines Monats' : 'Within a Month'
-      };
-      return flexibility[value] || value.replace(/_/g, ' ');
-    }
-
     // Boolean values
     if (key === 'elevatorAvailable' || key === 'elevator') {
-      return value === true || value === 'yes' || value === 'Yes' ? 
-        (isGerman ? 'Ja' : 'Yes') : 
+      return value === true || value === 'yes' || value === 'Yes' ?
+        (isGerman ? 'Ja' : 'Yes') :
         (isGerman ? 'Nein' : 'No');
     }
 
@@ -539,26 +527,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
 
     // Service types
-    if (key === 'serviceType') {
+    if (key === 'serviceType' || key === 'formType') {
       const serviceTypes = {
-        'moving': isGerman ? 'Umzug' : 'Moving',
-        'cleaning': isGerman ? 'Reinigung' : 'Cleaning',
+        'securityClient': isGerman ? 'Sicherheitsanfrage' : 'Security Request',
+        'securityCompany': isGerman ? 'Sicherheitsunternehmen' : 'Security Company',
         'cancellation': isGerman ? 'Stornierung' : 'Cancellation'
       };
       return serviceTypes[value] || value;
     }
-    
-    // Move types
-    if (key === 'moveType') {
-      const moveTypes = {
-        'private': isGerman ? 'Privat' : 'Private',
-        'business': isGerman ? 'Geschäftlich' : 'Business',
-        'long_distance': isGerman ? 'Fernumzug' : 'Long Distance',
-        'special_transport': isGerman ? 'Spezialtransport' : 'Special Transport'
-      };
-      return moveTypes[value] || value;
-    }
-    
+
     // Arrays (join with commas)
     if (Array.isArray(value)) {
       return value.join(', ');
@@ -836,18 +813,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
       // Debug: Log all partners to understand structure
       console.log('All partners from API:', partners.slice(0, 3));
-      console.log('Current service for filtering:', currentService || 'moving');
+      console.log('Current service for filtering:', currentService || 'security');
 
       const filteredByService = partners.filter(partner => {
         // More flexible service filtering
         const hasServices = partner.services && Array.isArray(partner.services);
-        const matchesService = hasServices && partner.services.includes(currentService || 'moving');
+        const matchesService = hasServices && partner.services.includes(currentService || 'security');
 
         // Also check serviceType field as fallback
-        const matchesServiceType = partner.serviceType === (currentService || 'moving');
+        const matchesServiceType = partner.serviceType === (currentService || 'security');
 
         // For moving service, also accept partners without specific service filtering
-        const isMovingService = (currentService || 'moving') === 'moving';
+        const isMovingService = false;
         const isActivePartner = partner.status === 'active';
 
         const shouldInclude = matchesService || matchesServiceType || (isMovingService && isActivePartner);
@@ -859,7 +836,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             services: partner.services,
             serviceType: partner.serviceType,
             status: partner.status,
-            currentService: currentService || 'moving',
+            currentService: currentService || 'security',
             hasServices,
             matchesService,
             matchesServiceType,
@@ -873,7 +850,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       console.log('Filtered partners by service:', {
         totalPartners: partners.length,
         filteredCount: filteredByService.length,
-        currentService: currentService || 'moving',
+        currentService: currentService || 'security',
         samplePartner: filteredByService[0]
       });
 
@@ -897,9 +874,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           const filteredByService = partners.filter(partner => {
             // Use same improved filtering logic as above
             const hasServices = partner.services && Array.isArray(partner.services);
-            const matchesService = hasServices && partner.services.includes(currentService || 'moving');
-            const matchesServiceType = partner.serviceType === (currentService || 'moving');
-            const isMovingService = (currentService || 'moving') === 'moving';
+            const matchesService = hasServices && partner.services.includes(currentService || 'security');
+            const matchesServiceType = partner.serviceType === (currentService || 'security');
+            const isMovingService = false;
             const isActivePartner = partner.status === 'active';
 
             return matchesService || matchesServiceType || (isMovingService && isActivePartner);
@@ -1146,7 +1123,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load leads from API when service changes or sorting changes
   const loadLeads = async () => {
-    const serviceToUse = currentService || 'moving';
+    const serviceToUse = currentService || 'security';
     console.log('loadLeads called with currentService:', currentService, 'using:', serviceToUse);
 
     if (!serviceToUse) {
@@ -1270,79 +1247,29 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const allTransformedLeads = allLeadsData.map(lead => {
         let cityDisplay = lead.location?.city || lead.city || '';
 
-        // For moving leads, show both pickup and destination cities
-        if (lead.serviceType === 'moving') {
-          // Try multiple sources for location data
-          const pickupCity = lead.formData?.pickupAddress?.city ||
-                           lead.pickupLocation?.city ||
-                           lead.formData?.pickupCity ||
-                           lead.pickupCity;
-          const destinationCity = lead.formData?.destinationAddress?.city ||
-                                 lead.destinationLocation?.city ||
-                                 lead.formData?.destinationCity ||
-                                 lead.destinationCity;
-
-          console.log('Lead data for debugging:', {
-            leadId: lead.leadId || lead.id,
-            serviceType: lead.serviceType,
-            hasFormData: !!lead.formData,
-            pickupCity,
-            destinationCity,
-            formDataKeys: lead.formData ? Object.keys(lead.formData) : []
-          });
-
-          if (pickupCity && destinationCity) {
-            cityDisplay = `${pickupCity} → ${destinationCity}`;
-          } else if (pickupCity) {
-            cityDisplay = pickupCity;
-          } else if (destinationCity) {
-            cityDisplay = destinationCity;
-          } else {
-            // Fallback to show some indication of missing data
-            cityDisplay = 'Location data missing';
-          }
+        // For security client leads
+        if (lead.formType === 'securityClient' || lead.serviceType === 'securityClient') {
+          cityDisplay = lead.formData?.location || lead.formData?.city || 'Location unknown';
         }
 
-        // For cleaning leads, show service location city
-        if (lead.serviceType === 'cleaning') {
-          if (lead.formData?.serviceAddress?.city) {
-            cityDisplay = lead.formData.serviceAddress.city;
-          } else if (lead.serviceLocation?.city) {
-            cityDisplay = lead.serviceLocation.city;
-          }
+        // For security company leads
+        if (lead.formType === 'securityCompany' || lead.serviceType === 'securityCompany') {
+          cityDisplay = lead.formData?.city || lead.formData?.location || 'Location unknown';
         }
 
-        // Extract pickup date information for display
+        // Extract date information for display (security forms)
         let dateDisplay = '';
         let pickupDate = null;
 
         if (lead.formData) {
-          // Check for fixed date
-          if (lead.formData.fixedDate) {
-            pickupDate = new Date(lead.formData.fixedDate);
+          // Check for startDate (security client/company)
+          if (lead.formData.startDate) {
+            pickupDate = new Date(lead.formData.startDate);
             dateDisplay = formatDateGerman(pickupDate);
           }
-          // Check for flexible date range
-          else if (lead.formData.flexibleDateRange) {
-            const startDate = new Date(lead.formData.flexibleDateRange.startDate);
-            const endDate = new Date(lead.formData.flexibleDateRange.endDate);
-            dateDisplay = `${formatDateGerman(startDate)} - ${formatDateGerman(endDate)}`;
-            pickupDate = startDate; // Use start date for filtering
-          }
-          // Check for flexible period with startDate/endDate
-          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.startDate && lead.formData.flexiblePeriod.endDate) {
-            const startDate = new Date(lead.formData.flexiblePeriod.startDate);
-            const endDate = new Date(lead.formData.flexiblePeriod.endDate);
-            dateDisplay = `${formatDateGerman(startDate)} - ${formatDateGerman(endDate)}`;
-            pickupDate = startDate; // Use start date for filtering
-          }
-          // Check for flexible period with month/year format
-          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.month && lead.formData.flexiblePeriod.year) {
-            dateDisplay = `${lead.formData.flexiblePeriod.month} ${lead.formData.flexiblePeriod.year}`;
-          }
-          // Check for moveDateType with corresponding dates
-          else if (lead.formData.moveDateType === 'fixed' && (lead.formData.moveDate || lead.formData.desiredMoveDate)) {
-            pickupDate = new Date(lead.formData.moveDate || lead.formData.desiredMoveDate);
+          // Check for createdAt as fallback
+          else if (lead.createdAt) {
+            pickupDate = new Date(lead.createdAt);
             dateDisplay = formatDateGerman(pickupDate);
           }
         }
@@ -1355,8 +1282,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : (lead.name || ''),
           email: lead.user?.email || lead.email || '',
           city: cityDisplay,
-          pickupCity: lead.formData?.pickupAddress?.city || '',
-          destinationCity: lead.formData?.destinationAddress?.city || '',
           dateDisplay: dateDisplay,
           pickupDate: pickupDate,
         };
@@ -1442,38 +1367,24 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       const currentPageTransformed = currentPageLeads.map(lead => {
         let cityDisplay = lead.location?.city || lead.city || '';
 
-        if (lead.serviceType === 'moving') {
-          const pickupCity = lead.formData?.pickupAddress?.city ||
-                           lead.pickupLocation?.city ||
-                           lead.formData?.pickupCity ||
-                           lead.pickupCity;
-          const destinationCity = lead.formData?.destinationAddress?.city ||
-                                 lead.destinationLocation?.city ||
-                                 lead.formData?.destinationCity ||
-                                 lead.destinationCity;
-
-          if (pickupCity && destinationCity) {
-            cityDisplay = `${pickupCity} → ${destinationCity}`;
-          } else if (pickupCity) {
-            cityDisplay = pickupCity;
-          } else if (destinationCity) {
-            cityDisplay = destinationCity;
-          }
+        // Handle security client leads
+        if (lead.formType === 'securityClient' || lead.serviceType === 'securityClient') {
+          cityDisplay = lead.formData?.location || lead.formData?.city || 'Location unknown';
         }
 
-        if (lead.serviceType === 'cleaning') {
-          if (lead.formData?.serviceAddress?.city) {
-            cityDisplay = lead.formData.serviceAddress.city;
-          } else if (lead.serviceLocation?.city) {
-            cityDisplay = lead.serviceLocation.city;
-          }
+        // Handle security company leads
+        if (lead.formType === 'securityCompany' || lead.serviceType === 'securityCompany') {
+          cityDisplay = lead.formData?.city || lead.formData?.location || 'Location unknown';
         }
 
         // Date display logic (simplified for current page)
         let dateDisplay = '';
         let pickupDate = null;
-        if (lead.formData?.fixedDate) {
-          pickupDate = new Date(lead.formData.fixedDate);
+        if (lead.formData?.startDate) {
+          pickupDate = new Date(lead.formData.startDate);
+          dateDisplay = formatDateGerman(pickupDate);
+        } else if (lead.createdAt) {
+          pickupDate = new Date(lead.createdAt);
           dateDisplay = formatDateGerman(pickupDate);
         }
 
@@ -1630,7 +1541,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load partners for filter dropdown
   const loadPartnersForFilter = async () => {
-    const serviceToUse = currentService || 'moving';
+    const serviceToUse = currentService || 'security';
     console.log('loadPartnersForFilter called with currentService:', currentService, 'using:', serviceToUse);
 
     if (!serviceToUse) {
@@ -1655,7 +1566,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Load cancelled requests
   const loadCancelledRequests = async () => {
-    const serviceToUse = currentService || 'moving';
+    const serviceToUse = currentService || 'security';
     console.log('loadCancelledRequests called with currentService:', currentService, 'using:', serviceToUse, 'isPartner:', isPartner, 'userId:', user?.id);
 
     if (!serviceToUse) {
@@ -1770,35 +1681,33 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
               // Apply city filter
               if (filters.city && filters.city !== 'all') {
-                // For moving leads, check both pickup and destination cities
-                if (lead.serviceType === 'moving') {
-                  const pickupCity = lead.formData?.pickupAddress?.city ||
-                                   lead.pickupLocation?.city ||
-                                   lead.formData?.pickupCity ||
-                                   lead.pickupCity;
-                  const destinationCity = lead.formData?.destinationAddress?.city ||
-                                        lead.destinationLocation?.city ||
-                                        lead.formData?.destinationCity ||
-                                        lead.destinationCity;
+                const filterCity = filters.city.trim().toLowerCase();
+                let cityMatch = false;
 
-                  // Apply case-insensitive matching and trim whitespace
-                  const filterCity = filters.city.trim().toLowerCase();
-                  const pickupCityNormalized = pickupCity ? pickupCity.trim().toLowerCase() : '';
-                  const destinationCityNormalized = destinationCity ? destinationCity.trim().toLowerCase() : '';
+                // For security services, check city and postal code from location object
+                if (currentService === 'security') {
+                  // Check nested formData structure
+                  const leadCity = (lead.formData?.location?.city || '').trim().toLowerCase();
+                  const leadPostalCode = (lead.formData?.location?.postalCode || '').trim().toLowerCase();
 
-                  // Match if either pickup or destination city matches the filter
-                  const cityMatches = pickupCityNormalized === filterCity || destinationCityNormalized === filterCity;
-                  if (!cityMatches) {
-                    return; // Skip if neither city matches
-                  }
+                  // Also check flat structure as fallback
+                  const flatCity = (lead.city || '').trim().toLowerCase();
+                  const flatPostalCode = (lead.postalCode || '').trim().toLowerCase();
+
+                  // Match if city contains the filter or postal code contains the filter
+                  cityMatch = leadCity.includes(filterCity) ||
+                              leadPostalCode.includes(filterCity) ||
+                              flatCity.includes(filterCity) ||
+                              flatPostalCode.includes(filterCity);
                 } else {
-                  // For other service types, check service location
-                  const leadCity = lead.formData?.serviceAddress?.city || lead.serviceLocation?.city || lead.city;
-                  const filterCity = filters.city.trim().toLowerCase();
-                  const leadCityNormalized = leadCity ? leadCity.trim().toLowerCase() : '';
-                  if (leadCityNormalized !== filterCity) {
-                    return; // Skip if city doesn't match
-                  }
+                  // For other services, just check city field
+                  const leadCity = lead.city || '';
+                  const leadCityNormalized = leadCity.trim().toLowerCase();
+                  cityMatch = leadCityNormalized === filterCity;
+                }
+
+                if (!cityMatch) {
+                  return; // Skip if city/postal code doesn't match
                 }
               }
 
@@ -1810,33 +1719,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 }
               }
 
-              // Apply date filter (same logic as main leads tab)
+              // Apply date filter (security services)
               if (dateFilter.type !== 'all') {
-                // Extract pickup date from lead data (similar to main leads)
-                let pickupDate = null;
-                let pickupStartDate = null;
-                let pickupEndDate = null;
-
-                if (lead.formData?.pickupDate || lead.pickupDate) {
-                  pickupDate = lead.formData?.pickupDate || lead.pickupDate;
-                } else if (lead.formData?.pickupStartDate && lead.formData?.pickupEndDate) {
-                  pickupStartDate = lead.formData.pickupStartDate;
-                  pickupEndDate = lead.formData.pickupEndDate;
-                } else if (lead.formData?.flexiblePeriod && lead.formData.flexiblePeriod.includes(' - ')) {
-                  const [start, end] = lead.formData.flexiblePeriod.split(' - ');
-                  pickupStartDate = start;
-                  pickupEndDate = end;
-                }
-
-                // Apply date filtering logic (same as main leads)
+                // Extract date from lead data (startDate or createdAt)
                 let dateMatches = false;
-                if (pickupDate) {
-                  dateMatches = isDateInRange(pickupDate, dateFilter.type, dateFilter);
-                } else if (pickupStartDate && pickupEndDate) {
-                  dateMatches = isDateRangeOverlapping(pickupStartDate, pickupEndDate, dateFilter.type, dateFilter);
-                } else {
-                  // Fallback to creation date
-                  dateMatches = isDateInRange(lead.createdAt, dateFilter.type, dateFilter);
+                const leadDate = lead.formData?.startDate || lead.createdAt;
+
+                if (leadDate) {
+                  dateMatches = isDateInRange(leadDate, dateFilter.type, dateFilter);
                 }
 
                 if (!dateMatches) {
@@ -1848,27 +1738,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               const partnerId = assignment.partner?._id || assignment.partner || 'unknown';
               const leadId = lead._id || lead.id;
 
-              // Extract pickup date for display (same logic as filtering)
-              let pickupDate = null;
-              let pickupStartDate = null;
-              let pickupEndDate = null;
+              // Extract date for display
               let pickupDateDisplay = '';
+              const leadDate = lead.formData?.startDate || lead.createdAt;
 
-              if (lead.formData?.pickupDate || lead.pickupDate) {
-                pickupDate = lead.formData?.pickupDate || lead.pickupDate;
-                pickupDateDisplay = pickupDate;
-              } else if (lead.formData?.pickupStartDate && lead.formData?.pickupEndDate) {
-                pickupStartDate = lead.formData.pickupStartDate;
-                pickupEndDate = lead.formData.pickupEndDate;
-                pickupDateDisplay = `${pickupStartDate} - ${pickupEndDate}`;
-              } else if (lead.formData?.flexiblePeriod && lead.formData.flexiblePeriod.includes(' - ')) {
-                pickupDateDisplay = lead.formData.flexiblePeriod;
-                const [start, end] = lead.formData.flexiblePeriod.split(' - ');
-                pickupStartDate = start;
-                pickupEndDate = end;
-              } else {
-                // Fallback to creation date if no pickup date
-                pickupDateDisplay = lead.createdAt;
+              if (leadDate) {
+                pickupDateDisplay = formatDateGerman(new Date(leadDate));
               }
 
               // Create a cancellation request entry
@@ -1880,37 +1755,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 customerEmail: lead.user?.email || lead.email || '',
                 serviceType: lead.serviceType,
                 city: (() => {
-                  if (lead.serviceType === 'moving') {
-                    // For moving leads, show pickup → destination format
-                    const pickupCity = lead.formData?.pickupAddress?.city ||
-                                     lead.pickupLocation?.city ||
-                                     lead.formData?.pickupCity ||
-                                     lead.pickupCity;
-                    const destinationCity = lead.formData?.destinationAddress?.city ||
-                                          lead.destinationLocation?.city ||
-                                          lead.formData?.destinationCity ||
-                                          lead.destinationCity;
-
-                    if (pickupCity && destinationCity) {
-                      return `${pickupCity} → ${destinationCity}`;
-                    } else if (pickupCity) {
-                      return pickupCity;
-                    } else if (destinationCity) {
-                      return destinationCity;
-                    }
-                  }
-                  // For non-moving services or fallback
-                  return lead.serviceLocation?.city || lead.city || '';
+                  // For security services
+                  return lead.formData?.location || lead.formData?.city || lead.city || '';
                 })(),
                 reason: assignment.cancellationReason || 'No reason provided',
                 rejectionReason: assignment.cancellationRejectionReason || null,
                 status: requestStatus,
                 createdAt: assignment.cancellationRequestedAt,
                 requestedAt: assignment.cancellationRequestedAt,
-                // Add pickup date information
-                pickupDate: pickupDate,
-                pickupStartDate: pickupStartDate,
-                pickupEndDate: pickupEndDate,
+                // Add date information
                 pickupDateDisplay: pickupDateDisplay,
                 // Add status-specific dates
                 approvedAt: assignment.cancellationApprovedAt,
@@ -2093,9 +1946,29 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     // Filter by city
     if (filters.city) {
-      filtered = filtered.filter(lead => 
-        lead.city.toLowerCase().includes(filters.city.toLowerCase())
-      );
+      filtered = filtered.filter(lead => {
+        const filterCity = filters.city.toLowerCase();
+
+        // For security services, check both city and postal code
+        if (currentService === 'security') {
+          // Check nested formData structure
+          const leadCity = (lead.formData?.location?.city || '').toLowerCase();
+          const leadPostalCode = (lead.formData?.location?.postalCode || '').toLowerCase();
+
+          // Also check flat structure as fallback
+          const flatCity = (lead.city || '').toLowerCase();
+          const flatPostalCode = (lead.postalCode || '').toLowerCase();
+
+          return leadCity.includes(filterCity) ||
+                 leadPostalCode.includes(filterCity) ||
+                 flatCity.includes(filterCity) ||
+                 flatPostalCode.includes(filterCity);
+        } else {
+          // For other services, check city field
+          const leadCity = (lead.city || '').toLowerCase();
+          return leadCity.includes(filterCity);
+        }
+      });
     }
 
     // Filter by partner
@@ -2280,49 +2153,17 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           return false;
         };
 
-        // Extract pickup date from lead data
-        let pickupDate = null;
-        let pickupStartDate = null;
-        let pickupEndDate = null;
-
-        if (lead.formData) {
-          // Check for fixed date (single pickup date)
-          if (lead.formData.fixedDate) {
-            pickupDate = lead.formData.fixedDate;
-          }
-          // Check for flexible date range (pickup date range)
-          else if (lead.formData.flexibleDateRange && lead.formData.flexibleDateRange.startDate && lead.formData.flexibleDateRange.endDate) {
-            pickupStartDate = lead.formData.flexibleDateRange.startDate;
-            pickupEndDate = lead.formData.flexibleDateRange.endDate;
-          }
-          // Check for flexible period with startDate/endDate
-          else if (lead.formData.flexiblePeriod && lead.formData.flexiblePeriod.startDate && lead.formData.flexiblePeriod.endDate) {
-            pickupStartDate = lead.formData.flexiblePeriod.startDate;
-            pickupEndDate = lead.formData.flexiblePeriod.endDate;
-          }
-          // Check for move date (alternative format)
-          else if (lead.formData.moveDateType === 'fixed' && (lead.formData.moveDate || lead.formData.desiredMoveDate)) {
-            pickupDate = lead.formData.moveDate || lead.formData.desiredMoveDate;
-          }
-        }
-
-        // Use the pickupDate from the processed lead data if available
-        if (!pickupDate && !pickupStartDate && lead.pickupDate) {
-          pickupDate = lead.pickupDate;
-        }
+        // Extract date from lead data (for security forms: startDate or createdAt)
+        const leadDate = lead.formData?.startDate || lead.createdAt;
 
         // Apply date filtering logic
         let result = false;
-        if (pickupDate) {
-          // Single pickup date - check if it matches the filter
-          result = isDateInRange(pickupDate, dateFilter.type, dateFilter);
-          console.log(`Lead ${lead.id}: Single pickup date ${pickupDate} -> ${result}`);
-        } else if (pickupStartDate && pickupEndDate) {
-          // Pickup date range - check if filter overlaps with the range
-          result = isDateRangeOverlapping(pickupStartDate, pickupEndDate, dateFilter.type, dateFilter);
-          console.log(`Lead ${lead.id}: Pickup range ${pickupStartDate} to ${pickupEndDate} -> ${result}`);
+        if (leadDate) {
+          // Check if the date matches the filter
+          result = isDateInRange(leadDate, dateFilter.type, dateFilter);
+          console.log(`Lead ${lead.id}: Date ${leadDate} -> ${result}`);
         } else {
-          // Fallback to creation date for leads without pickup dates
+          // Fallback to creation date
           result = isDateInRange(lead.createdAt, dateFilter.type, dateFilter);
           console.log(`Lead ${lead.id}: Using creation date ${lead.createdAt} -> ${result}`);
         }
@@ -2992,9 +2833,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>
-              {currentService === 'moving' ? 
-                (isGerman ? 'Umzug-Lead-Verwaltung' : 'Move Lead Management') : 
-                currentService === 'cleaning' ? 
+              {currentService === 'moving' ?
+                (isGerman ? 'Umzug-Lead-Verwaltung' : 'Move Lead Management') :
+                currentService === 'cleaning' ?
                 (isGerman ? 'Reinigungs-Lead-Verwaltung' : 'Cleaning Lead Management') :
                 (isGerman ? 'Lead-Verwaltung' : 'Lead Management')}
             </h2>
@@ -3177,8 +3018,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           <div className="min-w-0">
             <input
               type="text"
-              placeholder={currentService === 'moving'
-                ? (isGerman ? 'Abhol- oder Zielort...' : 'Pickup or destination city...')
+              placeholder={currentService === 'security'
+                ? (isGerman ? 'Stadt & PLZ...' : 'City & Postal Code...')
                 : (isGerman ? 'Stadt...' : 'City...')
               }
               value={filters.city}
@@ -3451,8 +3292,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   {t('leads.customerName')}
                 </SortableHeader>
                 <SortableHeader sortKey="location.city">
-                  {currentService === 'moving' 
-                    ? (isGerman ? 'Abhol- → Zielort' : 'Pickup → Destination')
+                  {currentService === 'security'
+                    ? (isGerman ? 'Stadt & PLZ' : 'City & Postal Code')
                     : t('common.city')
                   }
                 </SortableHeader>
@@ -3465,8 +3306,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </th>
                 )}
                 <SortableHeader sortKey="pickupDate">
-                  {currentService === 'moving'
-                    ? (isGerman ? 'Umzugsdatum' : 'Pickup Date')
+                  {currentService === 'security'
+                    ? (isGerman ? 'Startdatum' : 'Start Date')
                     : t('common.date')
                   }
                 </SortableHeader>
@@ -3566,7 +3407,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                    {lead.city}
+                    {currentService === 'security'
+                      ? `${lead.formData?.location?.city || lead.city || ''} ${lead.formData?.location?.postalCode || lead.postalCode || ''}`.trim()
+                      : lead.city}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
@@ -3939,7 +3782,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     {isGerman ? 'Partner' : 'Partner'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Abholung → Ziel' : 'Pickup → Destination'}
+                    {currentService === 'security'
+                      ? (isGerman ? 'Stadt & PLZ' : 'City & Postal Code')
+                      : (isGerman ? 'Abholung → Ziel' : 'Pickup → Destination')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
                     {isGerman ? 'Grund' : 'Reason'}
@@ -4003,7 +3848,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {request.city}
+                        {currentService === 'security'
+                          ? `${request.city}${request.postalCode ? ` ${request.postalCode}` : ''}`
+                          : request.city
+                        }
                       </td>
                       <td className="px-6 py-4 text-sm" style={{ color: 'var(--theme-text)', width: '150px', maxWidth: '150px' }}>
                         <div
@@ -4810,7 +4658,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
                                     // Temporary fix: Use known admin settings if adminValue is undefined
                                     let fallbackValue;
-                                    if (selectedLead?.serviceType === 'moving') {
+                                    if (selectedLead?.serviceType === 'security') {
                                       fallbackValue = partner.partnerType === 'exclusive' ? 5 : 3; // moving: exclusive=5, basic=3
                                     } else {
                                       fallbackValue = partner.partnerType === 'exclusive' ? 8 : 5; // cleaning: exclusive=8, basic=5
@@ -5071,7 +4919,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   </div>
                   <div className="text-sm mt-1" style={{ color: 'var(--theme-text)' }}>
                     <span className="font-medium">{isGerman ? 'Service:' : 'Service:'}</span>{' '}
-                    {selectedLeadForPartners.serviceType === 'moving'
+                    {selectedLeadForPartners.serviceType === 'security'
                       ? (isGerman ? 'Umzug' : 'Moving')
                       : (isGerman ? 'Reinigung' : 'Cleaning')}
                   </div>

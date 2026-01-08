@@ -107,7 +107,6 @@ export const translations = {
       'Country is required': 'Land ist erforderlich',
       'Service is required': 'Service ist erforderlich',
       'Service type is required': 'Service-Typ ist erforderlich',
-      'Service type must be either moving or cleaning': 'Service-Typ muss entweder Umzug oder Reinigung sein',
       'Invalid service type': 'Ungültiger Service-Typ',
       'Services must be a non-empty array': 'Mindestens ein Service ist erforderlich',
       'Password must be at least 6 characters': 'Passwort muss mindestens 6 Zeichen lang sein',
@@ -195,18 +194,9 @@ export const translations = {
 
     // Services
     services: {
-      moving: 'Umzug',
-      cleaning: 'Reinigung',
+      security: 'Sicherheit',
       all: 'Alle Dienste',
       selectService: 'Dienst auswählen'
-    },
-
-    // Move Types
-    moveTypes: {
-      private: 'Privater Umzug',
-      business: 'Geschäftsumzug',
-      longDistance: 'Fernumzug',
-      specialTransport: 'Spezialtransport'
     },
 
     // Forms
@@ -368,83 +358,7 @@ export const translations = {
       lastUpdated: 'Zuletzt aktualisiert'
     },
 
-    // Forms - Moving Service
-    moving: {
-      title: 'Umzugsanfrage',
-      privateMove: 'Privatumzug',
-      businessMove: 'Firmenumzug',
-      longDistanceMove: 'Fernumzug',
-      specialTransport: 'Spezialtransport',
-      
-      // Steps
-      step1: 'Umzugsart',
-      step2: 'Auszug',
-      step3: 'Einzug',
-      step4: 'Details',
-      step5: 'Inventar',
-      step6: 'Services',
-      step7: 'Kontakt',
-
-      // Form fields
-      movingFrom: 'Auszugsadresse',
-      movingTo: 'Einzugsadresse',
-      street: 'Straße',
-      postalCode: 'PLZ',
-      city: 'Stadt',
-      country: 'Land',
-      floor: 'Etage',
-      elevator: 'Aufzug',
-      movingDate: 'Umzugstermin',
-      flexibility: 'Flexibilität',
-      livingSpace: 'Wohnfläche (m²)',
-      numberOfRooms: 'Anzahl Zimmer',
-      furniture: 'Möbel',
-      boxes: 'Kartons',
-      specialItems: 'Besondere Gegenstände',
-      packingService: 'Verpackungsservice',
-      assemblyService: 'Montageservice',
-      storageService: 'Lagerservice',
-      disposalService: 'Entsorgungsservice',
-      cleaningService: 'Reinigungsservice',
-      insurance: 'Versicherung'
-    },
-
-    // Forms - Cleaning Service
-    cleaning: {
-      title: 'Reinigungsanfrage',
-      regularCleaning: 'Regelmäßige Reinigung',
-      deepCleaning: 'Grundreinigung',
-      movingCleaning: 'Umzugsreinigung',
-      officeCleaning: 'Büroreinigung',
-      
-      // Steps
-      step1: 'Reinigungsart',
-      step2: 'Immobilie',
-      step3: 'Termine',
-      step4: 'Extras',
-      step5: 'Kontakt',
-
-      // Form fields
-      cleaningType: 'Reinigungsart',
-      propertyType: 'Immobilientyp',
-      apartment: 'Wohnung',
-      house: 'Haus',
-      office: 'Büro',
-      propertySize: 'Größe (m²)',
-      numberOfRooms: 'Anzahl Zimmer',
-      numberOfBathrooms: 'Anzahl Badezimmer',
-      cleaningDate: 'Reinigungstermin',
-      frequency: 'Häufigkeit',
-      weekly: 'Wöchentlich',
-      biweekly: 'Alle zwei Wochen',
-      monthly: 'Monatlich',
-      oneTime: 'Einmalig',
-      windowCleaning: 'Fensterreinigung',
-      carpetCleaning: 'Teppichreinigung',
-      ovenCleaning: 'Ofenreinigung',
-      fridgeCleaning: 'Kühlschrankreinigung',
-      supplies: 'Reinigungsmittel'
-    },
+    // Forms - Security Service (configured in /src/config/forms/)
 
     // Income & Invoices
     income: {
@@ -662,7 +576,6 @@ export const translations = {
       'Country is required': 'Country is required',
       'Service is required': 'Service is required',
       'Service type is required': 'Service type is required',
-      'Service type must be either moving or cleaning': 'Service type must be either moving or cleaning',
       'Invalid service type': 'Invalid service type',
       'Services must be a non-empty array': 'Services must be a non-empty array',
       'Password must be at least 6 characters': 'Password must be at least 6 characters',
@@ -750,18 +663,9 @@ export const translations = {
 
     // Services
     services: {
-      moving: 'Moving',
-      cleaning: 'Cleaning',
+      security: 'Security',
       all: 'All Services',
       selectService: 'Select Service'
-    },
-
-    // Move Types
-    moveTypes: {
-      private: 'Private Move',
-      business: 'Business Move',
-      longDistance: 'Long Distance Move',
-      specialTransport: 'Special Transport'
     },
 
     // Forms
@@ -923,83 +827,7 @@ export const translations = {
       lastUpdated: 'Last Updated'
     },
 
-    // Forms - Moving Service
-    moving: {
-      title: 'Moving Request',
-      privateMove: 'Private Move',
-      businessMove: 'Business Move',
-      longDistanceMove: 'Long Distance Move',
-      specialTransport: 'Special Transport',
-      
-      // Steps
-      step1: 'Move Type',
-      step2: 'Moving From',
-      step3: 'Moving To',
-      step4: 'Details',
-      step5: 'Inventory',
-      step6: 'Services',
-      step7: 'Contact',
-
-      // Form fields
-      movingFrom: 'Moving From Address',
-      movingTo: 'Moving To Address',
-      street: 'Street',
-      postalCode: 'Postal Code',
-      city: 'City',
-      country: 'Country',
-      floor: 'Floor',
-      elevator: 'Elevator',
-      movingDate: 'Moving Date',
-      flexibility: 'Flexibility',
-      livingSpace: 'Living Space (m²)',
-      numberOfRooms: 'Number of Rooms',
-      furniture: 'Furniture',
-      boxes: 'Boxes',
-      specialItems: 'Special Items',
-      packingService: 'Packing Service',
-      assemblyService: 'Assembly Service',
-      storageService: 'Storage Service',
-      disposalService: 'Disposal Service',
-      cleaningService: 'Cleaning Service',
-      insurance: 'Insurance'
-    },
-
-    // Forms - Cleaning Service
-    cleaning: {
-      title: 'Cleaning Request',
-      regularCleaning: 'Regular Cleaning',
-      deepCleaning: 'Deep Cleaning',
-      movingCleaning: 'Move-out Cleaning',
-      officeCleaning: 'Office Cleaning',
-      
-      // Steps
-      step1: 'Cleaning Type',
-      step2: 'Property',
-      step3: 'Schedule',
-      step4: 'Extras',
-      step5: 'Contact',
-
-      // Form fields
-      cleaningType: 'Cleaning Type',
-      propertyType: 'Property Type',
-      apartment: 'Apartment',
-      house: 'House',
-      office: 'Office',
-      propertySize: 'Size (m²)',
-      numberOfRooms: 'Number of Rooms',
-      numberOfBathrooms: 'Number of Bathrooms',
-      cleaningDate: 'Cleaning Date',
-      frequency: 'Frequency',
-      weekly: 'Weekly',
-      biweekly: 'Bi-weekly',
-      monthly: 'Monthly',
-      oneTime: 'One-time',
-      windowCleaning: 'Window Cleaning',
-      carpetCleaning: 'Carpet Cleaning',
-      ovenCleaning: 'Oven Cleaning',
-      fridgeCleaning: 'Fridge Cleaning',
-      supplies: 'Cleaning Supplies'
-    },
+    // Forms - Security Service (configured in /src/config/forms/)
 
     // Income & Invoices
     income: {

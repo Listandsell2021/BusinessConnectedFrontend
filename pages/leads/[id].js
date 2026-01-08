@@ -300,19 +300,15 @@ const LeadDetailPage = () => {
                     isContactInfo={true}
                   />
                 )}
-                <TableRow 
-                  label={lead.serviceType === 'moving' 
-                    ? (isGerman ? 'Abhol- → Zielort' : 'Pickup → Destination')
-                    : t('common.city')
-                  }
+                <TableRow
+                  label={isGerman ? 'Standort' : 'Location'}
                   value={lead.city}
                 />
-                <TableRow 
+                <TableRow
                   label={t('leads.service')}
                   value={
                     <span>
-                      {lead.serviceType === 'moving' ? '🚛' : '🧽'} {t(`services.${lead.serviceType}`)}
-                      {lead.moveType && ` - ${lead.moveType.replace('_', ' ')}`}
+                      🛡️ {isGerman ? 'Sicherheitsservice' : 'Security Service'}
                     </span>
                   }
                 />

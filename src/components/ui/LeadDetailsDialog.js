@@ -46,7 +46,6 @@ const LeadDetailsDialog = ({
             'futurePropertyType': isGerman ? 'Zukünftiger Objekttyp' : 'Future Property Type',
             'elevatorAvailable': isGerman ? 'Aufzug verfügbar' : 'Elevator Available',
             'otherImportantInfo': isGerman ? 'Andere wichtige Infos' : 'Other Important Info',
-            'destinationLocation': isGerman ? 'Zielort' : 'Destination Location',
             'startDate': isGerman ? 'Startdatum' : 'Start Date',
             'endDate': isGerman ? 'Enddatum' : 'End Date',
             'preferredWeekdays': isGerman ? 'Bevorzugte Wochentage' : 'Preferred Weekdays',
@@ -280,14 +279,6 @@ const LeadDetailsDialog = ({
     // Services field (like basic_cleaning, deep_cleaning, etc.)
     if (key === 'services' || key === 'serviceTypes' || key === 'service_types' || key === 'service' || key === 'additionalServices' || key === 'servicesWanted') {
       const serviceTranslations = {
-        'basic_cleaning': isGerman ? 'Basis-Reinigung' : 'Basic Cleaning',
-        'deep_cleaning': isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
-        'window_cleaning': isGerman ? 'Fensterreinigung' : 'Window Cleaning',
-        'carpet_cleaning': isGerman ? 'Teppichreinigung' : 'Carpet Cleaning',
-        'move_in_cleaning': isGerman ? 'Einzugsreinigung' : 'Move In Cleaning',
-        'move_out_cleaning': isGerman ? 'Auszugsreinigung' : 'Move Out Cleaning',
-        'office_cleaning': isGerman ? 'Büroreinigung' : 'Office Cleaning',
-        'regular_cleaning': isGerman ? 'Regelmäßige Reinigung' : 'Regular Cleaning',
         'packing_boxes': isGerman ? 'Kartons packen' : 'Packing Boxes',
         'unpacking_service': isGerman ? 'Auspacken Service' : 'Unpacking Service',
         'packaging_material': isGerman ? 'Verpackungsmaterial' : 'Packaging Material',
@@ -329,8 +320,9 @@ const LeadDetailsDialog = ({
     // Service types
     if (key === 'serviceType') {
       const serviceTypes = {
-        'moving': isGerman ? 'Umzug' : 'Moving',
-        'cleaning': isGerman ? 'Reinigung' : 'Cleaning',
+        'moving': isGerman ? 'Umzugsservice' : 'Moving Service',
+        'security': isGerman ? 'Sicherheitsservice' : 'Security Service',
+        'cleaning': isGerman ? 'Reinigungsservice' : 'Cleaning Service',
         'cancellation': isGerman ? 'Stornierung' : 'Cancellation'
       };
       return serviceTypes[value] || value;
@@ -428,12 +420,7 @@ const LeadDetailsDialog = ({
         'weekly': isGerman ? 'Wöchentlich' : 'Weekly',
         'biweekly': isGerman ? 'Zweiwöchentlich' : 'Biweekly',
         'monthly': isGerman ? 'Monatlich' : 'Monthly',
-        'daily': isGerman ? 'Täglich' : 'Daily',
-        // Services
-        'basic_cleaning': isGerman ? 'Basis-Reinigung' : 'Basic Cleaning',
-        'deep_cleaning': isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
-        'window_cleaning': isGerman ? 'Fensterreinigung' : 'Window Cleaning',
-        'carpet_cleaning': isGerman ? 'Teppichreinigung' : 'Carpet Cleaning'
+        'daily': isGerman ? 'Täglich' : 'Daily'
       };
 
       // Check if the lowercase value has a translation
@@ -466,8 +453,6 @@ const LeadDetailsDialog = ({
       'roomCount': isGerman ? 'Zimmeranzahl' : 'Room Count',
       'flexiblePeriod': isGerman ? 'Flexibler Zeitraum' : 'Flexible Period',
       'bestReachTime': isGerman ? 'Beste Erreichbarkeit' : 'Best Reach Time',
-      'pickupAddress': isGerman ? 'Abholadresse' : 'Pickup Address',
-      'destinationAddress': isGerman ? 'Zieladresse' : 'Destination Address',
       'estimatedCommercialArea': isGerman ? 'Geschätzte Gewerbefläche' : 'Estimated Commercial Area',
       'startDate': isGerman ? 'Startdatum' : 'Start Date',
       'endDate': isGerman ? 'Enddatum' : 'End Date',
@@ -479,7 +464,6 @@ const LeadDetailsDialog = ({
       'preferredContactTime': isGerman ? 'Bevorzugte Kontaktzeit' : 'Preferred Contact Time',
       'frequency': isGerman ? 'Häufigkeit' : 'Frequency',
       'objectType': isGerman ? 'Objekttyp' : 'Object Type',
-      'cleaningFrequency': isGerman ? 'Reinigungshäufigkeit' : 'Cleaning Frequency',
       'desiredStart': isGerman ? 'Gewünschter Beginn' : 'Desired Start',
       'serviceAddress': isGerman ? 'Serviceadresse' : 'Service Address',
       'venueType': isGerman ? 'Veranstaltungsort' : 'Venue Type',
@@ -657,7 +641,7 @@ const LeadDetailsDialog = ({
                       <TableRow
                         label={t('leads.service')}
                         value={
-                          `${leadData.serviceType === 'moving' ? '🚛' : '🧽'} ${t(`services.${leadData.serviceType}`)}${leadData.moveType ? ` - ${leadData.moveType.replace('_', ' ')}` : ''}`
+                          `${leadData.serviceType === 'security' ? '🚛' : '🧽'} ${t(`services.${leadData.serviceType}`)}${leadData.moveType ? ` - ${leadData.moveType.replace('_', ' ')}` : ''}`
                         }
                       />
                       {leadData.sourceDomain && (
@@ -666,6 +650,18 @@ const LeadDetailsDialog = ({
                           value={leadData.sourceDomain}
                         />
                       )}
+                      {(() => {
+                        const city = leadData.formData?.location?.city || leadData.city;
+                        const postalCode = leadData.formData?.location?.postalCode || leadData.postalCode;
+                        const country = leadData.formData?.location?.country || leadData.country || 'Germany';
+
+                        return city || postalCode ? (
+                          <TableRow
+                            label={isGerman ? 'Standort' : 'Location'}
+                            value={`${city || ''}${postalCode ? ` ${postalCode}` : ''}, ${country}`}
+                          />
+                        ) : null;
+                      })()}
                       {leadData.assignedPartner && (
                         <TableRow
                           label={t('leads.assignedPartner')}
@@ -738,9 +734,9 @@ const LeadDetailsDialog = ({
                   </div>
                 )}
 
-                {/* User Details & Timestamps */}
+                {/* User Details & Timestamps - Skip for security leads (already shown in Form Details) */}
                 <div>
-                  {leadData.user && (
+                  {leadData.user && leadData.serviceType !== 'security' && (
                     <>
                       <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
                         {isGerman ? 'Zusätzliche Benutzerdetails' : 'Additional User Details'}

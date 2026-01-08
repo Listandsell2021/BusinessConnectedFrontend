@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { toast } from 'react-hot-toast';
-import { formConfigAPI } from '../../../lib/api/api';
 
 // Simple translation helper - basic word mapping
 const translationMap = {
@@ -950,60 +949,18 @@ const FormSettings = () => {
     try {
       setLoading(true);
       console.log('Loading form config...');
-      const response = await formConfigAPI.getMovingConfig();
-      console.log('Form config response:', response);
-      if (response.data.success) {
-        console.log('Setting config:', response.data.data);
-        setConfig(response.data.data);
-      } else {
-        console.error('API returned success=false:', response.data);
-        toast.error(isGerman ? 'Fehler beim Laden der Formkonfiguration' : 'Error loading form configuration');
-      }
-    } catch (error) {
-      console.error('Error loading form config:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      toast.error(isGerman ? 'Fehler beim Laden der Formkonfiguration' : 'Error loading form configuration');
+      toast.info(isGerman ? 'Moving-Formularkonfiguration ist nicht mehr verfügbar' : 'Moving form configuration is no longer available');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    try {
-      setSaving(true);
-      const response = await formConfigAPI.updateMovingConfig(config);
-      if (response.data.success) {
-        setConfig(response.data.data);
-        setHasChanges(false);
-        toast.success(isGerman ? 'Formkonfiguration gespeichert!' : 'Form configuration saved!');
-      }
-    } catch (error) {
-      console.error('Error saving form config:', error);
-      toast.error(isGerman ? 'Fehler beim Speichern' : 'Error saving configuration');
-    } finally {
-      setSaving(false);
-    }
+    toast.info(isGerman ? 'Moving-Formularkonfiguration ist nicht mehr verfügbar' : 'Moving form configuration is no longer available');
   };
 
   const handleReset = async () => {
-    if (!window.confirm(isGerman ? 'Möchten Sie wirklich alle Änderungen zurücksetzen?' : 'Are you sure you want to reset all changes?')) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const response = await formConfigAPI.resetMovingConfig();
-      if (response.data.success) {
-        setConfig(response.data.data);
-        setHasChanges(false);
-        toast.success(isGerman ? 'Formular zurückgesetzt!' : 'Form reset to default!');
-      }
-    } catch (error) {
-      console.error('Error resetting form config:', error);
-      toast.error(isGerman ? 'Fehler beim Zurücksetzen' : 'Error resetting configuration');
-    } finally {
-      setSaving(false);
-    }
+    toast.info(isGerman ? 'Moving-Formularkonfiguration ist nicht mehr verfügbar' : 'Moving form configuration is no longer available');
   };
 
   const updateConfig = useCallback((field, value) => {

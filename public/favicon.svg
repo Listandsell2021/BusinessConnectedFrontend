@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 61.04 47.77">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <style>
-      .cls-1 {
+      .shield-fill {
         fill: #1947ee;
+      }
+      .shield-outline {
+        fill: none;
+        stroke: #1947ee;
+        stroke-width: 2;
       }
     </style>
   </defs>
-  <g id="Ebene_1">
-    <g id="On_Delivery">
-      <path d="M47.77,25.21h13.27l-4.23-9.29h-9.06v9.29h.02Z"/>
-      <circle cx="12.62" cy="43.13" r="4.65"/>
-      <circle cx="48.45" cy="43.13" r="4.65"/>
-      <path d="M45.12,26.54v-11.94c0-.73.6-1.33,1.33-1.33h9.29l-.74-1.65c-.65-1.42-2.07-2.34-3.63-2.34h-10.24v31.86h.29c1.09-3.87,5.12-6.14,9-5.03,2.43.69,4.34,2.6,5.03,5.03h1.62c2.2,0,3.98-1.78,3.98-3.98v-9.29h-14.59c-.73,0-1.33-.6-1.33-1.33h0Z"/>
-      <path class="cls-1" d="M14.59,29.21l11.94-9.29-11.94-9.29v5.3H0v7.97h14.59v5.32Z"/>
-      <path d="M34.51,0H3.98C1.78,0,0,1.78,0,3.98v9.29h11.94v-2.65c0-1.47,1.18-2.65,2.65-2.65.6,0,1.16.2,1.63.56l11.94,9.29c1.16.91,1.36,2.58.47,3.72-.13.18-.29.33-.47.47l-11.94,9.29c-1.16.91-2.83.69-3.72-.47-.36-.47-.56-1.03-.56-1.63v-2.65H0v10.62c0,2.2,1.78,3.98,3.98,3.98h1.62c1.09-3.87,5.12-6.14,9-5.03,2.43.69,4.34,2.6,5.03,5.03h18.86V3.98c0-2.2-1.78-3.98-3.98-3.98Z"/>
-    </g>
+  <!-- Shield icon for Business Connected security services -->
+  <path class="shield-fill" d="M32,8 L8,20 L8,32 C8,48 32,56 32,56 C32,56 56,48 56,32 L56,20 L32,8 Z M32,48 C20,42 16,36 16,32 L16,24 L32,16 L48,24 L48,32 C48,36 44,42 32,48 Z"/>
+  <!-- Checkmark inside shield -->
+  <g transform="translate(32, 32)">
+    <path d="M-6,-2 L-2,3 L6,-5" stroke="#1947ee" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>

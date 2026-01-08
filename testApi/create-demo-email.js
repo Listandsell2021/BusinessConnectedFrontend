@@ -29,7 +29,7 @@ SMTP_HOST=smtp.ethereal.email
 SMTP_PORT=587
 SMTP_USER=${testAccount.user}
 SMTP_PASS=${testAccount.pass}
-FROM_NAME=Umzug Anbieter Vergleich Team (Demo)
+FROM_NAME=Business Connected Team (Demo)
 FROM_EMAIL=${testAccount.user}`;
     
     // Replace existing email config
@@ -56,9 +56,9 @@ FROM_EMAIL=${testAccount.user}`;
     });
     
     const testMessage = {
-      from: `"Umzug Anbieter Vergleich Team (Demo)" <${testAccount.user}>`,
+      from: `"Business Connected Team (Demo)" <${testAccount.user}>`,
       to: testAccount.user,
-      subject: 'Demo Account Test - Umzug Anbieter Vergleich Email Configuration',
+      subject: 'Demo Account Test - Business Connected Email Configuration',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #3d68ff; color: white; padding: 20px; text-align: center;">

@@ -51,8 +51,7 @@ export default async function handler(req, res) {
 
     const defaultData = {
       labels,
-      moving: Array(days).fill(0),
-      cleaning: Array(days).fill(0)
+      moving: Array(days).fill(0)
     };
 
     res.status(200).json(defaultData);

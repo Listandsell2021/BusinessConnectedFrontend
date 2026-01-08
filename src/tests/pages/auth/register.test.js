@@ -68,7 +68,7 @@ describe('Partner Request Form', () => {
       expect(screen.getByText(/partner werden/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
+    expect(screen.getByAltText('Business Connected')).toBeInTheDocument();
     expect(screen.getByLabelText(/vorname|first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nachname|last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
@@ -448,7 +448,7 @@ describe('Partner Request Form', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
+      expect(screen.getByAltText('Business Connected')).toBeInTheDocument();
     });
 
     expect(screen.getByText('👤')).toBeInTheDocument(); // First name icon

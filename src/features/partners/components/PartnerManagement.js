@@ -159,23 +159,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const [isSubmittingPartner, setIsSubmittingPartner] = useState(false);
   const [partnerFormData, setPartnerFormData] = useState({
     companyName: '',
-    contactPerson: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: ''
-    },
+    contactPerson: '',
+    email: '',
+    phone: '',
+    regions: [],
+    availableEmployees: '',
+    periodOfAvailability: '',
+    budgetScope: [],
+    companyDescription: '',
     partnerType: 'basic',
-    serviceType: 'moving', // Default to moving service (only service available)
-    address: {
-      street: '',
-      city: '',
-      zipCode: '', // Changed from postalCode to zipCode to match backend
-      country: 'Germany'
-    },
-    preferences: {
-      averageLeadsPerWeek: 5
-    }
+    serviceType: 'security' // Default to security service
   });
   
   // Services data
@@ -386,7 +379,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   // Load partners from API
   const loadPartners = async (pageOverride = null) => {
-    const serviceToUse = currentService || 'moving';
+    const serviceToUse = currentService || 'security';
     console.log('loadPartners called with currentService:', currentService, 'using:', serviceToUse);
 
     if (!serviceToUse) {
@@ -455,7 +448,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         let cities = [];
         if (partner.preferences) {
           // Handle service-specific preferences
-          const servicePreferences = currentService === 'moving' 
+          const servicePreferences = currentService === 'security' 
             ? partner.preferences.moving 
             : currentService === 'cleaning' 
             ? partner.preferences.cleaning 
@@ -538,10 +531,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       }
     } catch (error) {
       console.error('Error fetching service types:', error);
-      // Fallback to default service types - same as registration
+      // Fallback to default service types - security only
       setServicesData([
-        { id: 'moving', name: 'Umzugsservice' },
-        { id: 'cleaning', name: 'Reinigungsservice' }
+        { id: 'security', name: 'Sicherheitsservice' }
       ]);
     }
   };
@@ -599,8 +591,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   const getServiceLabel = (serviceName) => {
     const labels = {
+      'Security Services': isGerman ? 'Sicherheitsservice' : 'Security Services',
       'Moving Services': isGerman ? 'Umzugsservice' : 'Moving Services',
       'Cleaning Services': isGerman ? 'Reinigungsservice' : 'Cleaning Services',
+      'security': isGerman ? 'Sicherheitsservice' : 'Security Services',
       'moving': isGerman ? 'Umzugsservice' : 'Moving Services',
       'cleaning': isGerman ? 'Reinigungsservice' : 'Cleaning Services'
     };
@@ -630,9 +624,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const handleApprovePartner = async (partnerId, partnerName) => {
     // Get partner details to use their actual service type for the dialog
     const partner = partners.find(p => p.id === partnerId);
-    const actualServiceType = partner?.serviceType || 'moving'; // Use partner's actual service type
+    const actualServiceType = partner?.serviceType || 'security'; // Use partner's actual service type
 
-    const serviceText = actualServiceType === 'moving'
+    const serviceText = actualServiceType === 'security'
+      ? (isGerman ? 'Sicherheitsdienst' : 'Security Service')
+      : actualServiceType === 'security'
       ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
       : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
 
@@ -666,7 +662,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               })
             );
 
-            const serviceText = actualServiceType === 'moving'
+            const serviceText = actualServiceType === 'security'
               ? (isGerman ? 'Umzugsdienst' : 'Moving Service')
               : (isGerman ? 'Reinigungsdienst' : 'Cleaning Service');
             const successMessage = isGerman
@@ -689,7 +685,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const handleRejectPartner = async (partnerId, partnerName) => {
     // Get partner details to use their actual service type
     const partner = partners.find(p => p.id === partnerId);
-    const serviceTypeToReject = partner?.serviceType || filters.serviceType || 'moving';
+    const serviceTypeToReject = partner?.serviceType || filters.serviceType || 'security';
 
     // Show rejection reason dialog
     setRejectionDialog({
@@ -725,7 +721,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           )
         );
 
-        const serviceDisplayName = rejectionDialog.serviceType === 'moving'
+        const serviceDisplayName = rejectionDialog.serviceType === 'security'
           ? 'Umzugsdienst'
           : 'Reinigungsdienst';
 
@@ -1109,45 +1105,42 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   const validatePartnerForm = () => {
     const errors = {};
 
-    // Basic validation
     if (!partnerFormData.companyName.trim()) {
-      errors.companyName = isGerman ? 'Firmenname ist erforderlich' : 'Company name is required';
+      errors.companyName = isGerman ? 'Unternehmensname ist erforderlich' : 'Company name is required';
     }
 
-    if (!partnerFormData.contactPerson.firstName.trim()) {
-      errors['contactPerson.firstName'] = isGerman ? 'Vorname ist erforderlich' : 'First name is required';
+    if (!partnerFormData.contactPerson.trim()) {
+      errors.contactPerson = isGerman ? 'Kontaktperson ist erforderlich' : 'Contact person is required';
     }
 
-    if (!partnerFormData.contactPerson.lastName.trim()) {
-      errors['contactPerson.lastName'] = isGerman ? 'Nachname ist erforderlich' : 'Last name is required';
+    if (!partnerFormData.email.trim()) {
+      errors.email = isGerman ? 'E-Mail ist erforderlich' : 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(partnerFormData.email)) {
+      errors.email = isGerman ? 'Ungültige E-Mail-Adresse' : 'Invalid email address';
     }
 
-    if (!partnerFormData.contactPerson.email.trim()) {
-      errors['contactPerson.email'] = isGerman ? 'E-Mail ist erforderlich' : 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(partnerFormData.contactPerson.email)) {
-      errors['contactPerson.email'] = isGerman ? 'Ungültige E-Mail-Adresse' : 'Invalid email address';
+    if (!partnerFormData.phone.trim()) {
+      errors.phone = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
     }
 
-    if (!partnerFormData.contactPerson.phone.trim()) {
-      errors['contactPerson.phone'] = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
+    if (partnerFormData.regions.length === 0) {
+      errors.regions = isGerman ? 'Bitte wählen Sie mindestens eine Region' : 'Please select at least one region';
     }
 
-    if (!partnerFormData.serviceType) {
-      errors.serviceType = isGerman ? 'Service-Typ auswählen' : 'Please select a service type';
+    if (!partnerFormData.availableEmployees) {
+      errors.availableEmployees = isGerman ? 'Anzahl verfügbarer Mitarbeiter ist erforderlich' : 'Number of employees is required';
     }
 
-    // Address validation
-    if (!partnerFormData.address.street.trim()) {
-      errors['address.street'] = isGerman ? 'Straße ist erforderlich' : 'Street is required';
+    if (!partnerFormData.periodOfAvailability) {
+      errors.periodOfAvailability = isGerman ? 'Verfügbarkeitszeitraum ist erforderlich' : 'Availability period is required';
     }
-    if (!partnerFormData.address.city.trim()) {
-      errors['address.city'] = isGerman ? 'Stadt ist erforderlich' : 'City is required';
+
+    if (partnerFormData.budgetScope.length === 0) {
+      errors.budgetScope = isGerman ? 'Bitte wählen Sie mindestens einen Service' : 'Please select at least one service';
     }
-    if (!partnerFormData.address.zipCode.trim()) {
-      errors['address.zipCode'] = isGerman ? 'PLZ ist erforderlich' : 'Zip code is required';
-    }
-    if (!partnerFormData.address.country.trim()) {
-      errors['address.country'] = isGerman ? 'Land ist erforderlich' : 'Country is required';
+
+    if (!partnerFormData.companyDescription.trim()) {
+      errors.companyDescription = isGerman ? 'Beschreibung ist erforderlich' : 'Description is required';
     }
 
     setPartnerFormErrors(errors);
@@ -1161,40 +1154,56 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     try {
       // Include admin language preference for email localization
       const adminLanguage = isGerman ? 'de' : 'en';
+
+      // Map form data to API format
       const dataWithLanguage = {
-        ...partnerFormData,
+        companyName: partnerFormData.companyName,
+        contactPerson: {
+          firstName: partnerFormData.contactPerson.split(' ')[0] || partnerFormData.contactPerson,
+          lastName: partnerFormData.contactPerson.split(' ').slice(1).join(' ') || '',
+          email: partnerFormData.email,
+          phone: partnerFormData.phone
+        },
+        securityFormData: {
+          regions: partnerFormData.regions,
+          budgetScope: partnerFormData.budgetScope,
+          availableEmployees: partnerFormData.availableEmployees,
+          periodOfAvailability: partnerFormData.periodOfAvailability,
+          companyDescription: partnerFormData.companyDescription
+        },
+        partnerType: partnerFormData.partnerType,
+        serviceType: partnerFormData.serviceType,
+        address: {
+          street: '',
+          city: '',
+          postalCode: '',
+          country: ''
+        },
         adminLanguage
       };
 
       const response = await partnersAPI.create(dataWithLanguage);
-      
+
       if (response.data.success) {
         toast.success(isGerman ? 'Partner erfolgreich erstellt' : 'Partner created successfully');
         setShowAddModal(false);
-        
+
         // Reset form
         setPartnerFormData({
           companyName: '',
-          contactPerson: {
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: ''
-          },
+          contactPerson: '',
+          email: '',
+          phone: '',
+          regions: [],
+          availableEmployees: '',
+          periodOfAvailability: '',
+          budgetScope: [],
+          companyDescription: '',
           partnerType: 'basic',
-          serviceType: '',
-          address: {
-            street: '',
-            city: '',
-            zipCode: '',
-            country: 'Germany'
-          },
-          preferences: {
-            averageLeadsPerWeek: 5
-          }
+          serviceType: 'security'
         });
         setPartnerFormErrors({});
-        
+
         // Reload partners and stats
         await Promise.all([loadPartners(), loadPartnerStats()]);
       }
@@ -1467,23 +1476,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       leadsData.forEach(lead => {
         // Extract city display - same as LeadManagement
         let cityDisplay = lead.location?.city || lead.city || '';
-        if (lead.serviceType === 'moving') {
-          const pickupCity = lead.formData?.pickupAddress?.city ||
-                           lead.pickupLocation?.city ||
-                           lead.formData?.pickupCity ||
-                           lead.pickupCity;
-          const destinationCity = lead.formData?.destinationAddress?.city ||
-                                 lead.destinationLocation?.city ||
-                                 lead.formData?.destinationCity ||
-                                 lead.destinationCity;
-
-          if (pickupCity && destinationCity) {
-            cityDisplay = `${pickupCity} → ${destinationCity}`;
-          } else if (pickupCity) {
-            cityDisplay = pickupCity;
-          } else if (destinationCity) {
-            cityDisplay = destinationCity;
-          }
+        if (lead.serviceType === 'security') {
+          // For security: use location city and postal code
+          const city = lead.formData?.location?.city || lead.city || '';
+          const postalCode = lead.formData?.location?.postalCode || lead.postalCode || '';
+          cityDisplay = postalCode ? `${city} ${postalCode}` : city;
         }
 
         // Extract pickup date - same as LeadManagement
@@ -1504,8 +1501,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : (lead.name || ''),
           email: lead.user?.email || lead.email || '',
           city: cityDisplay,
-          pickupCity: lead.formData?.pickupAddress?.city || '',
-          destinationCity: lead.formData?.destinationAddress?.city || '',
           dateDisplay: dateDisplay,
           pickupDate: pickupDate,
         };
@@ -2724,7 +2719,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 {weeklyLeadStats.currentWeek} / {weeklyLeadStats.limit}
                               </span>
                               <span className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                                ({currentService === 'moving' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')} - {partnerForDetails?.partnerType || partnerForDetails?.type || 'basic'})
+                                ({currentService === 'security' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')} - {partnerForDetails?.partnerType || partnerForDetails?.type || 'basic'})
                               </span>
                             </div>
                           </td>
@@ -2747,8 +2742,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             </div>
             )}
 
-            {/* Service Area Preferences - Pickup and Destination for Moving Partners */}
-            {partnerForDetails.serviceType === 'moving' && partnerForDetails.preferences && (
+            {/* Service Area Preferences - For Moving Partners Only */}
+            {partnerForDetails.serviceType !== 'security' && partnerForDetails.preferences && (
             <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Pickup Preferences */}
@@ -2989,7 +2984,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <div className="flex-1">
                   <input
                     type="text"
-                    placeholder={isGerman ? 'Stadt (Abholung/Ziel)...' : 'City (Pickup/Destination)...'}
+                    placeholder={isGerman ? 'Stadt & Postleitzahl...' : 'City & Postal Code...'}
                     value={partnerLeadsFilters.city || ''}
                     onChange={(e) => handlePartnerLeadsFilterChange('city', e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
@@ -3189,8 +3184,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           {isGerman ? 'Kundenname' : 'Customer Name'}
                         </PartnerLeadsSortableHeader>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
-                          {currentService === 'moving' 
-                            ? (isGerman ? 'Abhol- → Zielort' : 'Pickup → Destination')
+                          {currentService === 'security'
+                            ? (isGerman ? 'Stadt & PLZ' : 'City & Postal Code')
                             : (isGerman ? 'Stadt' : 'City')
                           }
                         </th>
@@ -3248,8 +3243,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {currentService === 'moving'
-                                ? `${lead.fromLocation || lead.pickupLocation || (lead.formData?.pickupAddress?.city) || (lead.formData?.fromLocation) || (lead.formData?.pickup_location) || '-'} → ${lead.toLocation || lead.dropoffLocation || (lead.formData?.destinationAddress?.city) || (lead.formData?.toLocation) || (lead.formData?.destination_location) || '-'}`
+                              {currentService === 'security'
+                                ? `${lead.formData?.location?.city || lead.city || '-'}${lead.formData?.location?.postalCode || lead.postalCode ? ` ${lead.formData?.location?.postalCode || lead.postalCode}` : ''}`
                                 : lead.formData?.serviceAddress?.city || lead.formData?.address?.city || lead.city || lead.location || (lead.formData && lead.formData.city) || (lead.formData && lead.formData.location) || '-'
                               }
                             </td>
@@ -3732,7 +3727,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     Service ablehnen
                   </h3>
                   <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                    {rejectionDialog.partnerName} - {rejectionDialog.serviceType === 'moving'
+                    {rejectionDialog.partnerName} - {rejectionDialog.serviceType === 'security'
                       ? 'Umzugsdienst'
                       : 'Reinigungsdienst'
                     }
@@ -3849,78 +3844,68 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 <input type="text" name="dummy-username" autoComplete="username" style={{ display: 'none' }} tabIndex="-1" />
                 <input type="password" name="dummy-password" autoComplete="current-password" style={{ display: 'none' }} tabIndex="-1" />
                 <div className="space-y-4">
-                {/* First Name and Last Name - Two Columns */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label 
-                      htmlFor="partner-firstName" 
-                      className="block text-sm font-medium mb-1"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      {isGerman ? 'Vorname' : 'First Name'} *
-                    </label>
-                    <input
-                      id="partner-firstName"
-                      name="x-partner-fn-field"
-                      type="text"
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      data-form-type="other"
-                      readOnly
-                      onFocus={(e) => e.target.removeAttribute('readonly')}
-                      value={partnerFormData.contactPerson.firstName}
-                      onChange={(e) => handlePartnerFormChange('contactPerson.firstName', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['contactPerson.firstName'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'Vorname eingeben' : 'Enter first name'}
-                    />
-                    {partnerFormErrors['contactPerson.firstName'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['contactPerson.firstName']}</p>
-                    )}
-                  </div>
+                {/* Company Name - Full Width */}
+                <div>
+                  <label
+                    htmlFor="partner-companyName"
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    {isGerman ? 'Unternehmensname' : 'Company Name'} *
+                  </label>
+                  <input
+                    id="partner-companyName"
+                    name="partner-companyName"
+                    type="text"
+                    autoComplete="off"
+                    value={partnerFormData.companyName}
+                    onChange={(e) => handlePartnerFormChange('companyName', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      backgroundColor: 'var(--theme-input-bg)',
+                      borderColor: partnerFormErrors.companyName ? '#ef4444' : 'var(--theme-border)',
+                      color: 'var(--theme-text)'
+                    }}
+                    placeholder={isGerman ? 'Unternehmensname eingeben' : 'Enter company name'}
+                  />
+                  {partnerFormErrors.companyName && (
+                    <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
+                  )}
+                </div>
 
-                  <div>
-                    <label 
-                      htmlFor="partner-lastName" 
-                      className="block text-sm font-medium mb-1"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      {isGerman ? 'Nachname' : 'Last Name'} *
-                    </label>
-                    <input
-                      id="partner-lastName"
-                      name="partner-lastName"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.contactPerson.lastName}
-                      onChange={(e) => handlePartnerFormChange('contactPerson.lastName', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['contactPerson.lastName'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'Nachname eingeben' : 'Enter last name'}
-                    />
-                    {partnerFormErrors['contactPerson.lastName'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['contactPerson.lastName']}</p>
-                    )}
-                  </div>
+                {/* Contact Person - Full Width */}
+                <div>
+                  <label
+                    htmlFor="partner-contactPerson"
+                    className="block text-sm font-medium mb-1"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {isGerman ? 'Kontaktperson' : 'Contact Person'} *
+                  </label>
+                  <input
+                    id="partner-contactPerson"
+                    name="partner-contactPerson"
+                    type="text"
+                    autoComplete="off"
+                    value={partnerFormData.contactPerson}
+                    onChange={(e) => handlePartnerFormChange('contactPerson', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      backgroundColor: 'var(--theme-input-bg)',
+                      borderColor: partnerFormErrors.contactPerson ? '#ef4444' : 'var(--theme-border)',
+                      color: 'var(--theme-text)'
+                    }}
+                    placeholder={isGerman ? 'Name der Kontaktperson' : 'Enter contact person name'}
+                  />
+                  {partnerFormErrors.contactPerson && (
+                    <p className="text-red-500 text-sm mt-1">{partnerFormErrors.contactPerson}</p>
+                  )}
                 </div>
 
                 {/* Email and Phone - Two Columns */}
@@ -3938,27 +3923,21 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     </label>
                     <input
                       id="partner-email"
-                      name="x-partner-email-field"
-                      type="text"
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      data-form-type="other"
-                      readOnly
-                      onFocus={(e) => e.target.removeAttribute('readonly')}
-                      value={partnerFormData.contactPerson.email}
-                      onChange={(e) => handlePartnerFormChange('contactPerson.email', e.target.value)}
+                      name="partner-email"
+                      type="email"
+                      autoComplete="off"
+                      value={partnerFormData.email}
+                      onChange={(e) => handlePartnerFormChange('email', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['contactPerson.email'] ? '#ef4444' : 'var(--theme-border)',
+                        borderColor: partnerFormErrors.email ? '#ef4444' : 'var(--theme-border)',
                         color: 'var(--theme-text)'
                       }}
                       placeholder={isGerman ? 'E-Mail-Adresse eingeben' : 'Enter email address'}
                     />
-                    {partnerFormErrors['contactPerson.email'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['contactPerson.email']}</p>
+                    {partnerFormErrors.email && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.email}</p>
                     )}
                   </div>
 
@@ -3978,240 +3957,191 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       name="partner-phone"
                       type="tel"
                       autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.contactPerson.phone}
-                      onChange={(e) => handlePartnerFormChange('contactPerson.phone', e.target.value)}
+                      value={partnerFormData.phone}
+                      onChange={(e) => handlePartnerFormChange('phone', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['contactPerson.phone'] ? '#ef4444' : 'var(--theme-border)',
+                        borderColor: partnerFormErrors.phone ? '#ef4444' : 'var(--theme-border)',
                         color: 'var(--theme-text)'
                       }}
                       placeholder={isGerman ? 'Telefonnummer eingeben' : 'Enter phone number'}
                     />
-                    {partnerFormErrors['contactPerson.phone'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['contactPerson.phone']}</p>
+                    {partnerFormErrors.phone && (
+                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.phone}</p>
                     )}
                   </div>
                 </div>
 
-                {/* Service Type is automatically set to 'moving' (only available service) */}
+                {/* Regions */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                    🗺️ {isGerman ? 'In welchen Regionen sind Einsätze möglich?' : 'In which regions are assignments possible?'} *
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'be', label: 'Berlin' },
+                      { id: 'bb', label: 'Brandenburg' },
+                      { id: 'hh', label: 'Hamburg' },
+                      { id: 'nrw', label: 'Nordrhein-Westfalen' },
+                      { id: 'nationwide', label: isGerman ? 'Bundesweit' : 'Nationwide' }
+                    ].map(region => (
+                      <label key={region.id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="regions"
+                          value={region.id}
+                          checked={partnerFormData.regions.includes(region.id)}
+                          onChange={(e) => {
+                            const newRegions = e.target.checked
+                              ? [...partnerFormData.regions, region.id]
+                              : partnerFormData.regions.filter(r => r !== region.id);
+                            handlePartnerFormChange('regions', newRegions);
+                          }}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span style={{ color: 'var(--theme-text)' }}>{region.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {partnerFormErrors.regions && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.regions}</p>}
+                </div>
 
-                {/* Partner Type and Company Name */}
+                {/* Available Employees and Availability Period */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Partner Type */}
                   <div>
-                    <label
-                      htmlFor="partner-type"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                      </svg>
-                      {isGerman ? 'Partner-Typ' : 'Partner Type'} *
+                    <label htmlFor="partner-availableEmployees" className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                      👥 {isGerman ? 'Anzahl verfügbarer Mitarbeiter' : 'Number of available employees'} *
                     </label>
                     <select
-                      id="partner-type"
-                      name="partner-type"
-                      value={partnerFormData.partnerType}
-                      onChange={(e) => handlePartnerFormChange('partnerType', e.target.value)}
+                      id="partner-availableEmployees"
+                      name="availableEmployees"
+                      value={partnerFormData.availableEmployees}
+                      onChange={(e) => handlePartnerFormChange('availableEmployees', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: 'var(--theme-border)',
-                        color: 'var(--theme-text)',
-                        height: '42px'
+                        borderColor: partnerFormErrors.availableEmployees ? '#ef4444' : 'var(--theme-border)',
+                        color: 'var(--theme-text)'
                       }}
                     >
-                      <option value="basic">{isGerman ? 'Standard' : 'Basic'}</option>
-                      <option value="exclusive">{isGerman ? 'Exklusiv' : 'Exclusive'}</option>
+                      <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
+                      <option value="1_5">{isGerman ? '1 - 5 Mitarbeiter' : '1 - 5 Employees'}</option>
+                      <option value="6_10">{isGerman ? '6 - 10 Mitarbeiter' : '6 - 10 Employees'}</option>
+                      <option value="11_25">{isGerman ? '11 - 25 Mitarbeiter' : '11 - 25 Employees'}</option>
+                      <option value="26_50">{isGerman ? '26 - 50 Mitarbeiter' : '26 - 50 Employees'}</option>
+                      <option value="51_plus">{isGerman ? '51+ Mitarbeiter' : '51+ Employees'}</option>
                     </select>
+                    {partnerFormErrors.availableEmployees && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.availableEmployees}</p>}
                   </div>
 
-                  {/* Company Name */}
                   <div>
-                    <label
-                      htmlFor="partner-company"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      {isGerman ? 'Firmenname' : 'Company Name'} *
+                    <label htmlFor="partner-periodOfAvailability" className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                      ⏰ {isGerman ? 'Verfügbarkeitszeitraum' : 'Availability period'} *
                     </label>
-                    <input
-                      id="partner-company"
-                      name="partner-company"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.companyName}
-                      onChange={(e) => handlePartnerFormChange('companyName', e.target.value)}
+                    <select
+                      id="partner-periodOfAvailability"
+                      name="periodOfAvailability"
+                      value={partnerFormData.periodOfAvailability}
+                      onChange={(e) => handlePartnerFormChange('periodOfAvailability', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                       style={{
                         backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors.companyName ? '#ef4444' : 'var(--theme-border)',
+                        borderColor: partnerFormErrors.periodOfAvailability ? '#ef4444' : 'var(--theme-border)',
                         color: 'var(--theme-text)'
                       }}
-                      placeholder={isGerman ? 'Firmenname eingeben' : 'Enter company name'}
-                    />
-                    {partnerFormErrors.companyName && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyName}</p>
-                    )}
+                    >
+                      <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
+                      <option value="next_1_month">{isGerman ? 'Nächsten 1 Monat' : 'Next 1 month'}</option>
+                      <option value="next_3_months">{isGerman ? 'Nächsten 3 Monate' : 'Next 3 months'}</option>
+                      <option value="next_6_months">{isGerman ? 'Nächsten 6 Monate' : 'Next 6 months'}</option>
+                      <option value="ongoing">{isGerman ? 'Dauerhaft verfügbar' : 'Permanently available'}</option>
+                      <option value="seasonal">{isGerman ? 'Saisonal' : 'Seasonal'}</option>
+                    </select>
+                    {partnerFormErrors.periodOfAvailability && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.periodOfAvailability}</p>}
                   </div>
                 </div>
 
-                {/* Street and City */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="partner-street"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {isGerman ? 'Straße' : 'Street'} *
-                    </label>
-                    <AddressAutocomplete
-                      value={partnerFormData.address.street}
-                      onChange={(value) => handlePartnerFormChange('address.street', value)}
-                      onPlaceSelect={(addressData) => {
-                        // Auto-fill all address fields when a place is selected
-                        handlePartnerFormChange('address.street', addressData.street);
-                        if (addressData.city) {
-                          handlePartnerFormChange('address.city', addressData.city);
-                        }
-                        if (addressData.zipCode) {
-                          handlePartnerFormChange('address.zipCode', addressData.zipCode);
-                        }
-                        if (addressData.country) {
-                          handlePartnerFormChange('address.country', addressData.country);
-                        }
-                      }}
-                      placeholder={isGerman ? 'Adresse suchen...' : 'Search address...'}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
-                      style={{
-                        borderColor: partnerFormErrors['address.street'] ? '#ef4444' : 'var(--theme-border)'
-                      }}
-                    />
-                    {partnerFormErrors['address.street'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.street']}</p>
-                    )}
+                {/* Budget Scope */}
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                    💰 {isGerman ? 'Budget-Umfang bis zu einem Maximum von' : 'Budget scope up to a maximum of'} *
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'property_protection', label: isGerman ? 'Objektschutz' : 'Property Protection' },
+                      { id: 'personal_security', label: isGerman ? 'Personenschutz' : 'Personal Security' },
+                      { id: 'construction_security', label: isGerman ? 'Baustellensicherheit' : 'Construction Security' },
+                      { id: 'event_security', label: isGerman ? 'Veranstaltungssicherheit' : 'Event Security' },
+                      { id: 'other', label: isGerman ? 'Sonstiges' : 'Others' }
+                    ].map(scope => (
+                      <label key={scope.id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="budgetScope"
+                          value={scope.id}
+                          checked={partnerFormData.budgetScope.includes(scope.id)}
+                          onChange={(e) => {
+                            const newBudgetScope = e.target.checked
+                              ? [...partnerFormData.budgetScope, scope.id]
+                              : partnerFormData.budgetScope.filter(b => b !== scope.id);
+                            handlePartnerFormChange('budgetScope', newBudgetScope);
+                          }}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span style={{ color: 'var(--theme-text)' }}>{scope.label}</span>
+                      </label>
+                    ))}
                   </div>
-
-                  <div>
-                    <label
-                      htmlFor="partner-city"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      {isGerman ? 'Stadt' : 'City'} *
-                    </label>
-                    <input
-                      id="partner-city"
-                      name="partner-city"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.address.city}
-                      onChange={(e) => handlePartnerFormChange('address.city', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['address.city'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'Stadt' : 'City'}
-                    />
-                    {partnerFormErrors['address.city'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.city']}</p>
-                    )}
-                  </div>
+                  {partnerFormErrors.budgetScope && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.budgetScope}</p>}
                 </div>
 
-                {/* Country and Zip Code */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="partner-country"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {isGerman ? 'Land' : 'Country'} *
-                    </label>
-                    <input
-                      id="partner-country"
-                      name="partner-country"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.address.country}
-                      onChange={(e) => handlePartnerFormChange('address.country', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['address.country'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'Land' : 'Country'}
-                    />
-                    {partnerFormErrors['address.country'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.country']}</p>
-                    )}
-                  </div>
+                {/* Company Description */}
+                <div>
+                  <label htmlFor="partner-description" className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                    📝 {isGerman ? 'Kurzbeschreibung des Projekts' : 'Brief description of the project'} *
+                  </label>
+                  <textarea
+                    id="partner-description"
+                    name="description"
+                    value={partnerFormData.companyDescription}
+                    onChange={(e) => handlePartnerFormChange('companyDescription', e.target.value)}
+                    rows="4"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      backgroundColor: 'var(--theme-input-bg)',
+                      borderColor: partnerFormErrors.companyDescription ? '#ef4444' : 'var(--theme-border)',
+                      color: 'var(--theme-text)'
+                    }}
+                    placeholder={isGerman ? 'Kurzbeschreibung...' : 'Brief description...'}
+                  />
+                  {partnerFormErrors.companyDescription && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyDescription}</p>}
+                </div>
 
-                  <div>
-                    <label
-                      htmlFor="partner-zipCode"
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: 'var(--theme-text)' }}
-                    >
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      {isGerman ? 'PLZ' : 'Zip Code'} *
-                    </label>
-                    <input
-                      id="partner-zipCode"
-                      name="partner-zipCode"
-                      type="text"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={partnerFormData.address.zipCode}
-                      onChange={(e) => handlePartnerFormChange('address.zipCode', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors['address.zipCode'] ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'PLZ' : 'Zip Code'}
-                    />
-                    {partnerFormErrors['address.zipCode'] && (
-                      <p className="text-red-500 text-sm mt-1">{partnerFormErrors['address.zipCode']}</p>
-                    )}
-                  </div>
+                {/* Partner Type */}
+                <div>
+                  <label htmlFor="partner-type" className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                    {isGerman ? 'Partner-Typ' : 'Partner Type'} *
+                  </label>
+                  <select
+                    id="partner-type"
+                    name="partnerType"
+                    value={partnerFormData.partnerType}
+                    onChange={(e) => handlePartnerFormChange('partnerType', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      backgroundColor: 'var(--theme-input-bg)',
+                      borderColor: 'var(--theme-border)',
+                      color: 'var(--theme-text)',
+                      height: '42px'
+                    }}
+                  >
+                    <option value="basic">{isGerman ? 'Standard' : 'Basic'}</option>
+                    <option value="exclusive">{isGerman ? 'Exklusiv' : 'Exclusive'}</option>
+                  </select>
                 </div>
               </div>
               </form>

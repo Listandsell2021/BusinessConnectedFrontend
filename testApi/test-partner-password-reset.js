@@ -18,7 +18,7 @@ const testPartnerData = {
     postalCode: '10115',
     country: 'Germany'
   },
-  services: ['moving']
+  services: ['security']
 };
 
 const loginData = {

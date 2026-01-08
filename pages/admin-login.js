@@ -209,7 +209,7 @@ const handleSubmit = async (e) => {
   return (
     <>
       <Head>
-        <title>{t('auth.login')} - Umzug Anbieter Vergleich</title>
+        <title>{t('auth.login')} - Business Connected</title>
         <meta name="description" content={t('auth.loginDescription')} />
       </Head>
 

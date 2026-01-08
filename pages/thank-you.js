@@ -11,13 +11,18 @@ import LanguageToggle from '../src/components/ui/LanguageToggle';
 
 export default function ThankYou() {
   const router = useRouter();
-  const { service } = router.query;
+  const { service, type } = router.query;
   const { t, isGerman } = useLanguage();
   const { mounted, isDark } = useTheme();
 
   const getServiceName = () => {
-    // Only moving service supported
-    return isGerman ? 'Umzugsservice' : 'Moving Service';
+    if (type === 'securityClient') {
+      return isGerman ? 'Sicherheitsanfrage' : 'Security Request';
+    } else if (type === 'securityCompany') {
+      return isGerman ? 'Sicherheitsunternehmen Registrierung' : 'Security Company Registration';
+    }
+    // Default to security service
+    return isGerman ? 'Sicherheitsservice' : 'Security Service';
   };
 
   if (!mounted) {
@@ -27,7 +32,7 @@ export default function ThankYou() {
   return (
     <>
       <Head>
-        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - Umzug Anbieter Vergleich</title>
+        <title>{isGerman ? 'Vielen Dank' : 'Thank You'} - Business Connected</title>
         <meta name="description" content={isGerman ? 'Ihre Anfrage wurde erfolgreich gesendet' : 'Your request has been sent successfully'} />
       </Head>
 
@@ -50,7 +55,7 @@ export default function ThankYou() {
                 transition={{ duration: 0.6 }}
               >
                 <Link href="/" className="hover:opacity-75 transition-opacity">
-                  <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={160} height={45} priority />
+                  <Image src="/business-connected-logo.svg" alt="Business Connected" width={160} height={45} priority />
                 </Link>
               </motion.div>
 
@@ -187,14 +192,14 @@ export default function ThankYou() {
             </motion.div>
 
             {/* Action Buttons */}
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
             >
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="px-8 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90 hover:scale-105"
                 style={{
                   backgroundColor: 'var(--theme-button-bg)',
@@ -204,8 +209,8 @@ export default function ThankYou() {
                 {isGerman ? 'Zur Startseite' : 'Back to Home'}
               </Link>
 
-              <Link 
-                href="/services" 
+              <Link
+                href={type === 'securityClient' ? '/client' : (type === 'securityCompany' ? '/company' : '/services')}
                 className="px-8 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-80 hover:scale-105"
                 style={{
                   backgroundColor: 'var(--theme-bg-secondary)',
@@ -224,7 +229,7 @@ export default function ThankYou() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="text-center">
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 Umzug Anbieter Vergleich. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
+                © 2024 Business Connected. {isGerman ? 'Alle Rechte vorbehalten.' : 'All rights reserved.'}
               </p>
             </div>
           </div>

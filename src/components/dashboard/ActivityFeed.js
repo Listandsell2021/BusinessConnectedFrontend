@@ -35,13 +35,13 @@ const ActivityFeed = ({ className = "" }) => {
       id: 1,
       type: 'lead_created',
       title: isGerman ? 'Neuer Lead erstellt' : 'New lead created',
-      description: isGerman ? 'Maria Schmidt - Tiefenreinigung München' : 'Maria Schmidt - Deep Cleaning Munich',
+      description: isGerman ? 'Sarah Mueller - Sicherheitsservice München' : 'Sarah Mueller - Security Service Munich',
       timestamp: new Date(Date.now() - 300000), // 5 minutes ago
       priority: 'high',
       user: 'System',
       metadata: {
-        leadValue: '€320',
-        serviceType: 'cleaning',
+        leadValue: '€520',
+        serviceType: 'security',
         location: 'München'
       }
     },
@@ -49,13 +49,13 @@ const ActivityFeed = ({ className = "" }) => {
       id: 2,
       type: 'partner_joined',
       title: isGerman ? 'Neuer Partner registriert' : 'New partner registered',
-      description: isGerman ? 'Berlin Moving Pro - Umzugsservice' : 'Berlin Moving Pro - Moving Service',
+      description: isGerman ? 'Berlin Security Pro - Sicherheitsservice' : 'Berlin Security Pro - Security Service',
       timestamp: new Date(Date.now() - 1200000), // 20 minutes ago
       priority: 'medium',
       user: 'Auto-Approval',
       metadata: {
         partnerType: 'basic',
-        serviceType: 'moving'
+        serviceType: 'security'
       }
     },
     {
@@ -75,10 +75,10 @@ const ActivityFeed = ({ className = "" }) => {
       id: 4,
       type: 'revenue_generated',
       title: isGerman ? 'Umsatz generiert' : 'Revenue generated',
-      description: isGerman ? 'Zahlung von €890 erhalten - Frankfurt Clean' : 'Payment of €890 received - Frankfurt Clean',
+      description: isGerman ? 'Zahlung von €890 erhalten - Frankfurt Security Pro' : 'Payment of €890 received - Frankfurt Security Pro',
       timestamp: new Date(Date.now() - 2700000), // 45 minutes ago
       priority: 'medium',
-      user: 'Frankfurt Clean & Shine',
+      user: 'Frankfurt Security Pro',
       metadata: {
         amount: '€890',
         commission: '€89'
@@ -93,7 +93,7 @@ const ActivityFeed = ({ className = "" }) => {
       priority: 'low',
       user: 'System Monitor',
       metadata: {
-        partner: 'Stuttgart Cleaning Services',
+        partner: 'Stuttgart Security Solutions',
         responseTime: '4.2h',
         threshold: '4h'
       }
@@ -296,12 +296,9 @@ const ActivityFeed = ({ className = "" }) => {
                       {activity.metadata.leadValue}
                     </span>
                   )}
-                  {activity.metadata.serviceType && (
+                  {activity.metadata.serviceType === 'security' && (
                     <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                      {activity.metadata.serviceType === 'moving' ?
-                        (isGerman ? 'Umzug' : 'Moving') :
-                        (isGerman ? 'Reinigung' : 'Cleaning')
-                      }
+                      {isGerman ? 'Sicherheitsservice' : 'Security Service'}
                     </span>
                   )}
                   {activity.metadata.responseTime && (

@@ -47,7 +47,7 @@ const LeadsPieChart = ({ className = "" }) => {
 
     // Only moving service is supported now
     const byService = [
-      { service: 'moving', count: stats.movingLeads || 0, color: '#667eea' }
+      { service: 'security', count: stats.movingLeads || 0, color: '#667eea' }
     ];
 
     // For display in pie, only show services with leads > 0
@@ -70,7 +70,7 @@ const LeadsPieChart = ({ className = "" }) => {
     ],
     byStatusForDisplay: [],
     byService: [
-      { service: 'moving', count: 0, color: '#667eea' }
+      { service: 'security', count: 0, color: '#667eea' }
     ],
     byServiceForDisplay: [],
     total: 0,

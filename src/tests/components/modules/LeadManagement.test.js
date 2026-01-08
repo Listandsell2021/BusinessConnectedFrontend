@@ -93,7 +93,7 @@ const mockLeads = [
     name: 'John Doe',
     email: 'john.doe@example.com',
     phone: '+1234567890',
-    service: 'moving',
+    service: 'security',
     city: 'Berlin',
     country: 'Germany',
     status: 'pending',
@@ -108,7 +108,7 @@ const mockLeads = [
     name: 'Jane Smith',
     email: 'jane.smith@example.com',
     phone: '+0987654321',
-    service: 'moving',
+    service: 'security',
     city: 'Munich',
     country: 'Germany',
     status: 'assigned',
@@ -123,7 +123,7 @@ const mockLeads = [
     name: 'Bob Johnson',
     email: 'bob.johnson@example.com',
     phone: '+1122334455',
-    service: 'moving',
+    service: 'security',
     city: 'Hamburg',
     country: 'Germany',
     status: 'accepted',
@@ -389,7 +389,7 @@ describe('LeadManagement Component', () => {
       
       await waitFor(() => {
         expect(leadsAPI.export).toHaveBeenCalledWith('xlsx', {
-          service: 'moving',
+          service: 'security',
           searchTerm: undefined,
           status: undefined,
           city: undefined,
@@ -460,7 +460,7 @@ describe('LeadManagement Component', () => {
       
       await waitFor(() => {
         expect(leadsAPI.getAll).toHaveBeenCalledWith({
-          service: 'moving',
+          service: 'security',
           partnerId: undefined
         });
       });

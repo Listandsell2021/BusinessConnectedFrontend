@@ -179,8 +179,6 @@ export const leadsAPI = {
     responseType: 'blob'
   }),
   getStats: () => api.get('/leads/stats'),
-  createMovingLead: (data) => api.post('/leads/moving', data),
-  createCleaningLead: (data) => api.post('/leads/cleaning', data),
   // Cancel requests APIs
   getCancelledRequests: (params) => api.get('/cancel-requests', { params }),
   createCancelRequest: (leadId, data) => api.post(`/leads/${leadId}/cancel-request`, data),
@@ -276,23 +274,28 @@ export const revenueAPI = {
   })
 };
 
-export const servicesAPI = {
-  getMovingServices: () => api.get('/services/moving'),
-  getCleaningServices: () => api.get('/services/cleaning'),
-  calculateQuote: (data) => api.post('/services/calculate-quote', data)
-};
-
 export const settingsAPI = {
   get: () => api.get('/settings'),
   update: (data) => api.put('/settings', data)
 };
 
-export const formConfigAPI = {
-  getMovingConfig: () => api.get('/form-config/moving'),
-  updateMovingConfig: (data) => api.put('/form-config/moving', data),
-  updateFormStep: (stepId, data) => api.put(`/form-config/moving/step/${stepId}`, data),
-  resetMovingConfig: () => api.post('/form-config/moving/reset'),
-  getConfigHistory: () => api.get('/form-config/moving/history')
+export const securityServicesAPI = {
+  // Client Form Submission
+  createSecurityClient: (data) => api.post('/security-services/clients/create', data),
+  getClients: (params) => api.get('/security-services/clients', { params }),
+  getClientById: (id) => api.get(`/security-services/clients/${id}`),
+  updateClient: (id, data) => api.put(`/security-services/clients/${id}`, data),
+  deleteClient: (id) => api.delete(`/security-services/clients/${id}`),
+  getClientStats: () => api.get('/security-services/clients/stats/summary'),
+
+  // Company Form Submission
+  createSecurityCompany: (data) => api.post('/security-services/companies/create', data),
+  getCompanies: (params) => api.get('/security-services/companies', { params }),
+  getCompanyById: (id) => api.get(`/security-services/companies/${id}`),
+  updateCompany: (id, data) => api.put(`/security-services/companies/${id}`, data),
+  updateCompanyStatus: (id, status, notes) => api.put(`/security-services/companies/${id}/status`, { status, verificationNotes: notes }),
+  deleteCompany: (id) => api.delete(`/security-services/companies/${id}`),
+  getCompanyStats: () => api.get('/security-services/companies/stats/summary')
 };
 
 export default api;

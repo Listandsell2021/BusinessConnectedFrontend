@@ -45,8 +45,7 @@ const PartnerSettings = () => {
   ]);
   
   const [availableServices] = useState([
-    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' },
-    { id: 'cleaning', name: { en: 'Cleaning Services', de: 'Reinigungsservice' }, icon: '🧽' }
+    { id: 'security', name: { en: 'Security Services', de: 'Sicherheitsservice' }, icon: '🛡️' }
   ]);
   
   const [saving, setSaving] = useState(false);
@@ -76,7 +75,7 @@ const PartnerSettings = () => {
           if (data.success && data.partner) {
             const partner = data.partner;
             setSettings({
-              services: partner.services || user?.services || ['moving'],
+              services: partner.services || user?.services || ['security'],
               cities: ['Berlin', 'Hamburg'],
               countries: ['Germany'],
               radius: 50,
@@ -95,7 +94,7 @@ const PartnerSettings = () => {
           console.error('Error loading partner profile:', error);
           // Fallback to default values
           setSettings({
-            services: user?.services || ['moving'],
+            services: user?.services || ['security'],
             cities: ['Berlin', 'Hamburg'],
             countries: ['Germany'],
             radius: 50,
@@ -143,7 +142,7 @@ const PartnerSettings = () => {
         newServices = prev.services.filter(s => s !== serviceId);
         // Ensure at least one service is always selected
         if (newServices.length === 0) {
-          newServices = ['moving']; // Default to moving if trying to unselect all
+          newServices = ['security']; // Default to security if trying to unselect all
         }
       }
       return {
@@ -485,16 +484,13 @@ const PartnerSettings = () => {
           {/* Current Service Context */}
           <div className="p-4 rounded-lg border border-blue-200/30 bg-blue-50/10">
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">{currentService === 'moving' ? '🚛' : '🧽'}</span>
+              <span className="text-2xl">🛡️</span>
               <div>
                 <div className="font-semibold" style={{ color: 'var(--theme-text)' }}>
-                  {currentService === 'moving' 
-                    ? (isGerman ? 'Umzugsservice' : 'Moving Service')
-                    : (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
-                  }
+                  {isGerman ? 'Sicherheitsservice' : 'Security Service'}
                 </div>
                 <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                  {isGerman 
+                  {isGerman
                     ? 'Einstellungen für diesen Service'
                     : 'Settings for this service'
                   }
@@ -506,9 +502,9 @@ const PartnerSettings = () => {
           {/* Cities */}
           <div>
             <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-              {isGerman 
-                ? `Verfügbare Städte für ${currentService === 'moving' ? 'Umzugsservice' : 'Reinigungsservice'}`
-                : `Available Cities for ${currentService === 'moving' ? 'Moving Service' : 'Cleaning Service'}`
+              {isGerman
+                ? 'Verfügbare Städte für Sicherheitsservice'
+                : 'Available Cities for Security Service'
               }
             </label>
             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
@@ -525,9 +521,9 @@ const PartnerSettings = () => {
               ))}
             </div>
             <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman 
-                ? `${settings.cities.length} Städte für ${currentService === 'moving' ? 'Umzüge' : 'Reinigung'} ausgewählt`
-                : `${settings.cities.length} cities selected for ${currentService === 'moving' ? 'moving' : 'cleaning'} services`
+              {isGerman
+                ? `${settings.cities.length} Städte für Sicherheitsservice ausgewählt`
+                : `${settings.cities.length} cities selected for security services`
               }
             </p>
           </div>
@@ -552,76 +548,12 @@ const PartnerSettings = () => {
             </div>
           </div>
 
-          {/* Radius Settings - Based on Current Service */}
-          {currentService === 'moving' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Radius Abholungsort (km)' : 'From Address Radius (km)'}
-                </label>
-                <input
-                  type="range"
-                  min="10"
-                  max="200"
-                  value={settings.fromRadius}
-                  onChange={(e) => setSettings(prev => ({ ...prev, fromRadius: parseInt(e.target.value) }))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                  <span>10km</span>
-                  <span className="font-medium">{settings.fromRadius}km</span>
-                  <span>200km</span>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Radius Zielort (km)' : 'To Address Radius (km)'}
-                </label>
-                <input
-                  type="range"
-                  min="10"
-                  max="200"
-                  value={settings.toRadius}
-                  onChange={(e) => setSettings(prev => ({ ...prev, toRadius: parseInt(e.target.value) }))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                  <span>10km</span>
-                  <span className="font-medium">{settings.toRadius}km</span>
-                  <span>200km</span>
-                </div>
-              </div>
-            </>
-          )}
-          
-          {currentService === 'cleaning' && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Service-Radius (km)' : 'Service Radius (km)'}
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="100"
-                value={settings.radius}
-                onChange={(e) => setSettings(prev => ({ ...prev, radius: parseInt(e.target.value) }))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                <span>10km</span>
-                <span className="font-medium">{settings.radius}km</span>
-                <span>100km</span>
-              </div>
-            </div>
-          )}
-
           {/* Average Leads Per Week - Service Specific */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman 
-                ? `Gewünschte ${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Leads pro Woche`
-                : `Desired ${currentService === 'moving' ? 'Moving' : 'Cleaning'} Leads Per Week`
+              {isGerman
+                ? 'Gewünschte Sicherheits-Leads pro Woche'
+                : 'Desired Security Leads Per Week'
               }
             </label>
             <input
@@ -638,9 +570,9 @@ const PartnerSettings = () => {
               <span>20</span>
             </div>
             <p className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-              {isGerman 
-                ? `Das CRM verwendet diese Einstellung für eine faire ${currentService === 'moving' ? 'Umzugs-' : 'Reinigungs-'}Lead-Verteilung`
-                : `CRM uses this setting for fair ${currentService === 'moving' ? 'moving' : 'cleaning'} lead distribution`
+              {isGerman
+                ? 'Das CRM verwendet diese Einstellung für eine faire Sicherheits-Lead-Verteilung'
+                : 'CRM uses this setting for fair security lead distribution'
               }
             </p>
           </div>

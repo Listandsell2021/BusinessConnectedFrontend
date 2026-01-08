@@ -26,8 +26,8 @@ const getApiBaseUrl = () => {
   }
 
   // Staging/Production environment
-  if (hostname === 'app.umzug-anbieter-vergleich.de') {
-    return 'https://api.umzug-anbieter-vergleich.de/api';
+  if (hostname === 'dv-app-business-connected24.listandsell.eu') {
+    return 'https://dv-api-business-connected24.listandsell.eu';
   }
 
   // Fallback: construct based on current domain for other production environments

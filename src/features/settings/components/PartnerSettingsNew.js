@@ -29,8 +29,8 @@ const PartnerSettingsNew = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Available services from database (moving, cleaning)
-  const [availableServices] = useState(['moving', 'cleaning']);
+  // Available services - security only
+  const [availableServices] = useState(['security']);
   
   // European countries and cities data - always show in English
   const [availableCountries] = useState([
@@ -694,7 +694,7 @@ const PartnerSettingsNew = () => {
           }
         };
       });
-    } else if (service === 'moving' && addressType) {
+    } else if (service === 'security' && addressType) {
       // For moving service, update both serviceArea AND citySettings (nested structure)
       setSettings(prev => {
         console.log(`🔍 BEFORE UPDATE - Full prev state for ${addressType}:`, JSON.stringify(prev.preferences[addressType], null, 2));
@@ -1641,7 +1641,8 @@ const PartnerSettingsNew = () => {
           
           <div className="space-y-8">
 
-            {/* Pickup Address Configuration */}
+            {/* Pickup Address Configuration - For Moving/Cleaning Partners Only */}
+            {partnerServiceType !== 'security' && (
             <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#10b981' }}>
               <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
                 📦 {isGerman ? 'Abholungsadresse-Konfiguration' : 'Pickup Address Configuration'}
@@ -1847,8 +1848,10 @@ const PartnerSettingsNew = () => {
                 </div>
               )}
             </div>
-            
-            {/* Destination Address Configuration */}
+            )}
+
+            {/* Destination Address Configuration - For Moving/Cleaning Partners Only */}
+            {partnerServiceType !== 'security' && (
             <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
               <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
                 <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -2057,372 +2060,30 @@ const PartnerSettingsNew = () => {
                 </div>
               )}
             </div>
-            
-            {/* Summary */}
-            {((settings.preferences.pickup?.countries?.length || 0) > 0 ||
-             (settings.preferences.destination?.countries?.length || 0) > 0 ||
-             Object.keys(settings.preferences.pickup?.citySettings || {}).length > 0 ||
-             Object.keys(settings.preferences.destination?.citySettings || {}).length > 0) && (
-              <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
-                <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
-                📦 {isGerman ? 'Abholung:' : 'Pickup:'} {settings.preferences.pickup?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
-                  Object.keys(settings.preferences.pickup?.serviceArea || {}).reduce((total, country) => {
-                    const countryData = settings.preferences.pickup?.serviceArea?.[country];
-                    return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
-                  }, 0)
-                } {isGerman ? 'Städte' : 'cities'}<br/>
-                {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
-                  Object.keys(settings.preferences.destination?.serviceArea || {}).reduce((total, country) => {
-                    const countryData = settings.preferences.destination?.serviceArea?.[country];
-                    return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
-                  }, 0)
-                } {isGerman ? 'Städte' : 'cities'}
-              </div>
             )}
 
-          </div>
-        </div>
-      )}
-
-      {/* Cleaning Service Settings */}
-      {(!currentService || currentService === 'cleaning') && (
-        <div key={`cleaning-${remountKey}`} className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-            <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Settings'}
-          </h3>
-
-          <div className="border rounded-lg p-4 mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-            <h4 className="font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-              {isGerman ? 'Radius-Erklärung:' : 'Radius Explanation:'}
-            </h4>
-            <ul className="text-sm space-y-1" style={{ color: 'var(--theme-text)' }}>
-              <li>• <strong>0 km:</strong> {isGerman ? 'Service nur innerhalb der Stadtgrenzen' : 'Service only within city boundaries'}</li>
-              <li>• <strong>{isGerman ? 'Höhere Werte:' : 'Higher values:'}</strong> {isGerman ? 'Service-Radius um die Stadt herum' : 'Service radius around the city'}</li>
-            </ul>
-          </div>
-
-          <div className="space-y-8">
-
-            {/* Service Area Configuration */}
-            <div className="border-l-4 p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: '#3b82f6' }}>
-              <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
-                <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {isGerman ? 'Service-Bereich-Konfiguration' : 'Service Area Configuration'}
-              </h4>
-
-              {/* Country Dropdown for Cleaning */}
-              <div className="rounded-lg border p-4 max-w-md mb-6" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Land hinzufügen:' : 'Add Country:'}
-                  </label>
-                  <select
-                    className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-                    style={{
-                      backgroundColor: 'var(--theme-input-bg)',
-                      borderColor: 'var(--theme-border)',
-                      color: 'var(--theme-text)'
-                    }}
-                    onChange={(e) => {
-                      const configuredCountries = getConfiguredCountries('serviceArea');
-                      if (e.target.value && !configuredCountries.includes(e.target.value)) {
-                        handleCountryToggle(e.target.value, true, 'serviceArea');
-                        e.target.value = '';
-                      }
-                    }}
-                  >
-                    <option value="">{isGerman ? 'Land auswählen...' : 'Select country...'}</option>
-                    {availableCountries
-                      .filter(country => !getConfiguredCountries('serviceArea').includes(country.name))
-                      .map(country => (
-                        <option key={country.code} value={country.name}>
-                          {country.name}
-                        </option>
-                      ))}
-                  </select>
-                  {getConfiguredCountries('serviceArea').length > 0 && (
-                    <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>
-                      {getConfiguredCountries('serviceArea').length}
-                    </span>
-                  )}
+            {/* Summary - Only for Moving/Cleaning Partners */}
+            {partnerServiceType !== 'security' && (
+              ((settings.preferences.pickup?.countries?.length || 0) > 0 ||
+               (settings.preferences.destination?.countries?.length || 0) > 0 ||
+               Object.keys(settings.preferences.pickup?.citySettings || {}).length > 0 ||
+               Object.keys(settings.preferences.destination?.citySettings || {}).length > 0) ? (
+                <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
+                  <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
+                  📦 {isGerman ? 'Abholung:' : 'Pickup:'} {settings.preferences.pickup?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
+                    Object.keys(settings.preferences.pickup?.serviceArea || {}).reduce((total, country) => {
+                      const countryData = settings.preferences.pickup?.serviceArea?.[country];
+                      return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
+                    }, 0)
+                  } {isGerman ? 'Städte' : 'cities'}<br/>
+                  {isGerman ? 'Lieferung:' : 'Destination:'} {settings.preferences.destination?.countries?.length || 0} {isGerman ? 'Länder' : 'countries'}, {
+                    Object.keys(settings.preferences.destination?.serviceArea || {}).reduce((total, country) => {
+                      const countryData = settings.preferences.destination?.serviceArea?.[country];
+                      return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
+                    }, 0)
+                  } {isGerman ? 'Städte' : 'cities'}
                 </div>
-              </div>
-
-              {/* Selected Countries for Cleaning */}
-              {getConfiguredCountries('serviceArea').length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getConfiguredCountries('serviceArea').map((countryName) => {
-                  // First, check if countryName is actually a country code
-                  let country = availableCountries.find(c => c.code === countryName);
-
-                  // If not found by code, try to find by name
-                  if (!country) {
-                    country = availableCountries.find(c => c.name === countryName);
-                  }
-
-                  // If still not found, try the English name mapping
-                  if (!country) {
-                    const englishToCode = {
-                      'Germany': 'DE', 'Austria': 'AT', 'Switzerland': 'CH', 'Netherlands': 'NL',
-                      'Belgium': 'BE', 'France': 'FR', 'Italy': 'IT', 'Spain': 'ES',
-                      'Portugal': 'PT', 'Poland': 'PL', 'Czech Republic': 'CZ', 'Slovakia': 'SK',
-                      'Hungary': 'HU', 'Romania': 'RO', 'Bulgaria': 'BG', 'Croatia': 'HR',
-                      'Slovenia': 'SI', 'Greece': 'GR', 'Denmark': 'DK', 'Sweden': 'SE',
-                      'Norway': 'NO', 'Finland': 'FI', 'Estonia': 'EE', 'Latvia': 'LV',
-                      'Lithuania': 'LT', 'Ireland': 'IE', 'United Kingdom': 'GB', 'Luxembourg': 'LU'
-                    };
-                    const code = englishToCode[countryName];
-                    if (code) {
-                      country = availableCountries.find(c => c.code === code);
-                    }
-                  }
-
-                  const countryCode = country?.code || countryName; // fallback to countryName if it's a valid code
-                  const cities = citiesByCountry[countryCode] || [];
-                  const selectedCities = getSelectedCitiesForCountry(countryName, 'serviceArea');
-
-
-                  return (
-                    <div
-                      key={countryName}
-                      className="border rounded-lg p-4"
-                      style={{
-                        backgroundColor: 'var(--theme-bg)',
-                        borderColor: 'var(--theme-border)'
-                      }}
-                    >
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-lg" style={{ color: 'var(--theme-text)' }}>
-                            {country?.flag} {country?.name || countryName}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleCountryToggle(countryName, false, 'serviceArea')}
-                          className="text-red-500 hover:text-red-700 text-lg font-bold"
-                          title={isGerman ? 'Land entfernen' : 'Remove country'}
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      {/* Service Type Toggle */}
-                      <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-                        <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                          {isGerman ? 'Service-Bereich:' : 'Service Area:'}
-                        </label>
-                        <div className="flex items-center gap-4">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`cleaning-${countryName}-service-type`}
-                              checked={!getCountryServiceType(countryName, 'serviceArea')}
-                              onChange={() => handleServiceTypeChange(countryName, 'country', 'serviceArea')}
-                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {isGerman ? 'Ganzes Land' : 'Whole Country'}
-                            </span>
-                          </label>
-
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`cleaning-${countryName}-service-type`}
-                              checked={getCountryServiceType(countryName, 'serviceArea')}
-                              onChange={() => handleServiceTypeChange(countryName, 'cities', 'serviceArea')}
-                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {isGerman ? 'Nur bestimmte Städte' : 'Specific Cities Only'}
-                            </span>
-                          </label>
-                        </div>
-
-                        <div className="mt-2 text-xs" style={{ color: 'var(--theme-muted)' }}>
-                          {!getCountryServiceType(countryName, 'serviceArea')
-                            ? (isGerman ? 'Reinigung im gesamten Land verfügbar' : 'Cleaning available throughout the entire country')
-                            : (isGerman ? 'Reinigung nur in ausgewählten Städten verfügbar' : 'Cleaning only available in selected cities')
-                          }
-                        </div>
-                      </div>
-
-                      {/* City Dropdown - Only show when "Specific Cities Only" is selected */}
-                      {getCountryServiceType(countryName, 'serviceArea') && (
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                            {isGerman ? 'Stadt hinzufügen:' : 'Add City:'}
-                          </label>
-                          <select
-                            className="w-full px-3 py-2 border rounded"
-                            style={{
-                              backgroundColor: 'var(--theme-input-bg)',
-                              borderColor: 'var(--theme-border)',
-                              color: 'var(--theme-text)'
-                            }}
-                            onChange={(e) => {
-                              if (e.target.value && !selectedCities.includes(e.target.value)) {
-                                handleCityToggle('cleaning', e.target.value, true, countryName, 'serviceArea');
-                                e.target.value = '';
-                              }
-                            }}
-                          >
-                            <option value="">{isGerman ? 'Stadt auswählen...' : 'Select city...'}</option>
-                            {cities
-                              .filter(city => !selectedCities.includes(city))
-                              .map(city => (
-                                <option key={city} value={city}>
-                                  {city}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Selected Cities */}
-                      {getCountryServiceType(countryName, 'serviceArea') && (
-                        <div>
-                          <label className="block text-sm font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
-                            {isGerman ? 'Ausgewählte Städte:' : 'Selected Cities:'}
-                          </label>
-                          <div className="space-y-3">
-                            {selectedCities.map(city => {
-                              const cityKey = `${countryName}-${city}`;
-                              // Get radius from citySettings (flattened structure)
-                              const citySettings = settings.preferences.serviceArea.citySettings || {};
-                              const radius = citySettings[cityKey]?.radius || 0;
-                              const isCityOnly = radius === 0;
-
-                              return (
-                                <div key={city} className="p-3 rounded border space-y-3" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium" style={{ color: 'var(--theme-text)' }}>
-                                      {city}
-                                    </span>
-                                    <button
-                                      onClick={() => handleCityToggle('cleaning', city, false, countryName, 'serviceArea')}
-                                      className="text-red-500 hover:text-red-700 font-medium"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`cleaning-${cityKey}-type`}
-                                          checked={isCityOnly}
-                                          onChange={() => handleCityRadiusToggle(cityKey, 'city', 'serviceArea')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Nur Stadt' : 'City Only'}
-                                        </span>
-                                      </label>
-
-                                      <label className="flex items-center cursor-pointer">
-                                        <input
-                                          type="radio"
-                                          name={`cleaning-${cityKey}-type`}
-                                          checked={!isCityOnly}
-                                          onChange={() => handleCityRadiusToggle(cityKey, 'radius', 'serviceArea')}
-                                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                                          {isGerman ? 'Mit Umkreis' : 'With Radius'}
-                                        </span>
-                                      </label>
-                                    </div>
-                                  </div>
-
-                                  {/* Radius Slider - Only show when "With Radius" is selected */}
-                                  {!isCityOnly && (
-                                    <div className="pt-2">
-                                      <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                                        📏 {isGerman ? 'Umkreis:' : 'Radius:'} {' '}
-                                        <span className="font-bold text-blue-600">
-                                          {radius} km
-                                        </span>
-                                      </label>
-                                      <input
-                                        type="range"
-                                        min="1"
-                                        max="200"
-                                        step="5"
-                                        value={radius}
-                                        onChange={(e) => handleCityRadiusChange(cityKey, parseInt(e.target.value), 'cleaning')}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                                        style={{ background: 'linear-gradient(to right, #3b82f6 0%, #3b82f6 50%, #d1d5db 50%, #d1d5db 100%)' }}
-                                      />
-                                      <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                                        <span>1km</span>
-                                        <span>200km</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Whole Country Info - Only show when "Whole Country" is selected */}
-                      {!getCountryServiceType(countryName, 'serviceArea') && (
-                        <div className="mb-4 p-3 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: '#10b981' }}>
-                          <div className="flex items-center">
-                            <span className="mr-2" style={{ color: '#10b981' }}>✓</span>
-                            <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                              {isGerman ?
-                                `Service im gesamten ${getCountryNameFromCode(countryName)} verfügbar` :
-                                `Service available throughout ${getCountryNameFromCode(countryName)}`
-                              }
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                </div>
-              )}
-
-              {/* Instructions when no countries selected */}
-              {getConfiguredCountries('serviceArea').length === 0 && (
-                <div className="text-center py-8 border-2 border-dashed rounded-lg" style={{ borderColor: 'var(--theme-border)' }}>
-                  <div className="text-4xl mb-2">🌍</div>
-                  <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                    {isGerman ? 'Keine Länder ausgewählt' : 'No Countries Selected'}
-                  </h3>
-                  <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                    {isGerman ?
-                      'Wählen Sie Länder aus dem Dropdown-Menü oben aus, um Ihren Service-Bereich zu konfigurieren.' :
-                      'Select countries from the dropdown above to configure your service area.'
-                    }
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Summary */}
-            {getConfiguredCountries('serviceArea').length > 0 && (
-              <div className="text-sm p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-muted)' }}>
-                <strong>{isGerman ? 'Zusammenfassung:' : 'Summary:'}</strong><br/>
-                {isGerman ? 'Reinigungsservice:' : 'Cleaning Service:'} {getConfiguredCountries('serviceArea').length} {isGerman ? 'Länder' : 'countries'}, {
-                  Object.keys(settings.preferences.serviceArea.serviceArea || {}).reduce((total, country) => {
-                    const countryData = settings.preferences.serviceArea.serviceArea[country];
-                    return total + (countryData?.cities ? Object.keys(countryData.cities).length : 0);
-                  }, 0)
-                } {isGerman ? 'Städte' : 'cities'}
-              </div>
+              ) : null
             )}
 
           </div>

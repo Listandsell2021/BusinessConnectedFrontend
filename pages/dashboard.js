@@ -323,61 +323,79 @@ export default function Dashboard({ initialData = {} }) {
     return [
       {
         id: 1,
-        name: 'Maria Schmidt',
-        email: 'maria.schmidt@email.com',
-        phone: '+49 89 123456',
-        service: isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
-        serviceType: 'cleaning',
+        name: 'Thomas Weber',
+        email: 'thomas.weber@company.de',
+        phone: '+49 89 456789',
+        service: isGerman ? 'Sicherheitsanfrage' : 'Security Request',
+        serviceType: 'securityClient',
         location: 'München',
-        address: 'Maximilianstraße 35',
-        value: '€320',
-        estimatedTime: '4 hours',
+        address: 'Bürogebäude Sicherheit...',
+        value: '€-',
+        estimatedTime: '-',
         status: 'new',
-        time: '5 min ago',
+        time: '10 min ago',
         priority: 'high',
-        avatar: '👩',
+        avatar: '👨',
       },
       {
         id: 2,
-        name: 'Hans Mueller',
-        email: 'hans.mueller@email.com',
-        phone: '+49 89 654321',
-        service: isGerman ? 'Büroumzug' : 'Office Move',
-        serviceType: 'moving',
+        name: 'SafeGuard GmbH',
+        email: 'info@safeguard.de',
+        phone: '+49 89 987654',
+        service: isGerman ? 'Sicherheitsunternehmen' : 'Security Company',
+        serviceType: 'securityCompany',
         location: 'Berlin',
-        address: 'Friedrichstraße 123',
-        value: '€850',
-        estimatedTime: '6 hours',
-        status: 'qualified',
-        time: '2 hours ago',
+        address: 'Alexanderstraße 12, Berlin',
+        value: '€-',
+        estimatedTime: '-',
+        status: 'new',
+        time: '1 hour ago',
         priority: 'medium',
-        avatar: '👨',
+        avatar: '🏢',
       }
     ];
   };
 
   const getServiceDisplayName = (lead) => {
-    if (lead.serviceType === 'moving') {
-      const moveType = lead.moveType || lead.formData?.movingType;
-      if (moveType === 'business') return isGerman ? 'Büroumzug' : 'Office Move';
-      if (moveType === 'long_distance') return isGerman ? 'Fernumzug' : 'Long Distance Move';
-      if (moveType === 'special_transport') return isGerman ? 'Spezialtransport' : 'Special Transport';
-      return isGerman ? 'Umzug' : 'Moving';
+    // Handle security services
+    if (lead.formType === 'securityClient' || lead.serviceType === 'securityClient') {
+      return isGerman ? 'Sicherheitsanfrage' : 'Security Request';
     }
-    return isGerman ? 'Reinigung' : 'Cleaning';
+    if (lead.formType === 'securityCompany' || lead.serviceType === 'securityCompany') {
+      return isGerman ? 'Sicherheitsunternehmen' : 'Security Company';
+    }
+
+    // Default to security (this is a security portal only)
+    return isGerman ? 'Sicherheitsservice' : 'Security Service';
   };
 
   const getLocationDisplay = (lead) => {
-    if (lead.formData?.pickupAddress?.city) {
-      return lead.formData.pickupAddress.city;
+    // Handle security client
+    if (lead.formType === 'securityClient' || lead.serviceType === 'securityClient') {
+      return lead.formData?.location || lead.formData?.city || 'Unknown location';
     }
-    return lead.serviceLocation?.city || '';
+
+    // Handle security company
+    if (lead.formType === 'securityCompany' || lead.serviceType === 'securityCompany') {
+      return lead.formData?.city || 'Unknown location';
+    }
+
+    return 'Unknown location';
   };
 
   const getAddressDisplay = (lead) => {
-    if (lead.formData?.pickupAddress?.address) {
-      return lead.formData.pickupAddress.address;
+    // Handle security client
+    if (lead.formType === 'securityClient' || lead.serviceType === 'securityClient') {
+      return lead.formData?.description ? `${lead.formData.description.substring(0, 50)}...` : '';
     }
+
+    // Handle security company
+    if (lead.formType === 'securityCompany' || lead.serviceType === 'securityCompany') {
+      const street = lead.formData?.street || '';
+      const city = lead.formData?.city || '';
+      return street && city ? `${street}, ${city}` : street || city || '';
+    }
+
     return '';
   };
 
@@ -667,105 +685,105 @@ export default function Dashboard({ initialData = {} }) {
   const allRecentLeads = [
     {
       id: 1,
-      name: 'Maria Schmidt',
-      email: 'maria.schmidt@email.com',
-      phone: '+49 89 123456',
-      service: isGerman ? 'Tiefenreinigung' : 'Deep Cleaning',
-      serviceType: 'cleaning',
+      name: 'Thomas Weber',
+      email: 'thomas.weber@company.de',
+      phone: '+49 89 456789',
+      service: isGerman ? 'Sicherheitsanfrage' : 'Security Request',
+      serviceType: 'securityClient',
       location: 'München',
-      address: 'Maximilianstraße 35',
-      value: '€320',
-      estimatedTime: '4 hours',
+      address: 'Bürogebäude Sicherheit...',
+      value: '€-',
+      estimatedTime: '-',
       status: 'new',
-      time: '5 min ago',
+      time: '10 min ago',
       priority: 'high',
-      avatar: '👩',
-      notes: isGerman ? '3-Zimmer Wohnung, Erstberatung gewünscht' : '3-room apartment, initial consultation wanted'
+      avatar: '👨',
+      notes: isGerman ? '24-Stunden Sicherheitscoverage für Bürogebäude' : '24-hour security coverage for office building'
     },
     {
       id: 2,
-      name: 'Thomas Weber',
-      email: 'thomas.weber@company.de',
-      phone: '+49 30 987654',
-      service: isGerman ? 'Büroumzug' : 'Office Relocation',
-      serviceType: 'moving',
+      name: 'SafeGuard GmbH',
+      email: 'info@safeguard.de',
+      phone: '+49 89 987654',
+      service: isGerman ? 'Sicherheitsunternehmen' : 'Security Company',
+      serviceType: 'securityCompany',
       location: 'Berlin',
-      address: 'Unter den Linden 77',
-      value: '€2,100',
-      estimatedTime: '2 days',
-      status: 'quoted',
-      time: '12 min ago',
-      priority: 'high',
-      avatar: '👨',
-      notes: isGerman ? '50 Mitarbeiter, Umzug am Wochenende' : '50 employees, weekend move required'
+      address: 'Alexanderstraße 12, Berlin',
+      value: '€-',
+      estimatedTime: '-',
+      status: 'new',
+      time: '1 hour ago',
+      priority: 'medium',
+      avatar: '🏢',
+      notes: isGerman ? 'Lizenziertes Sicherheitsunternehmen mit 50+ Personal' : 'Licensed security company with 50+ staff'
     },
     {
       id: 3,
-      name: 'Anna Müller',
-      email: 'anna.mueller@gmail.com',
+      name: 'Dr. Klaus Hoffmann',
+      email: 'k.hoffmann@universität.de',
       phone: '+49 40 555123',
-      service: isGerman ? 'Wohnungsreinigung' : 'Apartment Cleaning',
-      serviceType: 'cleaning',
+      service: isGerman ? 'Sicherheitsanfrage' : 'Security Request',
+      serviceType: 'securityClient',
       location: 'Hamburg',
-      address: 'Reeperbahn 154',
-      value: '€180',
-      estimatedTime: '3 hours',
-      status: 'contacted',
+      address: 'Universitätscampus...',
+      value: '€-',
+      estimatedTime: '-',
+      status: 'new',
       time: '25 min ago',
       priority: 'medium',
-      avatar: '👱‍♀️',
-      notes: isGerman ? 'Wöchentliche Reinigung gewünscht' : 'Weekly cleaning service wanted'
+      avatar: '👨‍🔬',
+      notes: isGerman ? 'Campussicherheit, 24/7 Überwachung' : 'Campus security, 24/7 monitoring'
     },
     {
       id: 4,
-      name: 'Klaus Fischer',
-      email: 'k.fischer@web.de',
+      name: 'ProSecure Solutions',
+      email: 'contact@prosecure.de',
       phone: '+49 69 444789',
-      service: isGerman ? 'Fernumzug' : 'Long Distance Move',
-      serviceType: 'moving',
+      service: isGerman ? 'Sicherheitsunternehmen' : 'Security Company',
+      serviceType: 'securityCompany',
       location: 'Frankfurt',
-      address: 'Römerplatz 9',
-      value: '€1,650',
-      estimatedTime: '1 day',
-      status: 'qualified',
+      address: 'Römerplatz 9, Frankfurt',
+      value: '€-',
+      estimatedTime: '-',
+      status: 'new',
       time: '1 hour ago',
       priority: 'high',
-      avatar: '👨‍💼',
-      notes: isGerman ? 'Umzug nach Stuttgart, Verpackungsservice' : 'Move to Stuttgart, packing service needed'
+      avatar: '🏢',
+      notes: isGerman ? 'Spezialist für Objektschutz und VIP-Schutz' : 'Specialist in property and VIP protection'
     },
     {
       id: 5,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@outlook.com',
+      name: 'Angela Meier',
+      email: 'a.meier@retail.com',
       phone: '+49 89 777333',
-      service: isGerman ? 'Fensterreinigung' : 'Window Cleaning',
-      serviceType: 'cleaning',
+      service: isGerman ? 'Sicherheitsanfrage' : 'Security Request',
+      serviceType: 'securityClient',
       location: 'München',
-      address: 'Marienplatz 12',
-      value: '€95',
-      estimatedTime: '2 hours',
+      address: 'Einzelhandelsstandort...',
+      value: '€-',
+      estimatedTime: '-',
       status: 'new',
       time: '2 hours ago',
-      priority: 'low',
-      avatar: '👩‍🦰',
-      notes: isGerman ? 'Bürogebäude, monatlicher Service' : 'Office building, monthly service'
+      priority: 'medium',
+      avatar: '👩‍💼',
+      notes: isGerman ? 'Verkaufsfläche mit Diebstahlschutz' : 'Retail space with theft prevention'
     },
     {
       id: 6,
-      name: 'Michael Chen',
-      email: 'michael.chen@tech.com',
+      name: 'SecureNet GmbH',
+      email: 'sales@securenet.de',
       phone: '+49 30 888999',
-      service: isGerman ? 'IT-Umzug' : 'IT Relocation',
-      serviceType: 'moving',
+      service: isGerman ? 'Sicherheitsunternehmen' : 'Security Company',
+      serviceType: 'securityCompany',
       location: 'Berlin',
-      address: 'Potsdamer Platz 1',
-      value: '€2,800',
-      estimatedTime: '3 days',
-      status: 'quoted',
+      address: 'Potsdamer Platz 1, Berlin',
+      value: '€-',
+      estimatedTime: '-',
+      status: 'new',
       time: '3 hours ago',
-      priority: 'high',
-      avatar: '👨‍💻',
-      notes: isGerman ? 'Server-Raum, spezielle Handling erforderlich' : 'Server room, special handling required'
+      priority: 'medium',
+      avatar: '🏢',
+      notes: isGerman ? 'Full-Service-Sicherheitsdienstleistungen' : 'Full-service security services'
     }
   ];
 
@@ -1322,7 +1340,7 @@ export default function Dashboard({ initialData = {} }) {
           {activeTab === 'overview' 
             ? (isGerman ? 'CRM Dashboard' : 'CRM Dashboard')
             : getMenuItems().find(item => item.id === activeTab)?.label || 'Dashboard'
-          } - Umzug Anbieter Vergleich
+          } - Business Connected
         </title>
         <meta name="description" content="Advanced CRM system for managing leads, partners, and business operations with stunning UI" />
       </Head>
@@ -1359,7 +1377,7 @@ export default function Dashboard({ initialData = {} }) {
                   transition={{ delay: 0.3 }}
                 >
                   <Link href="/" className="flex items-center">
-                    <Image src={isDark ? "/logo-dark.svg" : "/logo-light.svg"} alt="Umzug Anbieter Vergleich" width={200} height={56} priority />
+                    <Image src="/business-connected-logo.svg" alt="Business Connected" width={200} height={56} priority />
                   </Link>
                 </motion.div>
               )}
@@ -1513,15 +1531,15 @@ export default function Dashboard({ initialData = {} }) {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <motion.span 
+                      <motion.span
                         className="text-lg"
                         animate={{ rotate: [0, 10, -10, 0] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        🚛
+                        🛡️
                       </motion.span>
                       <span className="text-sm font-medium">
-                        {isGerman ? 'Umzugsservice' : 'Moving Service'}
+                        {isGerman ? 'Sicherheitsservice' : 'Security Service'}
                       </span>
                     </motion.div>
                   )}

@@ -743,7 +743,7 @@ ${isGerman ? 'Rechnungsdetails:' : 'Invoice Details:'}
 - ${isGerman ? 'Fälligkeitsdatum:' : 'Due Date:'} ${formatDate(invoice.dueAt)}
 
 ${isGerman ? 'Mit freundlichen Grüßen' : 'Best regards'},
-${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleich Team'}`;
+${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
 
       // For now, we'll create a mailto link - in production this would be an API call
       const mailtoLink = `mailto:${partnerEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
@@ -1058,7 +1058,7 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
     }
 
     // Check if we have any leads and what service type they are
-    const hasMovingLeads = leads.some(lead => lead.serviceType === 'moving');
+    const hasMovingLeads = leads.some(lead => lead.serviceType === 'security');
     const hasCleaningLeads = leads.some(lead => lead.serviceType === 'cleaning');
     const isMovingOnly = hasMovingLeads && !hasCleaningLeads;
     const isCleaningOnly = hasCleaningLeads && !hasMovingLeads;
@@ -1146,27 +1146,24 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
               return 'N/A';
             };
 
-            // Get pickup and destination addresses based on service type
-            let pickupDisplay = 'N/A';
-            let destinationDisplay = 'N/A';
+            // Get location addresses based on service type
+            let locationDisplay = 'N/A';
 
-            if (item.serviceType === 'moving') {
-              // For moving: show city, country for both pickup and destination
-              const pickupAddress = item.formData?.pickupAddressOriginal ||
-                                  item.formData?.pickupAddress ||
-                                  item.pickupLocation;
-              const destinationAddress = item.formData?.destinationAddressOriginal ||
-                                       item.formData?.destinationAddress ||
-                                       item.destinationLocation;
+            if (item.serviceType === 'security') {
+              // For security: show service location (city & postal code)
+              const city = item.formData?.location?.city || item.city || '';
+              const postalCode = item.formData?.location?.postalCode || item.postalCode || '';
+              const country = item.formData?.location?.country || item.country || 'Germany';
 
-              pickupDisplay = extractCityCountry(pickupAddress);
-              destinationDisplay = extractCityCountry(destinationAddress);
+              if (city || postalCode) {
+                locationDisplay = `${city}${postalCode ? ` ${postalCode}` : ''}, ${country}`;
+              }
             } else if (item.serviceType === 'cleaning') {
               // For cleaning: only destination/service address, no pickup
               const serviceAddress = item.serviceLocation?.serviceAddress ||
                                     item.formData?.serviceAddress ||
                                     item.formData?.address;
-              destinationDisplay = extractCityCountry(serviceAddress);
+              locationDisplay = extractCityCountry(serviceAddress);
             }
 
             return (
@@ -1199,17 +1196,10 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
                     </div>
                   </div>
                 </td>
-                {/* Show Pickup column only for moving leads or mixed */}
-                {!isCleaningOnly && (
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                      {item.serviceType === 'moving' ? pickupDisplay : 'N/A'}
-                    </div>
-                  </td>
-                )}
+                {/* Show Location column */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
-                    {destinationDisplay}
+                    {locationDisplay}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
@@ -1545,9 +1535,9 @@ ${isGerman ? 'Ihr Umzug Anbieter Vergleich Team' : 'Your Umzug Anbieter Vergleic
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.serviceType === 'moving' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                      item.serviceType === 'security' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                     }`}>
-                      {item.serviceType === 'moving' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')}
+                      {item.serviceType === 'security' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">

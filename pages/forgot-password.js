@@ -59,14 +59,14 @@ export default function ForgotPassword() {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [formData, setFormData] = useState({
     email: '',
-    service: 'moving', // Default service
+    service: 'security', // Default service
     otp: '',
     newPassword: '',
     confirmPassword: ''
   });
 
   const availableServices = [
-    { id: 'moving', name: { en: 'Moving Services', de: 'Umzugsservice' }, icon: '🚛' }
+    { id: 'security', name: { en: 'Security Services', de: 'Sicherheitsservice' }, icon: '🛡️' }
   ];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -318,7 +318,7 @@ export default function ForgotPassword() {
     <>
       <Head>
         <title>
-          {isGerman ? 'Passwort vergessen - Umzug Anbieter Vergleich' : 'Forgot Password - Umzug Anbieter Vergleich'}
+          {isGerman ? 'Passwort vergessen - Business Connected' : 'Forgot Password - Business Connected'}
         </title>
         <meta name="description" content={isGerman ? 'Setzen Sie Ihr Passwort zurück' : 'Reset your password'} />
       </Head>

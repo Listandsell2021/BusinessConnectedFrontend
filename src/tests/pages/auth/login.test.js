@@ -70,7 +70,7 @@ describe('Login Page', () => {
     expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
-    expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
+    expect(screen.getByAltText('Business Connected')).toBeInTheDocument();
   });
 
   it('should display validation errors for empty fields', async () => {
@@ -302,7 +302,7 @@ describe('Login Page', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByAltText('Umzug Anbieter Vergleich')).toBeInTheDocument();
+      expect(screen.getByAltText('Business Connected')).toBeInTheDocument();
     });
 
     expect(screen.getByText('🎯')).toBeInTheDocument();

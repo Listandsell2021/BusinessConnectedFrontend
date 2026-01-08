@@ -76,9 +76,8 @@ export const translations = {
     services: {
       packing: 'Ein-/Auspacken',
       assembly: 'Möbelmontage',
-      storage: 'Zwischenlagerung', 
+      storage: 'Zwischenlagerung',
       disposal: 'Entsorgung',
-      cleaning: 'Reinigung',
       insurance: 'Versicherung',
       customs: 'Zollabwicklung'
     },
@@ -187,7 +186,6 @@ export const translations = {
       assembly: 'Furniture assembly',
       storage: 'Storage',
       disposal: 'Disposal',
-      cleaning: 'Cleaning',
       insurance: 'Insurance',
       customs: 'Customs clearance'
     },

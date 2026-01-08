@@ -102,7 +102,7 @@ const PartnerPerformance = ({ className = "" }) => {
   }) : [];
 
   const getServiceIcon = (serviceType) => {
-    return serviceType === 'moving' ? '🚛' : '🧽';
+    return serviceType === 'security' ? '🚛' : '🧽';
   };
 
   const getPartnerTypeColor = (type) => {
@@ -205,7 +205,7 @@ const PartnerPerformance = ({ className = "" }) => {
                     </div>
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                        {partner.serviceType === 'moving' ?
+                        {partner.serviceType === 'security' ?
                           (isGerman ? 'Umzugsservice' : 'Moving Service') :
                           (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
                         }

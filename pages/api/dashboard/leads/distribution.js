@@ -39,8 +39,7 @@ export default async function handler(req, res) {
     };
 
     const serviceColors = {
-      'moving': '#667eea',
-      'cleaning': '#f093fb'
+      'moving': '#667eea'
     };
 
     const allStatuses = ['pending', 'assigned', 'accepted', 'cancelled', 'rejected'];
@@ -50,7 +49,7 @@ export default async function handler(req, res) {
       color: statusColors[status]
     }));
 
-    const allServices = ['moving', 'cleaning'];
+    const allServices = ['security'];
     const byService = allServices.map(serviceType => ({
       service: serviceType,
       count: 0,

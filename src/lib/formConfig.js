@@ -1,1 +1,1 @@
-export { getFormConfig, formConfigs, getAllFormTypes, getFormSteps, getFormStep } from './formSchemas/index';
+export { getFormConfig, formConfigs } from '../config/forms/index';

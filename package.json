@@ -1,7 +1,7 @@
 {
-  "name": "umzug",
+  "name": "business-connected",
   "version": "1.0.0",
-  "description": "Frontend client for Umzug Anbieter Vergleich",
+  "description": "Frontend client for Business Connected",
   "private": true,
   "engines": {
     "node": "19.x"
