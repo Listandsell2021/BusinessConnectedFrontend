@@ -184,10 +184,11 @@ const LeadsPieChart = ({ className = "" }) => {
 
           {/* Total Leads Card */}
           <motion.div
-            className="p-4 rounded-xl"
+            className="p-4 rounded-xl border"
             style={{
               backgroundColor: 'var(--theme-card-bg)',
-              borderLeft: '4px solid #667eea'
+              borderLeft: '4px solid #667eea',
+              borderColor: 'var(--theme-border)'
             }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -206,8 +207,11 @@ const LeadsPieChart = ({ className = "" }) => {
             {leadData.byStatus.map((data, index) => (
               <motion.div
                 key={data.status}
-                className="flex items-center justify-between p-4 rounded-xl"
-                style={{ backgroundColor: 'var(--theme-card-bg)' }}
+                className="flex items-center justify-between p-4 rounded-xl border"
+                style={{
+                  backgroundColor: 'var(--theme-card-bg)',
+                  borderColor: 'var(--theme-border)'
+                }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + index * 0.1 }}

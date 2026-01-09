@@ -300,15 +300,11 @@ const RevenueChart = ({ className = "" }) => {
             <motion.button
               key={period}
               onClick={() => setTimePeriod(period)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                timePeriod === period
-                  ? 'text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border`}
               style={{
-                backgroundColor: timePeriod === period ? 'rgba(102, 126, 234, 0.8)' : 'rgba(255, 255, 255, 0.05)',
-                borderColor: timePeriod === period ? '#667eea' : 'transparent',
-                borderWidth: '1px'
+                backgroundColor: timePeriod === period ? 'rgba(102, 126, 234, 0.8)' : 'var(--theme-card-bg)',
+                borderColor: timePeriod === period ? '#667eea' : 'var(--theme-border)',
+                color: timePeriod === period ? 'white' : 'var(--theme-muted)'
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
