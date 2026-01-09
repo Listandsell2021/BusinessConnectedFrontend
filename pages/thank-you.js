@@ -177,7 +177,7 @@ export default function ThankYou() {
                 className="mt-8 sm:mt-10"
               >
                 <Link
-                  href="/kunde"
+                  href="/kunden"
                   className="inline-block px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-300 hover:opacity-90 hover:scale-105"
                   style={{
                     backgroundColor: 'var(--theme-button-bg)',
