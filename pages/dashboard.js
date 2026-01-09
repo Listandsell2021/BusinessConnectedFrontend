@@ -874,7 +874,7 @@ export default function Dashboard({ initialData = {} }) {
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 suppressHydrationWarning
               >
-                {isGerman ? `Willkommen zurück, ${getDisplayName()}!` : `Welcome back, ${getDisplayName()}!`}
+                {isGerman ? `Willkommen, ${getDisplayName()}!` : `Welcome, ${getDisplayName()}!`}
               </motion.h1>
               <p className="text-lg" style={{ color: 'var(--theme-muted)' }} suppressHydrationWarning>
                 {isGerman
@@ -1386,7 +1386,7 @@ export default function Dashboard({ initialData = {} }) {
                   transition={{ delay: 0.3 }}
                 >
                   <Link href="/" className="flex items-center">
-                    <Image src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'} alt="Business Connected" width={200} height={56} priority />
+                    <Image src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'} alt="Business Connected" width={160} height={52} priority />
                   </Link>
                 </motion.div>
               )}

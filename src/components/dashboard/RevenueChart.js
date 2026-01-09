@@ -387,7 +387,7 @@ const RevenueChart = ({ className = "" }) => {
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
           }}></div>
           <span className="text-sm" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Umzugsservice' : 'Moving Service'}
+            {isGerman ? 'Umsatz' : 'Revenue'}
           </span>
         </div>
       </div>

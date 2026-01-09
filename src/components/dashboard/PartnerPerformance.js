@@ -204,10 +204,7 @@ const PartnerPerformance = ({ className = "" }) => {
                     </div>
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                        {partner.serviceType === 'security' ?
-                          (isGerman ? 'Umzugsservice' : 'Moving Service') :
-                          (isGerman ? 'Reinigungsservice' : 'Cleaning Service')
-                        }
+                        {partner.contactPerson?.email || partner.email || 'N/A'}
                       </span>
                       {sortBy !== 'registered' && (
                         <span className="text-sm px-2 py-1 rounded-full bg-blue-100 text-blue-700">
