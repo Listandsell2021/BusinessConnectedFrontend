@@ -207,7 +207,7 @@ const handleSubmit = async (e) => {
               transition={{ duration: 0.6 }}
             >
               <Link href="/" className="flex items-center space-x-3 hover:opacity-75 transition-opacity">
-                <Image src="/business-connected-logo.svg" alt="Business Connected" width={150} height={42} priority />
+                <Image src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'} alt="Business Connected" width={150} height={42} priority />
               </Link>
               <div className="flex items-center space-x-3">
                 <LanguageToggle />
@@ -247,7 +247,7 @@ const handleSubmit = async (e) => {
                       rotate: 10
                     }}
                   >
-                    <Image src="/business-connected-logo.svg" alt="Business Connected" width={80} height={80} />
+                    <Image src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'} alt="Business Connected" width={80} height={80} />
                   </motion.div>
                   <motion.h2
                     className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"

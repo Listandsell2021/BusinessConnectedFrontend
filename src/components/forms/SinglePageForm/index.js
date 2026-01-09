@@ -306,7 +306,7 @@ const SinglePageForm = ({ formType }) => {
               animate={{ opacity: 1, y: 0 }}
             >
               <Image
-                src="/business-connected-logo.svg"
+                src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
                 alt="BusinessConnected"
                 width={280}
                 height={80}

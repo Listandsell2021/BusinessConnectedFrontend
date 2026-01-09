@@ -1386,7 +1386,7 @@ export default function Dashboard({ initialData = {} }) {
                   transition={{ delay: 0.3 }}
                 >
                   <Link href="/" className="flex items-center">
-                    <Image src="/business-connected-logo.svg" alt="Business Connected" width={200} height={56} priority />
+                    <Image src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'} alt="Business Connected" width={200} height={56} priority />
                   </Link>
                 </motion.div>
               )}
