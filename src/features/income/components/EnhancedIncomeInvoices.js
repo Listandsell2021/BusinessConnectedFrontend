@@ -348,7 +348,7 @@ const EnhancedIncomeInvoices = () => {
 
   useEffect(() => {
     loadPartners();
-  }, [currentPage, filters, currentService]);
+  }, [currentPage, filters, currentService, loadPartners]);
 
 
   // Filter Functions

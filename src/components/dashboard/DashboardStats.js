@@ -11,10 +11,6 @@ const DashboardStats = ({ className = "", onNavigate }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, [currentService]);
-
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
@@ -39,6 +35,10 @@ const DashboardStats = ({ className = "", onNavigate }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [currentService]);
 
   const getDefaultStats = () => {
     return {

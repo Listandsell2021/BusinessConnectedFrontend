@@ -23,10 +23,6 @@ const RevenueChart = ({ className = "" }) => {
     return monday;
   });
 
-  useEffect(() => {
-    fetchRevenueData();
-  }, [currentService, timePeriod, selectedMonth, selectedYear, selectedWeekStart]);
-
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
@@ -64,6 +60,10 @@ const RevenueChart = ({ className = "" }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRevenueData();
+  }, [currentService, timePeriod, selectedMonth, selectedYear, selectedWeekStart]);
 
   const transformRevenueData = (leadsPerDay, period) => {
     // Create a map of existing data

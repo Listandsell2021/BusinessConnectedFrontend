@@ -192,7 +192,7 @@ const PartnerInvoices = () => {
 
     console.log('📊 Loading invoices with:', { searchQuery, filters, currentPage });
     loadInvoices();
-  }, [currentPage, filters, searchQuery, router.isReady, router.query.search]);
+  }, [currentPage, filters, searchQuery, router.isReady, router.query.search, loadInvoices]);
 
   // Download Invoice PDF
   const downloadInvoice = async (invoiceId) => {

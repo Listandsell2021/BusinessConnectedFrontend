@@ -159,26 +159,22 @@ const PartnerSettingsNew = () => {
     }
   });
 
-  useEffect(() => {
-    loadPartnerData();
-  }, [user]);
-
   const loadPartnerData = async () => {
     if (!user?.id || !isPartner) {
       console.log('No user ID or not a partner:', { userId: user?.id, isPartner });
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
       console.log('Loading partner data for user ID:', user.id);
       const response = await partnersAPI.getById(user.id);
       console.log('Partner API response:', response.data);
       console.log('Partner preferences from API:', JSON.stringify(response.data.partner?.preferences, null, 2));
-      
+
       const partner = response.data.partner || response.data;
-      
+
       if (!partner) {
         throw new Error('No partner data received');
       }
@@ -354,6 +350,10 @@ const PartnerSettingsNew = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPartnerData();
+  }, [user]);
 
   const handleSave = async () => {
     setSaving(true);

@@ -16,17 +16,6 @@ const EnhancedDashboard = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-
-    // Set up auto-refresh every 5 minutes
-    const interval = setInterval(() => {
-      refreshDashboard();
-    }, 300000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -55,6 +44,17 @@ const EnhancedDashboard = ({ onNavigate }) => {
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardData();
+
+    // Set up auto-refresh every 5 minutes
+    const interval = setInterval(() => {
+      refreshDashboard();
+    }, 300000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Helper function to get translated user display name
   const getDisplayName = () => {

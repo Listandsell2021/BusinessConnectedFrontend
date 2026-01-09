@@ -8,14 +8,6 @@ const ActivityFeed = ({ className = "" }) => {
   const [activities, setActivities] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchActivityData();
-
-    // Set up real-time updates
-    const interval = setInterval(fetchActivityData, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchActivityData = async () => {
     try {
       setLoading(true);
@@ -29,6 +21,14 @@ const ActivityFeed = ({ className = "" }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchActivityData();
+
+    // Set up real-time updates
+    const interval = setInterval(fetchActivityData, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const getMockActivityData = () => ([
     {

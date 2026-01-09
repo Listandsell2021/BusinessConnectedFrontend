@@ -10,10 +10,6 @@ const LeadsPieChart = ({ className = "" }) => {
   const [leadData, setLeadData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLeadData();
-  }, [currentService]);
-
   const fetchLeadData = async () => {
     try {
       setLoading(true);
@@ -31,6 +27,10 @@ const LeadsPieChart = ({ className = "" }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchLeadData();
+  }, [currentService]);
 
   const transformLeadData = (stats) => {
     if (!stats) return getDefaultLeadData();

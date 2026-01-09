@@ -13,10 +13,6 @@ const PartnerPerformance = ({ className = "" }) => {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('registered');
 
-  useEffect(() => {
-    fetchPartnerData();
-  }, [currentService]);
-
   const fetchPartnerData = async () => {
     try {
       setLoading(true);
@@ -52,6 +48,9 @@ const PartnerPerformance = ({ className = "" }) => {
     }
   };
 
+  useEffect(() => {
+    fetchPartnerData();
+  }, [currentService]);
 
   if (loading) {
     return (

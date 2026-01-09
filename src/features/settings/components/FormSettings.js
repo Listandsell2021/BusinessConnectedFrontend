@@ -940,11 +940,6 @@ const FormSettings = () => {
     return config?.steps?.findIndex(s => s.id === filteredStep.id) ?? -1;
   };
 
-  // Load config on mount
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
   const loadConfig = async () => {
     try {
       setLoading(true);
@@ -954,6 +949,11 @@ const FormSettings = () => {
       setLoading(false);
     }
   };
+
+  // Load config on mount
+  useEffect(() => {
+    loadConfig();
+  }, []);
 
   const handleSave = async () => {
     toast.info(isGerman ? 'Moving-Formularkonfiguration ist nicht mehr verfügbar' : 'Moving form configuration is no longer available');

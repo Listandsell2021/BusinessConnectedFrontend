@@ -16,29 +16,23 @@ const LeadDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (id) {
-      loadLead();
-    }
-  }, [id]);
-
   const loadLead = async () => {
     try {
       setLoading(true);
       const response = await leadsAPI.getById(id);
-      
+
       // Transform the lead data similar to LeadManagement component
       const transformedLead = {
         ...response.data.lead,
         id: response.data.lead._id || response.data.lead.id,
-        name: response.data.lead.user ? 
-          `${response.data.lead.user.firstName} ${response.data.lead.user.lastName}`.trim() : 
+        name: response.data.lead.user ?
+          `${response.data.lead.user.firstName} ${response.data.lead.user.lastName}`.trim() :
           (response.data.lead.name || ''),
         email: response.data.lead.user?.email || response.data.lead.email || '',
         city: response.data.lead.location?.city || response.data.lead.city || '',
         status: response.data.lead.status || 'pending'
       };
-      
+
       setLead(transformedLead);
     } catch (error) {
       console.error('Error loading lead:', error);
@@ -48,6 +42,12 @@ const LeadDetailPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      loadLead();
+    }
+  }, [id, loadLead]);
 
   const getStatusIcon = (status) => {
     const statusIcons = {

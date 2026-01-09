@@ -93,7 +93,80 @@ export default function Dashboard({ initialData = {} }) {
     }
   }, [isAuthenticated, loading, router]);
 
-  // Fetch recent leads for partners
+  // Fetch recent leads for partners - moved before useEffect
+  const fetchRecentLeads = async () => {
+    try {
+      setLoadingRecentLeads(true);
+      console.log('Fetching recent leads for partner:', user.id, 'service:', currentService);
+
+      const response = await leadsAPI.getAll({
+        serviceType: currentService,
+        partner: user.id, // Filter by partner ID
+        page: 1,
+        limit: 100, // Get more leads to sort by assignedAt properly
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+
+      console.log('Recent leads API response:', response);
+      const leads = response.data.leads || [];
+      console.log('Extracted leads:', leads);
+
+      // Filter leads that have partner assignments for this partner
+      const partnerLeads = leads.filter(lead => {
+        return lead.partnerAssignments?.some(pa =>
+          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+        );
+      });
+
+      // Transform and sort by assignedAt date
+      const transformedLeads = partnerLeads.map(lead => {
+        const partnerAssignment = lead.partnerAssignments?.find(pa =>
+          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
+        );
+
+        return {
+          id: lead._id,
+          leadId: lead.leadId,
+          name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : 'Unknown',
+          email: lead.user?.email || 'No email',
+          phone: lead.user?.phone || 'No phone',
+          service: getServiceDisplayName(lead),
+          serviceType: lead.serviceType,
+          location: getLocationDisplay(lead) || 'Unknown location',
+          address: getAddressDisplay(lead),
+          value: partnerAssignment?.leadPrice ? `€${partnerAssignment.leadPrice}` : '€-',
+          estimatedTime: '2-4 hours',
+          status: getPartnerStatusForDisplay(partnerAssignment?.status),
+          time: getTimeAgo(partnerAssignment?.assignedAt || lead.createdAt), // Use assignedAt from partner assignment
+          priority: 'medium',
+          avatar: '👤', // Default avatar for all leads
+          assignedAt: partnerAssignment?.assignedAt || lead.createdAt, // Keep original date for sorting
+          partnerAssignment: partnerAssignment // Keep reference for debugging
+        };
+      }).sort((a, b) => {
+        // Sort by assignedAt date, most recent first
+        const dateA = new Date(a.assignedAt);
+        const dateB = new Date(b.assignedAt);
+        return dateB - dateA;
+      }).slice(0, 5); // Take only the latest 5
+
+      console.log('Filtered partner leads:', partnerLeads.length);
+      console.log('Transformed and sorted leads for recent display:', transformedLeads);
+      console.log('Leads sorted by assignedAt:', transformedLeads.map(l => ({
+        leadId: l.leadId,
+        assignedAt: l.assignedAt,
+        status: l.status
+      })));
+      setRecentLeadsData(transformedLeads);
+    } catch (error) {
+      console.error('Error fetching recent leads:', error);
+      setRecentLeadsData([]);
+    } finally {
+      setLoadingRecentLeads(false);
+    }
+  };
+
   useEffect(() => {
     if (isPartner && user?.id && currentService) {
       fetchRecentLeads();
@@ -102,7 +175,7 @@ export default function Dashboard({ initialData = {} }) {
       setRecentLeadsData([]);
       setLoadingRecentLeads(false);
     }
-  }, [isPartner, user?.id, currentService]);
+  }, [isPartner, user?.id, currentService, fetchRecentLeads]);
 
   const fetchPartnerStats = useCallback(async () => {
     try {
@@ -245,79 +318,6 @@ export default function Dashboard({ initialData = {} }) {
       console.log('Skipping fetchPartnerStats - conditions not met');
     }
   }, [isPartner, user?.id, currentService, fetchPartnerStats]);
-
-  const fetchRecentLeads = async () => {
-    try {
-      setLoadingRecentLeads(true);
-      console.log('Fetching recent leads for partner:', user.id, 'service:', currentService);
-
-      const response = await leadsAPI.getAll({
-        serviceType: currentService,
-        partner: user.id, // Filter by partner ID
-        page: 1,
-        limit: 100, // Get more leads to sort by assignedAt properly
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      });
-
-      console.log('Recent leads API response:', response);
-      const leads = response.data.leads || [];
-      console.log('Extracted leads:', leads);
-
-      // Filter leads that have partner assignments for this partner
-      const partnerLeads = leads.filter(lead => {
-        return lead.partnerAssignments?.some(pa =>
-          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
-        );
-      });
-
-      // Transform and sort by assignedAt date
-      const transformedLeads = partnerLeads.map(lead => {
-        const partnerAssignment = lead.partnerAssignments?.find(pa =>
-          pa.partner === user.id || pa.partner?._id === user.id || pa.partner?.toString() === user.id
-        );
-
-        return {
-          id: lead._id,
-          leadId: lead.leadId,
-          name: lead.user ? `${lead.user.firstName} ${lead.user.lastName}`.trim() : 'Unknown',
-          email: lead.user?.email || 'No email',
-          phone: lead.user?.phone || 'No phone',
-          service: getServiceDisplayName(lead),
-          serviceType: lead.serviceType,
-          location: getLocationDisplay(lead) || 'Unknown location',
-          address: getAddressDisplay(lead),
-          value: partnerAssignment?.leadPrice ? `€${partnerAssignment.leadPrice}` : '€-',
-          estimatedTime: '2-4 hours',
-          status: getPartnerStatusForDisplay(partnerAssignment?.status),
-          time: getTimeAgo(partnerAssignment?.assignedAt || lead.createdAt), // Use assignedAt from partner assignment
-          priority: 'medium',
-          avatar: '👤', // Default avatar for all leads
-          assignedAt: partnerAssignment?.assignedAt || lead.createdAt, // Keep original date for sorting
-          partnerAssignment: partnerAssignment // Keep reference for debugging
-        };
-      }).sort((a, b) => {
-        // Sort by assignedAt date, most recent first
-        const dateA = new Date(a.assignedAt);
-        const dateB = new Date(b.assignedAt);
-        return dateB - dateA;
-      }).slice(0, 5); // Take only the latest 5
-
-      console.log('Filtered partner leads:', partnerLeads.length);
-      console.log('Transformed and sorted leads for recent display:', transformedLeads);
-      console.log('Leads sorted by assignedAt:', transformedLeads.map(l => ({
-        leadId: l.leadId,
-        assignedAt: l.assignedAt,
-        status: l.status
-      })));
-      setRecentLeadsData(transformedLeads);
-    } catch (error) {
-      console.error('Error fetching recent leads:', error);
-      setRecentLeadsData([]);
-    } finally {
-      setLoadingRecentLeads(false);
-    }
-  };
 
   const getMockRecentLeads = () => {
     return [

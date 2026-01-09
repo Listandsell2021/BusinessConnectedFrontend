@@ -164,7 +164,7 @@ export const formatDateTimeLongGerman = (date) => {
   }
 };
 
-export default {
+const dateFormatterExports = {
   formatDateGerman,
   formatTimeGerman,
   formatDateTimeGerman,
@@ -174,3 +174,5 @@ export default {
   formatDateLongGerman,
   formatDateTimeLongGerman
 };
+
+export default dateFormatterExports;

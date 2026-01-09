@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useTheme } from '../src/contexts/ThemeContext';
 
@@ -175,7 +176,7 @@ export default function ThankYou() {
                 transition={{ duration: 0.8, delay: 1.1 }}
                 className="mt-8 sm:mt-10"
               >
-                <a
+                <Link
                   href="/Kunde"
                   className="inline-block px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-300 hover:opacity-90 hover:scale-105"
                   style={{
@@ -184,7 +185,7 @@ export default function ThankYou() {
                   }}
                 >
                   Weitere Anfrage stellen
-                </a>
+                </Link>
               </motion.div>
             </motion.div>
           </motion.div>

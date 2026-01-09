@@ -150,7 +150,7 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCount(0);
       setLoading(false);
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, refresh]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -161,7 +161,7 @@ export const NotificationProvider = ({ children }) => {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchUnreadCount]);
 
   const value = {
     // State

@@ -60,16 +60,11 @@ const AdminSettings = () => {
     resetToken: ''
   });
 
-  // Load settings on component mount
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   const loadSettings = async () => {
     try {
       setLoading(true);
       const response = await settingsAPI.get();
-      
+
       if (response.data.success) {
         setSettings(response.data.data);
       }
@@ -80,6 +75,11 @@ const AdminSettings = () => {
       setLoading(false);
     }
   };
+
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const handleSave = async () => {
     try {
