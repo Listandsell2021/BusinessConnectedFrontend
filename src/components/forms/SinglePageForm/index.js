@@ -194,8 +194,8 @@ const SinglePageForm = ({ formType }) => {
 
       if (response?.data?.success) {
         toast.success('Formular erfolgreich eingereicht');
-        // Redirect to home page
-        window.location.href = '/';
+        // Redirect to thank you page
+        window.location.href = '/thank-you';
       }
     } catch (err) {
       console.error('Error submitting form:', err);

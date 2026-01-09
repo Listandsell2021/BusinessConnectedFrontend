@@ -280,23 +280,6 @@ const PartnerSettingsNew = () => {
         return { countries, citySettings, serviceArea };
       };
 
-      // Process pickup preferences (directly under preferences)
-      let pickupServiceArea = {};
-      if (partner.preferences?.pickup) {
-        const pickupData = processAddressType(partner.preferences.pickup, 'pickup');
-        pickupCountries = pickupData.countries;
-        pickupCitySettings = pickupData.citySettings;
-        pickupServiceArea = pickupData.serviceArea;
-      }
-
-      // Process destination preferences (directly under preferences)
-      let destinationServiceArea = {};
-      if (partner.preferences?.destination) {
-        const destinationData = processAddressType(partner.preferences.destination, 'destination');
-        destinationCountries = destinationData.countries;
-        destinationCitySettings = destinationData.citySettings;
-        destinationServiceArea = destinationData.serviceArea;
-      }
 
       setSettings({
         companyName: partner.companyName || '',
@@ -306,7 +289,7 @@ const PartnerSettingsNew = () => {
           email: '',
           phone: ''
         },
-        address: partner.address || {
+        address: {
           street: '',
           city: '',
           postalCode: '',
@@ -318,99 +301,49 @@ const PartnerSettingsNew = () => {
           leadsPerWeek: partner.customPricing?.leadsPerWeek || null
         },
         preferences: {
-          pickup: {
-            countries: pickupCountries,
-            citySettings: pickupCitySettings,
-            serviceArea: pickupServiceArea
-          },
-          destination: {
-            countries: destinationCountries,
-            citySettings: destinationCitySettings,
-            serviceArea: destinationServiceArea
-          },
           serviceArea: (() => {
             let serviceAreaCountries = [];
             let serviceAreaCitySettings = {};
-            let cleaningServiceArea = {};
+            let securityServiceArea = {};
 
-            if (partner.preferences?.cleaning?.serviceArea) {
-              const cleaningData = processAddressType(partner.preferences.cleaning, 'cleaning');
-              serviceAreaCountries = cleaningData.countries;
-              serviceAreaCitySettings = cleaningData.citySettings;
-              cleaningServiceArea = cleaningData.serviceArea;
+            if (partner.preferences?.security?.serviceArea) {
+              const securityData = processAddressType(partner.preferences.security, 'security');
+              serviceAreaCountries = securityData.countries;
+              serviceAreaCitySettings = securityData.citySettings;
+              securityServiceArea = securityData.serviceArea;
             }
 
             return {
               countries: serviceAreaCountries,
               citySettings: serviceAreaCitySettings,
-              serviceArea: cleaningServiceArea
+              serviceArea: securityServiceArea
             };
           })()
         }
       });
       
-      // Initialize country service types based on loaded data for pickup, destination, and serviceArea
-      const initialPickupServiceTypes = {};
-      const initialDestinationServiceTypes = {};
+      // Initialize country service types based on loaded data for security service
       const initialServiceAreaServiceTypes = {};
 
-      // For pickup - check both citySettings and serviceArea structure
-      pickupCountries.forEach(countryName => {
-        const hasCountryCities = Object.keys(pickupCitySettings).some(cityKey =>
-          cityKey.startsWith(`${countryName}-`)
-        );
-
-        // Also check serviceArea structure
-        const serviceAreaData = partner.preferences?.pickup?.serviceArea?.[countryName];
-        const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
-          Object.keys(serviceAreaData.cities || {}).length > 0;
-
-        const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
-        initialPickupServiceTypes[countryName] = serviceType;
-
-        console.log(`Pickup ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
-      });
-
-      // For destination - check both citySettings and serviceArea structure
-      destinationCountries.forEach(countryName => {
-        const hasCountryCities = Object.keys(destinationCitySettings).some(cityKey =>
-          cityKey.startsWith(`${countryName}-`)
-        );
-
-        // Also check serviceArea structure
-        const serviceAreaData = partner.preferences?.destination?.serviceArea?.[countryName];
-        const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
-          Object.keys(serviceAreaData.cities || {}).length > 0;
-
-        const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
-        initialDestinationServiceTypes[countryName] = serviceType;
-
-        console.log(`Destination ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
-      });
-
-      // For serviceArea - check both citySettings and serviceArea structure
+      // For security service - check both citySettings and serviceArea structure
       settings.preferences.serviceArea.countries.forEach(countryName => {
         const hasCountryCities = Object.keys(settings.preferences.serviceArea.citySettings).some(cityKey =>
           cityKey.startsWith(`${countryName}-`)
         );
 
-        // Also check serviceArea structure for cleaning service
-        const serviceAreaData = partner.preferences?.cleaning?.serviceArea?.[countryName];
+        // Also check serviceArea structure for security service
+        const serviceAreaData = partner.preferences?.security?.serviceArea?.[countryName];
         const hasServiceAreaCities = serviceAreaData?.type === 'cities' &&
           Object.keys(serviceAreaData.cities || {}).length > 0;
 
         const serviceType = (hasCountryCities || hasServiceAreaCities) ? 'cities' : 'country';
         initialServiceAreaServiceTypes[countryName] = serviceType;
 
-        console.log(`ServiceArea ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
+        console.log(`Security ServiceArea ${countryName}: hasCountryCities=${hasCountryCities}, hasServiceAreaCities=${hasServiceAreaCities}, serviceType=${serviceType}`);
       });
 
-      console.log('Initial pickup service types:', initialPickupServiceTypes);
-      console.log('Initial destination service types:', initialDestinationServiceTypes);
       console.log('Initial serviceArea service types:', initialServiceAreaServiceTypes);
 
-      setPickupCountryServiceTypes(initialPickupServiceTypes);
-      setDestinationCountryServiceTypes(initialDestinationServiceTypes);
       setServiceAreaCountryServiceTypes(initialServiceAreaServiceTypes);
       
       console.log('Settings loaded successfully');
@@ -488,74 +421,37 @@ const PartnerSettingsNew = () => {
       };
 
       // Log current state values to debug
-      console.log('Current pickupCountryServiceTypes at save time:', pickupCountryServiceTypes);
-      console.log('Current destinationCountryServiceTypes at save time:', destinationCountryServiceTypes);
+      console.log('Current serviceAreaCountryServiceTypes at save time:', serviceAreaCountryServiceTypes);
       console.log('Current settings at save time:', settings);
-
-      const pickupServiceArea = buildServiceArea(
-        settings.preferences.pickup.countries || [],
-        settings.preferences.pickup.citySettings || {},
-        pickupCountryServiceTypes,
-        'pickup'
-      );
-
-      const destinationServiceArea = buildServiceArea(
-        settings.preferences.destination.countries || [],
-        settings.preferences.destination.citySettings || {},
-        destinationCountryServiceTypes,
-        'destination'
-      );
-
-      const cleaningServiceArea = buildServiceArea(
-        settings.preferences.serviceArea.countries || [],
-        settings.preferences.serviceArea.citySettings || {},
-        serviceAreaCountryServiceTypes,
-        'serviceArea'
-      );
 
       // Build preferences based on service type
       let preferences = {};
 
-      if (currentService === 'cleaning') {
-        // For cleaning service, use cleaning key with serviceArea structure
-        const cleaningServiceArea = buildServiceArea(
+      if (currentService === 'security') {
+        // For security service, use security key with serviceArea structure
+        const securityServiceArea = buildServiceArea(
           settings.preferences.serviceArea.countries || [],
           settings.preferences.serviceArea.citySettings || {},
           serviceAreaCountryServiceTypes,
           'serviceArea'
         );
         preferences = {
-          cleaning: {
-            serviceArea: cleaningServiceArea
-          }
-        };
-      } else if (currentService === 'moving') {
-        // For moving service, include pickup and destination with their serviceArea structures
-        preferences = {
-          pickup: {
-            serviceArea: pickupServiceArea
-          },
-          destination: {
-            serviceArea: destinationServiceArea
+          security: {
+            serviceArea: securityServiceArea
           }
         };
       } else {
-        // Fallback: include all (for backward compatibility)
+        // Fallback for other services (should not happen with security-only system)
         preferences = {
-          pickup: {
-            countries: settings.preferences.pickup.countries,
-            citySettings: settings.preferences.pickup.citySettings,
-            serviceArea: pickupServiceArea
-          },
-          destination: {
-            countries: settings.preferences.destination.countries,
-            citySettings: settings.preferences.destination.citySettings,
-            serviceArea: destinationServiceArea
-          },
-          serviceArea: {
+          security: {
             countries: settings.preferences.serviceArea.countries,
             citySettings: settings.preferences.serviceArea.citySettings,
-            serviceArea: cleaningServiceArea
+            serviceArea: buildServiceArea(
+              settings.preferences.serviceArea.countries || [],
+              settings.preferences.serviceArea.citySettings || {},
+              serviceAreaCountryServiceTypes,
+              'serviceArea'
+            )
           }
         };
       }
@@ -575,9 +471,6 @@ const PartnerSettingsNew = () => {
       };
 
       console.log('Saving partner settings:', updateData);
-      console.log('Pickup serviceArea:', pickupServiceArea);
-      console.log('Destination serviceArea:', destinationServiceArea);
-      console.log('Original settings.preferences:', settings.preferences);
 
       const response = await partnersAPI.update(user.id, updateData);
       console.log('Save response:', response.data);

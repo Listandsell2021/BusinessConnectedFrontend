@@ -4638,12 +4638,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               </div>
                               <div className="flex-1">
                                 <div className="font-medium text-sm mb-1" style={{ color: 'var(--theme-text)' }}>
-                                  {partner.contactPerson?.firstName && partner.contactPerson?.lastName
-                                    ? `${partner.contactPerson.firstName} ${partner.contactPerson.lastName}`
-                                    : 'Contact not provided'}
+                                  {partner.contactPerson || 'Contact not provided'}
                                 </div>
                                 <div className="text-xs" style={{ color: 'var(--theme-text)', opacity: 0.8 }}>
-                                  {partner.contactPerson?.email || 'Email not provided'}
+                                  {partner.email || 'Email not provided'}
                                 </div>
                               </div>
                             </div>

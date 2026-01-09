@@ -84,10 +84,10 @@ const PartnerSettings = () => {
               toRadius: 50,
               requireManualAcceptance: partner.leadAcceptance?.requireManualAcceptance ?? true,
               companyName: partner.companyName || user?.name || 'MoveIt Pro GmbH',
-              contactPerson: partner.contactPerson?.firstName + ' ' + partner.contactPerson?.lastName || 'John Doe',
-              phone: partner.contactPerson?.phone || '+49 30 12345678',
-              email: partner.contactPerson?.email || user?.email || 'info@moveitpro.de',
-              address: partner.address?.street + ', ' + partner.address?.postalCode + ' ' + partner.address?.city || 'Hauptstr. 123, 10117 Berlin'
+              contactPerson: partner.contactPerson || 'John Doe',
+              phone: partner.phone || '+49 30 12345678',
+              email: partner.email || user?.email || 'info@moveitpro.de',
+              address: 'Address information not available'
             });
           }
         } catch (error) {

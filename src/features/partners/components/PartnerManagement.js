@@ -15,6 +15,73 @@ import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { API_BASE_URL } from '../../../lib/config';
 import { formatDateGerman, formatDateTimeGerman } from '../../../lib/dateFormatter';
 
+// Mapping for region codes to full names
+const regionMap = {
+  bb: 'Berlin',
+  be: 'Brandenburg',
+  hh: 'Hamburg',
+  nrw: 'North Rhine-Westphalia',
+  nationwide: 'Nationwide'
+};
+
+const regionMapGerman = {
+  bb: 'Berlin',
+  be: 'Brandenburg',
+  hh: 'Hamburg',
+  nrw: 'Nordrhein-Westfalen',
+  nationwide: 'Bundesweit'
+};
+
+// Mapping for services with underscores to full names
+const serviceMap = {
+  personal_security: 'Personal Protection',
+  property_protection: 'Property Protection',
+  construction_security: 'Construction Site Safety',
+  event_security: 'Event Security',
+  miscellaneous: 'Miscellaneous'
+};
+
+const serviceMapGerman = {
+  personal_security: 'Personenschutz',
+  property_protection: 'Objektschutz',
+  construction_security: 'Baustellen-Sicherheit',
+  event_security: 'Event-Sicherheit',
+  miscellaneous: 'Sonstiges'
+};
+
+// Mapping for employee ranges
+const employeeMap = {
+  '1_10': '1-10 Employees',
+  '11_25': '11-25 Employees',
+  '26_50': '26-50 Employees',
+  '51_100': '51-100 Employees',
+  '100_plus': '100+ Employees'
+};
+
+const employeeMapGerman = {
+  '1_10': '1-10 Mitarbeiter',
+  '11_25': '11-25 Mitarbeiter',
+  '26_50': '26-50 Mitarbeiter',
+  '51_100': '51-100 Mitarbeiter',
+  '100_plus': '100+ Mitarbeiter'
+};
+
+// Function to convert underscore text to readable text
+const formatRegionLabel = (region, isGerman = false) => {
+  const map = isGerman ? regionMapGerman : regionMap;
+  return map[region] || region;
+};
+
+const formatServiceLabel = (service, isGerman = false) => {
+  const map = isGerman ? serviceMapGerman : serviceMap;
+  return map[service] || service;
+};
+
+const formatEmployeeLabel = (employees, isGerman = false) => {
+  const map = isGerman ? employeeMapGerman : employeeMap;
+  return map[employees] || employees;
+};
+
 const PartnerManagement = ({ initialPartners = [] }) => {
   const router = useRouter();
   const { currentService, setHideServiceFilter } = useService();
@@ -60,7 +127,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     return {
       type: initialType,
       status: initialStatus,
-      city: '',
       searchTerm: ''
     };
   };
@@ -116,7 +182,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             ...partnerData,
             id: partnerData._id || partnerData.id,
             name: partnerData.companyName || partnerData.name,
-            email: partnerData.contactPerson?.email || partnerData.email,
+            email: partnerData.email,
             type: partnerData.partnerType || partnerData.type
           };
 
@@ -430,7 +496,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         // Add filters to API call
         partnerType: filters.type !== 'all' ? filters.type : undefined,
         status: filters.status !== 'all' ? filters.status : undefined,
-        city: filters.city || undefined,
         search: filters.searchTerm || undefined,
         // Add date filter parameters
         ...dateParams,
@@ -563,7 +628,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     setCurrentPage(1); // Reset pagination for UI
     loadPartners(1); // Load with page 1 immediately
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentService, filters.type, filters.status, filters.city, filters.searchTerm, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year]);
+  }, [currentService, filters.type, filters.status, filters.searchTerm, sortConfig.key, sortConfig.direction, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year]);
 
   // Load services on component mount
   useEffect(() => {
@@ -935,7 +1000,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       const exportParams = {
         partnerType: filters.type !== 'all' ? filters.type : undefined,
         status: filters.status !== 'all' ? filters.status : undefined,
-        city: filters.city || undefined,
         search: filters.searchTerm || undefined,
         serviceType: currentService || undefined
       };
@@ -1158,12 +1222,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       // Map form data to API format
       const dataWithLanguage = {
         companyName: partnerFormData.companyName,
-        contactPerson: {
-          firstName: partnerFormData.contactPerson.split(' ')[0] || partnerFormData.contactPerson,
-          lastName: partnerFormData.contactPerson.split(' ').slice(1).join(' ') || '',
-          email: partnerFormData.email,
-          phone: partnerFormData.phone
-        },
+        contactPerson: partnerFormData.contactPerson,
+        email: partnerFormData.email,
+        phone: partnerFormData.phone,
         securityFormData: {
           regions: partnerFormData.regions,
           budgetScope: partnerFormData.budgetScope,
@@ -1173,12 +1234,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         },
         partnerType: partnerFormData.partnerType,
         serviceType: partnerFormData.serviceType,
-        address: {
-          street: '',
-          city: '',
-          postalCode: '',
-          country: ''
-        },
         adminLanguage
       };
 
@@ -1966,18 +2021,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           </select>
         </div>
 
-        {/* City Filter */}
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder={isGerman ? 'Stadt...' : 'City...'}
-            value={filters.city}
-            onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 theme-input"
-            style={{ minWidth: '100%', height: '42px' }}
-          />
-        </div>
-
         {/* Date Filter */}
         <div className="flex-1">
           <div className="space-y-2">
@@ -2576,33 +2619,6 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           </span>
                         </td>
                       </tr>
-                      <tr>
-                        <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {isGerman ? 'Adresse' : 'Address'}:
-                        </td>
-                        <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.address?.street || '-'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {isGerman ? 'Stadt' : 'City'}:
-                        </td>
-                        <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.address?.postalCode && partnerForDetails.address?.city ? 
-                            `${partnerForDetails.address.postalCode} ${partnerForDetails.address.city}` : 
-                            (partnerForDetails.address?.city || '-')
-                          }
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {isGerman ? 'Land' : 'Country'}:
-                        </td>
-                        <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.address?.country || 'Germany'}
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -2621,10 +2637,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           {isGerman ? 'Ansprechpartner' : 'Contact Person'}:
                         </td>
                         <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.contactPerson ? 
-                            `${partnerForDetails.contactPerson.firstName} ${partnerForDetails.contactPerson.lastName}` : 
-                            '-'
-                          }
+                          {partnerForDetails.contactPerson || '-'}
                         </td>
                       </tr>
                       <tr>
@@ -2640,7 +2653,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           {t('common.phone')}:
                         </td>
                         <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                          {partnerForDetails.contactPerson?.phone || '-'}
+                          {partnerForDetails.phone || '-'}
                         </td>
                       </tr>
                       <tr>
@@ -2659,6 +2672,95 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 </div>
               </div>
             </div>
+
+            {/* Security Form Data */}
+            {partnerForDetails.securityFormData && (
+            <div className="py-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column - Regions and Employees */}
+                <div>
+                  <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
+                    {isGerman ? 'Einsatzregionen' : 'Deployment Regions'}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                      <tbody>
+                        <tr>
+                          <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {isGerman ? 'Einsatzregionen' : 'Deployment Regions'}:
+                          </td>
+                          <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {partnerForDetails.securityFormData?.regions && partnerForDetails.securityFormData.regions.length > 0 ? (
+                              <div className="space-y-1">
+                                {partnerForDetails.securityFormData.regions.map((region, idx) => (
+                                  <div key={idx} className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs" style={{ backgroundColor: 'var(--theme-bg-secondary)', border: '1px solid var(--theme-border)' }}>
+                                    {formatRegionLabel(region, isGerman)}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : '-'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {isGerman ? 'Verfügbare Mitarbeiter' : 'Available Employees'}:
+                          </td>
+                          <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {partnerForDetails.securityFormData?.availableEmployees ? formatEmployeeLabel(partnerForDetails.securityFormData.availableEmployees, isGerman) : '-'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {isGerman ? 'Verfügbarkeitszeitraum' : 'Availability Period'}:
+                          </td>
+                          <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {partnerForDetails.securityFormData?.periodOfAvailability || '-'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Right Column - Services and Description */}
+                <div>
+                  <h4 className="text-md font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
+                    {isGerman ? 'Dienstleistungen und Beschreibung' : 'Services and Description'}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
+                      <tbody>
+                        <tr>
+                          <td className="px-6 py-3 text-sm font-medium w-1/3" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {isGerman ? 'Dienstleistungen' : 'Services'}:
+                          </td>
+                          <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {partnerForDetails.securityFormData?.budgetScope && partnerForDetails.securityFormData.budgetScope.length > 0 ? (
+                              <div className="space-y-1">
+                                {partnerForDetails.securityFormData.budgetScope.map((service, idx) => (
+                                  <div key={idx} className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs" style={{ backgroundColor: 'var(--theme-bg-secondary)', border: '1px solid var(--theme-border)' }}>
+                                    {formatServiceLabel(service, isGerman)}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : '-'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-3 text-sm font-medium w-1/3 align-top" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {isGerman ? 'Beschreibung' : 'Description'}:
+                          </td>
+                          <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
+                            {partnerForDetails.securityFormData?.companyDescription || '-'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            )}
 
             {/* Metrics and Preferences */}
             {partnerForDetails.metrics && (
@@ -2719,7 +2821,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 {weeklyLeadStats.currentWeek} / {weeklyLeadStats.limit}
                               </span>
                               <span className="text-xs" style={{ color: 'var(--theme-muted)' }}>
-                                ({currentService === 'security' ? (isGerman ? 'Umzug' : 'Moving') : (isGerman ? 'Reinigung' : 'Cleaning')} - {partnerForDetails?.partnerType || partnerForDetails?.type || 'basic'})
+                                ({isGerman ? 'Sicherheit' : 'Security'} - {partnerForDetails?.partnerType || partnerForDetails?.type || 'basic'})
                               </span>
                             </div>
                           </td>
@@ -2742,150 +2844,23 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             </div>
             )}
 
-            {/* Service Area Preferences - For Moving Partners Only */}
-            {partnerForDetails.serviceType !== 'security' && partnerForDetails.preferences && (
-            <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Pickup Preferences */}
-                <div>
-                  <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
-                    <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    {isGerman ? 'Abholung-Einstellungen' : 'Pickup Preferences'}
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
-                      <tbody>
-                        {partnerForDetails.preferences.pickup?.serviceArea && Object.keys(partnerForDetails.preferences.pickup.serviceArea).length > 0 ? (
-                          Object.entries(partnerForDetails.preferences.pickup.serviceArea).map(([country, config]) => (
-                            <tr key={`pickup-${country}`}>
-                              <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {country}:
-                              </td>
-                              <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                                {config.type === 'cities' ? (
-                                  <div>
-                                    <span className="text-blue-500 font-medium">{isGerman ? 'Spezifische Städte' : 'Specific Cities'}</span>
-                                    {Object.keys(config.cities || {}).length > 0 && (
-                                      <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                                        {Object.entries(config.cities).map(([city, cityConfig]) => (
-                                          <span
-                                            key={city}
-                                            className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs"
-                                            style={{
-                                              backgroundColor: 'var(--theme-bg-secondary)',
-                                              color: 'var(--theme-text)',
-                                              border: '1px solid var(--theme-border)'
-                                            }}
-                                          >
-                                            {city} ({cityConfig.radius || 0}km)
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-green-500 font-medium">{isGerman ? 'Ganzes Land' : 'Whole Country'}</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="2" className="px-4 py-3 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Keine Abholung-Gebiete konfiguriert' : 'No pickup areas configured'}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Destination Preferences */}
-                <div>
-                  <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
-                    <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {isGerman ? 'Ziel-Einstellungen' : 'Destination Preferences'}
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
-                      <tbody>
-                        {partnerForDetails.preferences.destination?.serviceArea && Object.keys(partnerForDetails.preferences.destination.serviceArea).length > 0 ? (
-                          Object.entries(partnerForDetails.preferences.destination.serviceArea).map(([country, config]) => (
-                            <tr key={`destination-${country}`}>
-                              <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
-                                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {country}:
-                              </td>
-                              <td className="px-4 py-2 text-sm" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                                {config.type === 'cities' ? (
-                                  <div>
-                                    <span className="text-blue-500 font-medium">{isGerman ? 'Spezifische Städte' : 'Specific Cities'}</span>
-                                    {Object.keys(config.cities || {}).length > 0 && (
-                                      <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
-                                        {Object.entries(config.cities).map(([city, cityConfig]) => (
-                                          <span
-                                            key={city}
-                                            className="inline-block px-2 py-1 rounded mr-1 mb-1 text-xs"
-                                            style={{
-                                              backgroundColor: 'var(--theme-bg-secondary)',
-                                              color: 'var(--theme-text)',
-                                              border: '1px solid var(--theme-border)'
-                                            }}
-                                          >
-                                            {city} ({cityConfig.radius || 0}km)
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-green-500 font-medium">{isGerman ? 'Ganzes Land' : 'Whole Country'}</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="2" className="px-4 py-3 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Keine Ziel-Gebiete konfiguriert' : 'No destination areas configured'}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-            )}
-
-            {/* Cleaning Service Areas for Cleaning Partners */}
-            {partnerForDetails.serviceType === 'cleaning' && partnerForDetails.preferences?.cleaning && (
+            {/* Service Area Preferences - For Security Partners */}
+            {partnerForDetails.serviceType === 'security' && partnerForDetails.preferences?.security && (
             <div className="py-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
               <div>
                 <h4 className="text-md font-medium mb-3 flex items-center" style={{ color: 'var(--theme-text)' }}>
                   <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  {isGerman ? 'Reinigungs-Einstellungen' : 'Cleaning Preferences'}
+                  {isGerman ? 'Sicherheits-Servicegebiet' : 'Security Service Area'}
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="min-w-full" style={{ backgroundColor: 'var(--theme-bg)' }}>
                     <tbody>
-                      {partnerForDetails.preferences.cleaning?.serviceArea && Object.keys(partnerForDetails.preferences.cleaning.serviceArea).length > 0 ? (
-                        Object.entries(partnerForDetails.preferences.cleaning.serviceArea).map(([country, config]) => (
-                          <tr key={`cleaning-${country}`}>
+                      {partnerForDetails.preferences.security?.serviceArea && Object.keys(partnerForDetails.preferences.security.serviceArea).length > 0 ? (
+                        Object.entries(partnerForDetails.preferences.security.serviceArea).map(([country, config]) => (
+                          <tr key={`security-${country}`}>
                             <td className="px-4 py-2 text-sm font-medium" style={{ color: 'var(--theme-muted)', borderBottom: '1px solid var(--theme-border)' }}>
                               <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2922,8 +2897,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="2" className="px-4 py-2 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
-                            {isGerman ? 'Keine Servicegebiete konfiguriert' : 'No service areas configured'}
+                          <td colSpan="2" className="px-4 py-3 text-sm text-center" style={{ color: 'var(--theme-muted)' }}>
+                            {isGerman ? 'Keine Service-Gebiete konfiguriert' : 'No service areas configured'}
                           </td>
                         </tr>
                       )}
@@ -2933,6 +2908,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
               </div>
             </div>
             )}
+
           </div>
           )}
 
