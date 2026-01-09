@@ -77,18 +77,18 @@ const DashboardStats = ({ className = "", onNavigate }) => {
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="space-y-4">
-          <div className="h-6 bg-gray-300 rounded w-1/4 animate-pulse"></div>
-          <div className="flex flex-wrap gap-6">
+          <div className="h-6 rounded w-1/4 animate-pulse" style={{ backgroundColor: 'var(--theme-bg-tertiary)' }}></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex-1 min-w-[240px] max-w-[280px] h-32 rounded-xl animate-pulse bg-gray-200"></div>
+              <div key={i} className="h-auto min-h-[180px] rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}></div>
             ))}
           </div>
         </div>
         <div className="space-y-4">
-          <div className="h-6 bg-gray-300 rounded w-1/4 animate-pulse"></div>
-          <div className="flex flex-wrap gap-6">
+          <div className="h-6 rounded w-1/4 animate-pulse" style={{ backgroundColor: 'var(--theme-bg-tertiary)' }}></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex-1 min-w-[240px] max-w-[280px] h-32 rounded-xl animate-pulse bg-gray-200"></div>
+              <div key={i} className="h-auto min-h-[180px] rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}></div>
             ))}
           </div>
         </div>
@@ -248,85 +248,44 @@ const DashboardStats = ({ className = "", onNavigate }) => {
     }
   ];
 
-  const StatCard = ({ stat, index }) => (
-    <motion.div
-      key={stat.id}
-      className="relative p-6 rounded-2xl border backdrop-blur-xl overflow-hidden group cursor-pointer"
-      style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderColor: 'var(--theme-border)',
-        backgroundImage: stat.gradient
-      }}
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{
-        scale: 1.05,
-        y: -10,
-        transition: { duration: 0.2 }
-      }}
-      whileTap={{ scale: 0.95 }}
-      onClick={() => {
-        if (stat.navigateTo && onNavigate) {
-          onNavigate(stat.navigateTo);
-        }
-      }}
-    >
-      {/* Animated Background Pattern */}
-      <motion.div
-        className="absolute inset-0 opacity-20"
+  const StatCard = ({ stat, index }) => {
+    return (
+      <div
+        className="relative p-6 rounded-2xl border h-auto min-h-[180px] cursor-pointer"
         style={{
-          backgroundImage: 'radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)',
-          backgroundSize: '15px 15px'
+          backgroundImage: stat.gradient,
+          borderColor: 'var(--theme-border)',
         }}
-        animate={{
-          backgroundPosition: ['0px 0px', '15px 15px'],
+        onClick={() => {
+          if (stat.navigateTo && onNavigate) {
+            onNavigate(stat.navigateTo);
+          }
         }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
+      >
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/20 rounded-2xl" />
 
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <motion.div
-            className="text-white [&>svg]:stroke-current [&>svg]:fill-current"
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          >
-            {stat.icon}
-          </motion.div>
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-white/80">
-            {stat.title}
-          </h3>
-          <motion.p
-            className="text-3xl font-bold text-white"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: index * 0.1 + 0.3, type: "spring", stiffness: 300 }}
-          >
-            {stat.value}
-          </motion.p>
-          <p className="text-xs text-white/70">
-            {stat.description}
-          </p>
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-white">
+              {stat.icon}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-white">
+              {stat.title}
+            </h3>
+            <p className="text-3xl font-bold text-white">
+              {stat.value}
+            </p>
+            <p className="text-xs text-white/90">
+              {stat.description}
+            </p>
+          </div>
         </div>
       </div>
-
-      {/* Hover Glow Effect */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100"
-        style={{
-          background: 'radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%)',
-        }}
-        transition={{ duration: 0.3 }}
-      />
-    </motion.div>
-  );
+    );
+  };
 
   return (
     <div className={`space-y-6 ${className}`}>

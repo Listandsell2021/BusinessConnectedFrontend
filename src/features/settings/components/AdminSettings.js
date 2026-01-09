@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { settingsAPI } from '../../../lib/api/api';
 import FormSettings from './FormSettings';
 import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
-import { validatePasswordStrength } from '../../../../utils/passwordGenerator';
+import { validatePasswordStrength } from '../../../utils/passwordGenerator';
 
 const AdminSettings = () => {
   const { t, isGerman } = useLanguage();

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import notificationApi from '../lib/api/notificationApi';
 import { useAuth } from './AuthContext';
 
@@ -20,13 +20,13 @@ export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
 
   // Fetch notifications
-  const fetchNotifications = async (options = {}) => {
+  const fetchNotifications = useCallback(async (options = {}) => {
     if (!isAuthenticated()) return;
-    
+
     try {
       setLoading(true);
       const response = await notificationApi.getNotifications(options);
-      
+
       if (options.page === 1 || !options.page) {
         // Replace notifications for first page
         setNotifications(response.notifications);
@@ -34,7 +34,7 @@ export const NotificationProvider = ({ children }) => {
         // Append for pagination
         setNotifications(prev => [...prev, ...response.notifications]);
       }
-      
+
       setError(null);
       return response;
     } catch (err) {
@@ -43,19 +43,19 @@ export const NotificationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   // Fetch unread count
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!isAuthenticated()) return;
-    
+
     try {
       const response = await notificationApi.getUnreadCount();
       setUnreadCount(response.unreadCount);
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
-  };
+  }, [isAuthenticated]);
 
   // Mark notifications as read
   const markAsRead = async (notificationIds = null) => {
@@ -114,12 +114,12 @@ export const NotificationProvider = ({ children }) => {
   };
 
   // Refresh notifications and unread count
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await Promise.all([
       fetchNotifications({ page: 1 }),
       fetchUnreadCount()
     ]);
-  };
+  }, [fetchNotifications, fetchUnreadCount]);
 
   // Filter notifications by role
   const getFilteredNotifications = () => {

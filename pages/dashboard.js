@@ -41,15 +41,24 @@ export default function Dashboard({ initialData = {} }) {
   const { t, isGerman } = useLanguage();
   const { mounted, isDark } = useTheme();
   const { currentService } = useService();
-  const { 
-    notifications, 
-    unreadCount, 
-    markAsRead, 
-    markSingleAsRead, 
-    loading: notificationsLoading 
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markSingleAsRead,
+    loading: notificationsLoading
   } = useNotification();
-  // Get active tab from URL query parameter
-  const activeTab = router.query.tab || 'overview';
+
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Update active tab when route changes
+  useEffect(() => {
+    if (router.isReady) {
+      const newTab = router.query.tab || 'overview';
+      setActiveTab(newTab);
+    }
+  }, [router.isReady, router.query.tab]);
 
   // State for dynamic recent leads
   const [recentLeadsData, setRecentLeadsData] = useState([]);
@@ -67,7 +76,7 @@ export default function Dashboard({ initialData = {} }) {
   
   // Function to handle tab changes and update URL
   const handleTabChange = (tabId) => {
-    router.push(`/dashboard?tab=${tabId}`, undefined, { shallow: true });
+    router.push(`/dashboard?tab=${tabId}`);
   };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -837,7 +846,7 @@ export default function Dashboard({ initialData = {} }) {
     const queryParams = filter ? `?filter=${filter}` : '';
 
     // Navigate to the tab with optional filter
-    router.push(`/dashboard?tab=${tab}${filter ? `&filter=${filter}` : ''}`, undefined, { shallow: true });
+    router.push(`/dashboard?tab=${tab}${filter ? `&filter=${filter}` : ''}`);
   };
 
   const renderTabContent = () => {

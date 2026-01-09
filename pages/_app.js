@@ -7,6 +7,20 @@ import { ServiceProvider } from '../src/contexts/ServiceContext';
 import { NotificationProvider } from '../src/contexts/NotificationContext';
 import { Toaster } from 'react-hot-toast';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+
+function AppContent({ Component, pageProps }) {
+  const router = useRouter();
+  const [routeKey, setRouteKey] = useState(0);
+
+  // Force component remount on pathname change (not query changes)
+  useEffect(() => {
+    setRouteKey(prev => prev + 1);
+  }, [router.pathname]);
+
+  return <Component key={routeKey} {...pageProps} />;
+}
 
 export default function App({ Component, pageProps }) {
   return (
@@ -15,13 +29,13 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.png" />
       </Head>
-      
+
       <LanguageProvider>
         <ThemeProvider>
           <ServiceProvider>
             <AuthProvider>
               <NotificationProvider>
-                <Component {...pageProps} />
+                <AppContent Component={Component} pageProps={pageProps} />
               </NotificationProvider>
               
               <Toaster

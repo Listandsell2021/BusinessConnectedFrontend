@@ -6,7 +6,7 @@ import { useService } from '../../../contexts/ServiceContext';
 import { partnersAPI, authAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
-import { validatePasswordStrength } from '../../../../utils/passwordGenerator';
+import { validatePasswordStrength } from '../../../utils/passwordGenerator';
 
 const PartnerSettingsNew = () => {
   const { isGerman } = useLanguage();

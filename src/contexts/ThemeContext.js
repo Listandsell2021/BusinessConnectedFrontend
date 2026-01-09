@@ -11,7 +11,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,9 +21,9 @@ export const ThemeProvider = ({ children }) => {
       setTheme(savedTheme);
       applyTheme(savedTheme);
     } else {
-      // Default to light theme (white)
-      setTheme('light');
-      applyTheme('light');
+      // Default to dark theme
+      setTheme('dark');
+      applyTheme('dark');
     }
   }, []);
 

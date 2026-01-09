@@ -11,7 +11,7 @@ import ThemeToggle from '../src/components/ui/ThemeToggle';
 import LanguageToggle from '../src/components/ui/LanguageToggle';
 import Logo from '../src/components/ui/Logo';
 import PasswordStrengthIndicator from '../src/components/ui/PasswordStrengthIndicator';
-import { validatePasswordStrength } from '../utils/passwordGenerator';
+import { validatePasswordStrength } from '../src/utils/passwordGenerator';
 
 export default function ForgotPassword() {
   const router = useRouter();

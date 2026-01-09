@@ -59,7 +59,7 @@ useEffect(() => {
     );
 
     // Clean URL without triggering navigation
-    router.replace('/', undefined, { shallow: true });
+    router.replace('/');
   }
 }, [router.query.message, router.isReady, isGerman, router]);
 
