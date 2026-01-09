@@ -1134,35 +1134,47 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     setLoading(true);
     try {
       // Prepare date parameters for API
-      // Note: For complex date filtering (especially single date vs date ranges),
-      // we rely more on client-side filtering to handle edge cases properly
+      // Note: All date filtering is done server-side based on formData.desiredStartDate
       const dateParams = {};
 
-      if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
-        dateParams.startDate = dateFilter.fromDate.toISOString().split('T')[0];
-        dateParams.endDate = dateFilter.toDate.toISOString().split('T')[0];
+      console.log('[DATE FILTER DEBUG] Current dateFilter:', dateFilter);
+
+      // Helper function to format date as YYYY-MM-DD using local date (no timezone conversion)
+      const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      if (dateFilter.type === 'single' && dateFilter.singleDate) {
+        const selectedDate = formatLocalDate(dateFilter.singleDate);
+        dateParams.startDate = selectedDate;
+        dateParams.endDate = selectedDate;
+        console.log('[DATE FILTER DEBUG] Single date filter applied:', { startDate: selectedDate, endDate: selectedDate });
+      } else if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
+        dateParams.startDate = formatLocalDate(dateFilter.fromDate);
+        dateParams.endDate = formatLocalDate(dateFilter.toDate);
       } else if (dateFilter.type === 'week' && dateFilter.week) {
         const selectedWeekDate = new Date(dateFilter.week);
         const startOfWeek = new Date(selectedWeekDate);
         startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        dateParams.startDate = startOfWeek.toISOString().split('T')[0];
-        dateParams.endDate = endOfWeek.toISOString().split('T')[0];
+        dateParams.startDate = formatLocalDate(startOfWeek);
+        dateParams.endDate = formatLocalDate(endOfWeek);
       } else if (dateFilter.type === 'month' && dateFilter.month) {
         const selectedMonthDate = new Date(dateFilter.month);
         const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
         const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-        dateParams.startDate = startOfMonth.toISOString().split('T')[0];
-        dateParams.endDate = endOfMonth.toISOString().split('T')[0];
+        dateParams.startDate = formatLocalDate(startOfMonth);
+        dateParams.endDate = formatLocalDate(endOfMonth);
       } else if (dateFilter.type === 'year' && dateFilter.year) {
         const selectedYearDate = new Date(dateFilter.year);
         const targetYear = selectedYearDate.getFullYear();
         dateParams.startDate = `${targetYear}-01-01`;
         dateParams.endDate = `${targetYear}-12-31`;
       }
-      // For single date filtering, we skip server-side filtering and rely on client-side
-      // This allows us to properly handle cases where a single date falls within a lead's date range
 
       // Prepare partner filter parameter
       let partnerParam;
@@ -1174,8 +1186,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         partnerParam = filters.partner;
       }
 
+      console.log('[DATE FILTER DEBUG] API call - dateFilter.type:', dateFilter.type, 'dateParams:', dateParams);
       console.log('API call with filters:', filters, 'partnerParam:', partnerParam);
-      console.log('Date filter type:', dateFilter.type, 'dateParams:', dateParams);
       console.log('Status filter value being sent to API:', filters.status !== 'all' ? filters.status : undefined);
       console.log('User type - isPartner:', isPartner, 'isSuperAdmin:', isSuperAdmin);
 
@@ -1241,6 +1253,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       console.log('API Response - All leads fetched:', allLeadsData.length);
       console.log('API Response - Total count from pagination:', totalCount);
       console.log('API Response - First lead sample:', allLeadsData[0]);
+      if (allLeadsData[0]) {
+        console.log('[DATE FILTER DEBUG] First lead formData:', allLeadsData[0].formData);
+        console.log('[DATE FILTER DEBUG] First lead formData.startDate:', allLeadsData[0].formData?.startDate);
+      }
       console.log('API Response - isPartner:', isPartner, 'user.id:', user?.id);
 
       // Transform ALL leads data with full transformation for both display and stats
@@ -1262,9 +1278,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         let pickupDate = null;
 
         if (lead.formData) {
-          // Check for startDate (security client/company)
-          if (lead.formData.startDate) {
-            pickupDate = new Date(lead.formData.startDate);
+          // Check for desiredStartDate (security forms)
+          if (lead.formData.desiredStartDate) {
+            pickupDate = new Date(lead.formData.desiredStartDate);
             dateDisplay = formatDateGerman(pickupDate);
           }
           // Check for createdAt as fallback
@@ -1380,8 +1396,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         // Date display logic (simplified for current page)
         let dateDisplay = '';
         let pickupDate = null;
-        if (lead.formData?.startDate) {
-          pickupDate = new Date(lead.formData.startDate);
+        if (lead.formData?.desiredStartDate) {
+          pickupDate = new Date(lead.formData.desiredStartDate);
           dateDisplay = formatDateGerman(pickupDate);
         } else if (lead.createdAt) {
           pickupDate = new Date(lead.createdAt);
@@ -1537,7 +1553,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     if (activeTab === 'leads') {
       loadLeads();
     }
-  }, [currentService, filters.status, filters.city, filters.partner, filters.searchTerm, dateFilter.type, activeTab]);
+  }, [currentService, filters.status, filters.city, filters.partner, filters.searchTerm, dateFilter.type, dateFilter.singleDate, dateFilter.fromDate, dateFilter.toDate, dateFilter.week, dateFilter.month, dateFilter.year, activeTab]);
 
   // Load partners for filter dropdown
   const loadPartnersForFilter = async () => {
@@ -1719,20 +1735,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 }
               }
 
-              // Apply date filter (security services)
-              if (dateFilter.type !== 'all') {
-                // Extract date from lead data (startDate or createdAt)
-                let dateMatches = false;
-                const leadDate = lead.formData?.startDate || lead.createdAt;
-
-                if (leadDate) {
-                  dateMatches = isDateInRange(leadDate, dateFilter.type, dateFilter);
-                }
-
-                if (!dateMatches) {
-                  return; // Skip if date doesn't match
-                }
-              }
+              // Date filtering is now handled server-side only
 
               // Extract partner ID safely
               const partnerId = assignment.partner?._id || assignment.partner || 'unknown';
@@ -2005,173 +2008,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       );
     }
 
-    // Date filtering (client-side for already loaded data)
-    if (dateFilter.type !== 'all') {
-      // Check if we actually have a date selected for the filter type
-      const hasDateSelected =
-        (dateFilter.type === 'single' && dateFilter.singleDate) ||
-        (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) ||
-        (dateFilter.type === 'week' && dateFilter.week) ||
-        (dateFilter.type === 'month' && dateFilter.month) ||
-        (dateFilter.type === 'year' && dateFilter.year);
-
-      if (!hasDateSelected) {
-        console.log('Date filter type is set but no date selected - showing all leads');
-        // If no date is actually selected, don't filter by date
-        return filtered;
-      }
-
-      console.log('Client-side date filtering. Filter type:', dateFilter.type, 'Total leads before filtering:', filtered.length);
-
-      filtered = filtered.filter(lead => {
-        // Helper function to check if a date falls within the filter range
-        const isDateInRange = (leadDate, filterType, filterData) => {
-          if (!leadDate) return false;
-
-          const date = new Date(leadDate);
-          date.setHours(0, 0, 0, 0); // Normalize to start of day
-
-          switch (filterType) {
-            case 'single':
-              if (filterData.singleDate) {
-                const filterDate = new Date(filterData.singleDate);
-                filterDate.setHours(0, 0, 0, 0);
-                return date.getTime() === filterDate.getTime();
-              }
-              break;
-
-            case 'range':
-              if (filterData.fromDate && filterData.toDate) {
-                const fromDate = new Date(filterData.fromDate);
-                const toDate = new Date(filterData.toDate);
-                fromDate.setHours(0, 0, 0, 0);
-                toDate.setHours(23, 59, 59, 999);
-                return date >= fromDate && date <= toDate;
-              }
-              break;
-
-            case 'week':
-              if (filterData.week) {
-                const selectedWeekDate = new Date(filterData.week);
-                const startOfWeek = new Date(selectedWeekDate);
-                startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-                startOfWeek.setHours(0, 0, 0, 0);
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(startOfWeek.getDate() + 6);
-                endOfWeek.setHours(23, 59, 59, 999);
-                return date >= startOfWeek && date <= endOfWeek;
-              }
-              break;
-
-            case 'month':
-              if (filterData.month) {
-                const selectedMonthDate = new Date(filterData.month);
-                const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-                const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-                startOfMonth.setHours(0, 0, 0, 0);
-                endOfMonth.setHours(23, 59, 59, 999);
-                return date >= startOfMonth && date <= endOfMonth;
-              }
-              break;
-
-            case 'year':
-              if (filterData.year) {
-                const selectedYearDate = new Date(filterData.year);
-                return date.getFullYear() === selectedYearDate.getFullYear();
-              }
-              break;
-          }
-          return false;
-        };
-
-        // Helper function to check if date range overlaps with filter range
-        const isDateRangeOverlapping = (startDate, endDate, filterType, filterData) => {
-          if (!startDate || !endDate) return false;
-
-          const leadStart = new Date(startDate);
-          const leadEnd = new Date(endDate);
-          leadStart.setHours(0, 0, 0, 0);
-          leadEnd.setHours(23, 59, 59, 999);
-
-          switch (filterType) {
-            case 'single':
-              if (filterData.singleDate) {
-                const filterDate = new Date(filterData.singleDate);
-                filterDate.setHours(0, 0, 0, 0);
-                const filterEndDate = new Date(filterDate);
-                filterEndDate.setHours(23, 59, 59, 999);
-                return leadStart <= filterEndDate && leadEnd >= filterDate;
-              }
-              break;
-
-            case 'range':
-              if (filterData.fromDate && filterData.toDate) {
-                const filterStart = new Date(filterData.fromDate);
-                const filterEnd = new Date(filterData.toDate);
-                filterStart.setHours(0, 0, 0, 0);
-                filterEnd.setHours(23, 59, 59, 999);
-                return leadStart <= filterEnd && leadEnd >= filterStart;
-              }
-              break;
-
-            case 'week':
-              if (filterData.week) {
-                const selectedWeekDate = new Date(filterData.week);
-                const startOfWeek = new Date(selectedWeekDate);
-                startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
-                startOfWeek.setHours(0, 0, 0, 0);
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(startOfWeek.getDate() + 6);
-                endOfWeek.setHours(23, 59, 59, 999);
-                return leadStart <= endOfWeek && leadEnd >= startOfWeek;
-              }
-              break;
-
-            case 'month':
-              if (filterData.month) {
-                const selectedMonthDate = new Date(filterData.month);
-                const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
-                const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-                startOfMonth.setHours(0, 0, 0, 0);
-                endOfMonth.setHours(23, 59, 59, 999);
-                return leadStart <= endOfMonth && leadEnd >= startOfMonth;
-              }
-              break;
-
-            case 'year':
-              if (filterData.year) {
-                const selectedYearDate = new Date(filterData.year);
-                const targetYear = selectedYearDate.getFullYear();
-                const startOfYear = new Date(targetYear, 0, 1);
-                const endOfYear = new Date(targetYear, 11, 31);
-                startOfYear.setHours(0, 0, 0, 0);
-                endOfYear.setHours(23, 59, 59, 999);
-                return leadStart <= endOfYear && leadEnd >= startOfYear;
-              }
-              break;
-          }
-          return false;
-        };
-
-        // Extract date from lead data (for security forms: startDate or createdAt)
-        const leadDate = lead.formData?.startDate || lead.createdAt;
-
-        // Apply date filtering logic
-        let result = false;
-        if (leadDate) {
-          // Check if the date matches the filter
-          result = isDateInRange(leadDate, dateFilter.type, dateFilter);
-          console.log(`Lead ${lead.id}: Date ${leadDate} -> ${result}`);
-        } else {
-          // Fallback to creation date
-          result = isDateInRange(lead.createdAt, dateFilter.type, dateFilter);
-          console.log(`Lead ${lead.id}: Using creation date ${lead.createdAt} -> ${result}`);
-        }
-        return result;
-      });
-
-      console.log('Client-side date filtering complete. Leads after filtering:', filtered.length);
-    }
+    // Date filtering is now handled server-side only
+    // No client-side filtering needed
 
     return filtered;
   };
@@ -2484,8 +2322,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
   // Apply filters to leads using useMemo for performance
   const currentLeads = useMemo(() => {
-    // Apply client-side filtering (especially important for single date filtering)
-    // Server-side filtering is used for performance, but client-side handles complex date logic
+    // Server-side filtering handles all date filtering by formData.desiredStartDate
+    // Client-side just organizes and paginates the already-filtered data
     console.log('useMemo currentLeads - applying filters to', allLeadsData.length, 'all leads');
     const filtered = applyFilters();
     console.log('useMemo currentLeads - after filtering:', filtered.length, 'leads');
