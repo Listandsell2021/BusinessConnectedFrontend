@@ -1199,8 +1199,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             limit: 100, // Maximum allowed limit
             partner: user.id, // Filter by partner ID
             status: filters.status !== 'all' ? filters.status : undefined,
-            city: filters.city || undefined,
-            search: filters.searchTerm || undefined,
+            city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
+            search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
             ...dateParams
           });
           console.log('Partner API response:', response);
@@ -1212,10 +1212,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             limit: 100, // Maximum allowed limit
             // Add filters to API call
             status: filters.status !== 'all' ? filters.status : undefined,
-            city: filters.city || undefined,
+            city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
             partner: partnerParam,
             assignedPartner: partnerParam,
-            search: filters.searchTerm || undefined,
+            search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
             ...dateParams
           };
           console.log(`Admin API call parameters (page ${currentPageForFetch}):`, apiParams);
@@ -1340,8 +1340,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           limit: itemsPerPage,
           partner: user.id, // Filter by partner ID
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          search: filters.searchTerm || undefined,
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
           ...dateParams
         });
         console.log('Partner current page API response:', currentPageResponse);
@@ -1353,10 +1353,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           page: currentPage,
           limit: itemsPerPage,
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
           partner: partnerParam,
           assignedPartner: partnerParam,
-          search: filters.searchTerm || undefined,
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
           ...dateParams
         };
         currentPageResponse = await leadsAPI.getAll(currentPageParams);
@@ -2539,8 +2539,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         exportParams = {
           serviceType: currentService,
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          search: filters.searchTerm || undefined
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
         };
 
         // Remove undefined values
@@ -2556,8 +2556,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           serviceType: currentService,
           partnerView: true, // Flag to indicate partner export
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          search: filters.searchTerm || undefined
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
         };
 
         // Remove undefined values
@@ -2618,8 +2618,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         exportParams = {
           serviceType: currentService,
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
-          search: filters.searchTerm || undefined
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
         };
 
         // Remove undefined values
@@ -2634,11 +2634,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         exportParams = {
           serviceType: currentService,
           status: filters.status !== 'all' ? filters.status : undefined,
-          city: filters.city || undefined,
+          city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
           assignedPartner: filters.partner === 'multiple'
             ? selectedPartnerFilters.map(p => p._id)
             : filters.partner !== 'all' ? filters.partner : undefined,
-          search: filters.searchTerm || undefined
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
         };
 
         // Remove undefined values
@@ -4914,12 +4914,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
                     <span className="font-medium">{isGerman ? 'Lead-ID:' : 'Lead ID:'}</span>{' '}
                     {selectedLeadForPartners.leadId}
-                  </div>
-                  <div className="text-sm mt-1" style={{ color: 'var(--theme-text)' }}>
-                    <span className="font-medium">{isGerman ? 'Service:' : 'Service:'}</span>{' '}
-                    {selectedLeadForPartners.serviceType === 'security'
-                      ? (isGerman ? 'Umzug' : 'Moving')
-                      : (isGerman ? 'Reinigung' : 'Cleaning')}
                   </div>
                 </div>
 
