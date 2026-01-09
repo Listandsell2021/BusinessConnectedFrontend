@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useRouter } from 'next/router';
 
 export default function ThankYou() {
   const { mounted, isDark } = useTheme();
+  const router = useRouter();
+  const [formType, setFormType] = useState('kunden');
+
+  useEffect(() => {
+    if (router.query.type) {
+      setFormType(router.query.type);
+    }
+  }, [router.query.type]);
+
+  const isKunden = formType === 'kunden';
 
   if (!mounted) {
     return null;
@@ -15,8 +26,8 @@ export default function ThankYou() {
   return (
     <>
       <Head>
-        <title>Vielen Dank - Business Connected</title>
-        <meta name="description" content="Ihre Anfrage wurde erfolgreich gesendet" />
+        <title>{isKunden ? 'Anfrage eingereicht' : 'Registrierung eingereicht'} - Business Connected</title>
+        <meta name="description" content={isKunden ? 'Ihre Kundenanfrage wurde erfolgreich gesendet' : 'Ihre Partnerregistrierung wurde erfolgreich eingereicht'} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -98,15 +109,17 @@ export default function ThankYou() {
               className="space-y-4 sm:space-y-6"
             >
               <p className="text-lg sm:text-xl lg:text-2xl font-semibold" style={{ color: 'var(--theme-text)' }}>
-                Ihre Anfrage wurde erfolgreich gesendet!
+                {isKunden ? 'Vielen Dank für Ihre Anfrage!' : 'Vielen Dank für Ihre Registrierung!'}
               </p>
 
               <div className="rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--theme-bg-secondary)', border: '2px solid var(--theme-border)' }}>
                 <p className="text-base sm:text-lg lg:text-lg leading-relaxed mb-4 sm:mb-6" style={{ color: 'var(--theme-text)' }}>
-                  Wir haben Ihre Anfrage erhalten und werden Sie in Kürze kontaktieren. Unsere Partner-Unternehmen werden Ihnen kostenlose und unverbindliche Angebote zusenden.
+                  {isKunden
+                    ? 'Wir haben Ihre Anfrage erhalten und werden Sie in Kürze kontaktieren. Ein qualifiziertes Sicherheitsunternehmen wird sich mit Ihnen in Verbindung setzen, um Ihre Anforderungen zu besprechen.'
+                    : 'Wir haben Ihre Registrierung erhalten und werden Ihre Unternehmensdetails überprüfen. Sie erhalten in Kürze eine Bestätigungs-E-Mail mit den nächsten Schritten.'}
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 max-w-lg mx-auto">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -115,10 +128,10 @@ export default function ThankYou() {
                   >
                     <div className="text-3xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">⚡</div>
                     <h3 className="font-bold mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg" style={{ color: 'var(--theme-text)' }}>
-                      Schnelle Antwort
+                      {isKunden ? 'Schnelle Antwort' : 'Bestätigung'}
                     </h3>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      Innerhalb von 24 Stunden
+                      {isKunden ? 'Innerhalb von 24 Stunden' : 'Per E-Mail bestätigt'}
                     </p>
                   </motion.div>
 
@@ -128,27 +141,12 @@ export default function ThankYou() {
                     transition={{ duration: 0.6, delay: 0.8 }}
                     className="p-4 sm:p-5 lg:p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}
                   >
-                    <div className="text-3xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">💰</div>
+                    <div className="text-3xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">{isKunden ? '✅' : '📋'}</div>
                     <h3 className="font-bold mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg" style={{ color: 'var(--theme-text)' }}>
-                      Kostenlose Angebote
+                      {isKunden ? 'Geprüfte Partner' : 'Überprüfung'}
                     </h3>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      Bis zu 5 Angebote
-                    </p>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.9 }}
-                    className="p-4 sm:p-5 lg:p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}
-                  >
-                    <div className="text-3xl sm:text-3xl lg:text-4xl mb-2 sm:mb-3">✅</div>
-                    <h3 className="font-bold mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg" style={{ color: 'var(--theme-text)' }}>
-                      Geprüfte Partner
-                    </h3>
-                    <p className="text-xs sm:text-sm" style={{ color: 'var(--theme-muted)' }}>
-                      Nur qualifiziert
+                      {isKunden ? 'Nur qualifiziert' : 'Sorgfältig überprüft'}
                     </p>
                   </motion.div>
                 </div>
@@ -177,14 +175,14 @@ export default function ThankYou() {
                 className="mt-8 sm:mt-10"
               >
                 <Link
-                  href="/kunden"
+                  href={isKunden ? '/kunden' : '/unternehmen'}
                   className="inline-block px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-300 hover:opacity-90 hover:scale-105"
                   style={{
                     backgroundColor: 'var(--theme-button-bg)',
                     color: 'var(--theme-button-text)'
                   }}
                 >
-                  Weitere Anfrage stellen
+                  {isKunden ? 'Weitere Anfrage stellen' : 'Weitere Unternehmen registrieren'}
                 </Link>
               </motion.div>
             </motion.div>

@@ -288,8 +288,7 @@ export const securityServicesAPI = {
   deleteClient: (id) => api.delete(`/security-services/clients/${id}`),
   getClientStats: () => api.get('/security-services/clients/stats/summary'),
 
-  // Company Form Submission
-  createSecurityCompany: (data) => api.post('/security-services/companies/create', data),
+  // Company Management (Registration now uses /auth/register-partner)
   getCompanies: (params) => api.get('/security-services/companies', { params }),
   getCompanyById: (id) => api.get(`/security-services/companies/${id}`),
   updateCompany: (id, data) => api.put(`/security-services/companies/${id}`, data),

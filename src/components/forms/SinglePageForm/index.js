@@ -11,6 +11,7 @@ import { getFormConfig } from '../../../config/forms';
 import Link from 'next/link';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { useRouter } from 'next/router';
+import { API_BASE_URL } from '../../../lib/config';
 
 const SinglePageForm = ({ formType }) => {
   const { mounted, isDark } = useTheme();
@@ -180,32 +181,39 @@ const SinglePageForm = ({ formType }) => {
             postalCode: location_postalCode || '',
             country: location_country || 'Germany'
           },
+          language: 'de',
           gdprConsent: true, // Always true since no checkbox shown
           dataProcessingConsent: true,
           marketingConsent: false
         };
       }
 
-      // Transform data structure for company form
+      // Transform data structure for company form - MATCH /register payload structure EXACTLY
       if (formType === 'securityCompany') {
-        const { firstName, lastName, email, phone, street, city, postalCode, country, ...rest } = submitData;
+        const { contactPerson, email, phone, budgetScope, ...rest } = submitData;
+
         submitData = {
-          ...rest,
-          contactPerson: {
-            firstName: firstName || '',
-            lastName: lastName || '',
-            email: email || '',
-            phone: phone || ''
-          },
+          companyName: rest.companyName,
+          contactPerson: contactPerson || '',  // ← STRING (just name)
+          email: email || '',  // ← ROOT level
+          phone: phone || '',  // ← ROOT level
+          serviceType: 'security',
           address: {
-            street: street || '',
-            city: city || '',
-            postalCode: postalCode || '',
-            country: country || 'Germany'
+            street: '',
+            city: '',
+            postalCode: '',
+            country: ''
           },
-          gdprConsent: true, // Always true since no checkbox shown
-          dataProcessingConsent: true,
-          marketingConsent: false
+          securityFormData: {
+            regions: rest.regions || [],
+            budgetScope: budgetScope || [],
+            availableEmployees: rest.availableEmployees || '',
+            periodOfAvailability: rest.periodOfAvailability || '',
+            companyDescription: rest.companyDescription || ''
+          },
+          services: ['security'],
+          partnerType: 'basic',
+          language: 'de'
         };
       }
 
@@ -213,13 +221,26 @@ const SinglePageForm = ({ formType }) => {
       if (formType === 'securityClient') {
         response = await securityServicesAPI.createSecurityClient(submitData);
       } else if (formType === 'securityCompany') {
-        response = await securityServicesAPI.createSecurityCompany(submitData);
+        // Use the same endpoint as /register form (/auth/register-partner)
+        const fetchResponse = await fetch(`${API_BASE_URL}/auth/register-partner`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(submitData),
+        });
+        response = {
+          data: await fetchResponse.json()
+        };
       }
 
       if (response?.data?.success) {
         toast.success('Formular erfolgreich eingereicht');
-        // Redirect to thank you page
-        window.location.href = '/thank-you';
+        // Redirect to thank you page with form type parameter (in German)
+        const redirectUrl = formType === 'securityClient'
+          ? '/thank-you?type=kunden'
+          : '/thank-you?type=unternehmen';
+        window.location.href = redirectUrl;
       }
     } catch (err) {
       console.error('Error submitting form:', err);
