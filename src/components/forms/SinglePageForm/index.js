@@ -10,15 +10,23 @@ import { toast } from 'react-hot-toast';
 import { getFormConfig } from '../../../config/forms';
 import Link from 'next/link';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
+import { useRouter } from 'next/router';
 
 const SinglePageForm = ({ formType }) => {
   const { mounted, isDark } = useTheme();
+  const router = useRouter();
   const [formConfig, setFormConfig] = useState(null);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [addressSelectedFromGoogle, setAddressSelectedFromGoogle] = useState(false);
+
+  // Handle logo click to redirect to production home page
+  const handleLogoClick = () => {
+    window.location.href = 'https://business-connected.shop-template.de/';
+  };
 
   // Load form configuration
   useEffect(() => {
@@ -51,13 +59,14 @@ const SinglePageForm = ({ formType }) => {
         [fieldId]: value
       };
 
-      // Auto-populate lastName with firstName value for securityClient form
-      if (formType === 'securityClient' && fieldId === 'firstName') {
-        updated.lastName = value;
-      }
-
       return updated;
     });
+
+    // If address field is manually changed, mark it as not selected from Google
+    if (fieldId === 'location_address' && formType === 'securityClient') {
+      setAddressSelectedFromGoogle(false);
+    }
+
     setErrors(prev => ({
       ...prev,
       [fieldId]: null
@@ -73,6 +82,13 @@ const SinglePageForm = ({ formType }) => {
         location_city: addressData.city || '',
         location_postalCode: addressData.zipCode || '',
         location_country: addressData.country || 'Deutschland'
+      }));
+      // Mark address as selected from Google Places
+      setAddressSelectedFromGoogle(true);
+      // Clear any previous error on this field
+      setErrors(prev => ({
+        ...prev,
+        location_address: null
       }));
     }
   };
@@ -103,6 +119,13 @@ const SinglePageForm = ({ formType }) => {
             } else if (!value || (typeof value === 'string' && value.trim() === '')) {
               // Text, email, select, textarea, etc.
               newErrors[field.id] = getLocalizedText(formConfig.validationMessages?.required);
+            }
+          }
+
+          // Special validation for address field - must be selected from Google Places
+          if (field.id === 'location_address' && formType === 'securityClient' && value) {
+            if (!addressSelectedFromGoogle) {
+              newErrors[field.id] = 'Bitte wählen Sie eine Adresse aus der Google Maps Vorschlagsliste aus.';
             }
           }
 
@@ -149,6 +172,7 @@ const SinglePageForm = ({ formType }) => {
 
         submitData = {
           ...rest,
+          lastName: '', // lastName is optional - send empty string
           desiredStartDate: desiredStartDate ? new Date(desiredStartDate) : new Date(),
           location: {
             address: location_address || '',
@@ -286,47 +310,51 @@ const SinglePageForm = ({ formType }) => {
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
         {/* Header */}
         <header className="border-b border-slate-800">
-          <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-            {/* Back Button - Left */}
-            <motion.button
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => window.history.back()}
-              className="flex items-center space-x-2 text-slate-400 hover:text-white transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-sm">Zurück</span>
-            </motion.button>
+          <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center relative">
+              {/* Back Button - Left Absolute */}
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => window.history.back()}
+                className="absolute left-0 flex items-center space-x-2 text-slate-400 hover:text-white transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="text-sm">Zurück</span>
+              </motion.button>
 
-            {/* Logo - Middle */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Image
-                src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
-                alt="BusinessConnected"
-                width={280}
-                height={80}
-                priority
-                className="h-10 w-auto"
-              />
-            </motion.div>
+              {/* Logo - Center */}
+              <motion.button
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={handleLogoClick}
+                className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+              >
+                <Image
+                  src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
+                  alt="BusinessConnected"
+                  width={280}
+                  height={80}
+                  priority
+                  className="h-10 w-auto"
+                />
+              </motion.button>
 
-            {/* Right: Phone */}
-            <motion.a
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              href="tel:+491767568479"
-              className="flex items-center space-x-2 text-slate-400 hover:text-white transition text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <span>+49 176 75768479</span>
-            </motion.a>
+              {/* Right: Phone - Right Absolute */}
+              <motion.a
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                href="tel:+491767568479"
+                className="absolute right-0 flex items-center space-x-2 text-slate-400 hover:text-white transition text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span>+49 176 75768479</span>
+              </motion.a>
+            </div>
           </div>
         </header>
 
@@ -337,13 +365,13 @@ const SinglePageForm = ({ formType }) => {
           transition={{ delay: 0.2 }}
           className="py-10 sm:py-12 text-center border-b border-slate-800"
         >
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Badge */}
+          <div className="mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Badge - Properly Centered */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="inline-block mb-4 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30"
+              className="inline-block mb-6 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30"
             >
               <span className="text-blue-400 text-sm font-medium">
                 {getLocalizedText(formConfig?.heroBadge)}
@@ -608,11 +636,11 @@ const SinglePageForm = ({ formType }) => {
               transition={{ delay: 1.2 }}
               className="text-slate-500 text-xs flex gap-6"
             >
-              <a href="#" className="hover:text-slate-300 transition">Datenschutz</a>
+              <a href="https://business-connected.shop-template.de/impressum/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Impressum</a>
               <span>/</span>
-              <a href="#" className="hover:text-slate-300 transition">Nutzungsbedingungen</a>
+              <a href="https://business-connected.shop-template.de/datenschutz/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Datenschutzerklärung</a>
               <span>/</span>
-              <a href="#" className="hover:text-slate-300 transition">Cookie-Richtlinie</a>
+              <a href="https://business-connected.shop-template.de/datenschutz/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">AGB</a>
             </motion.div>
           </div>
         </motion.footer>
