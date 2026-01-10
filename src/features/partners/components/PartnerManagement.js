@@ -343,10 +343,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
   // Date filter state for partner leads
   const [partnerLeadsDateFilter, setPartnerLeadsDateFilter] = useState({
-    type: 'all', // 'all', 'single', 'range', 'current_week', 'last_week', 'current_month', 'last_month'
+    type: 'all', // 'all', 'single', 'range', 'week', 'month', 'year'
     singleDate: null,
     fromDate: null,
-    toDate: null
+    toDate: null,
+    week: null,
+    month: null,
+    year: null
   });
   const [partnerLeadsStats, setPartnerLeadsStats] = useState({
     total: 0,
@@ -1082,11 +1085,15 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   // Export partners function
   const exportPartners = async (format) => {
     try {
+      // Add language parameter based on current language setting
+      const language = isGerman ? 'de' : 'en';
+
       const exportParams = {
         partnerType: filters.type !== 'all' ? filters.type : undefined,
         status: filters.status !== 'all' ? filters.status : undefined,
         search: filters.searchTerm || undefined,
-        serviceType: currentService || undefined
+        serviceType: currentService || undefined,
+        language: language
       };
 
       // Remove undefined values
@@ -1407,6 +1414,13 @@ const PartnerManagement = ({ initialPartners = [] }) => {
   };
 
   // Helper function to get date parameters for partner leads
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getPartnerDateParams = (filter) => {
     const now = new Date();
 
@@ -1416,7 +1430,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     switch (filterType) {
       case 'single':
         if (filter.singleDate) {
-          const singleDate = filter.singleDate.toISOString().split('T')[0];
+          const singleDate = formatLocalDate(filter.singleDate);
           return {
             startDate: singleDate,
             endDate: singleDate
@@ -1426,47 +1440,48 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       case 'range':
         if (filter.fromDate && filter.toDate) {
           return {
-            startDate: filter.fromDate.toISOString().split('T')[0],
-            endDate: filter.toDate.toISOString().split('T')[0]
+            startDate: formatLocalDate(filter.fromDate),
+            endDate: formatLocalDate(filter.toDate)
           };
         }
         return {};
-      case 'current_week':
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
-        endOfWeek.setHours(23, 59, 59, 999);
-        return {
-          startDate: startOfWeek.toISOString().split('T')[0],
-          endDate: endOfWeek.toISOString().split('T')[0]
-        };
-      case 'last_week':
-        const lastWeekStart = new Date(now);
-        lastWeekStart.setDate(now.getDate() - now.getDay() - 7); // Previous Sunday
-        lastWeekStart.setHours(0, 0, 0, 0);
-        const lastWeekEnd = new Date(lastWeekStart);
-        lastWeekEnd.setDate(lastWeekStart.getDate() + 6); // Previous Saturday
-        lastWeekEnd.setHours(23, 59, 59, 999);
-        return {
-          startDate: lastWeekStart.toISOString().split('T')[0],
-          endDate: lastWeekEnd.toISOString().split('T')[0]
-        };
-      case 'current_month':
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return {
-          startDate: startOfMonth.toISOString().split('T')[0],
-          endDate: endOfMonth.toISOString().split('T')[0]
-        };
-      case 'last_month':
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        return {
-          startDate: lastMonthStart.toISOString().split('T')[0],
-          endDate: lastMonthEnd.toISOString().split('T')[0]
-        };
+      case 'week':
+        if (filter.week) {
+          const selectedDate = new Date(filter.week);
+          const startOfWeek = new Date(selectedDate);
+          startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay()); // Sunday
+          startOfWeek.setHours(0, 0, 0, 0);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
+          endOfWeek.setHours(23, 59, 59, 999);
+          return {
+            startDate: formatLocalDate(startOfWeek),
+            endDate: formatLocalDate(endOfWeek)
+          };
+        }
+        return {};
+      case 'month':
+        if (filter.month) {
+          const selectedDate = new Date(filter.month);
+          const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+          const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+          return {
+            startDate: formatLocalDate(startOfMonth),
+            endDate: formatLocalDate(endOfMonth)
+          };
+        }
+        return {};
+      case 'year':
+        if (filter.year) {
+          const selectedDate = new Date(filter.year);
+          const startOfYear = new Date(selectedDate.getFullYear(), 0, 1);
+          const endOfYear = new Date(selectedDate.getFullYear(), 11, 31);
+          return {
+            startDate: formatLocalDate(startOfYear),
+            endDate: formatLocalDate(endOfYear)
+          };
+        }
+        return {};
       default:
         return {};
     }
@@ -1589,9 +1604,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
       // Use partnersAPI.getLeads directly (more reliable for admin viewing partner leads)
       response = await partnersAPI.getLeads(partnerForDetails.id, {
-        search: partnerLeadsFilters.search || undefined,
+        search: partnerLeadsFilters.search?.trim() || undefined,
         status: partnerLeadsFilters.status !== 'all' ? partnerLeadsFilters.status : undefined,
-        city: partnerLeadsFilters.city || undefined,
+        city: partnerLeadsFilters.city?.trim() || undefined,
         service: currentService,
         limit: 1000,
         ...dateParams
@@ -1835,7 +1850,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       loadPartnerLeads();
       setPartnerLeadsCurrentPage(1); // Reset to page 1 when filters change
     }
-  }, [partnerDetailsTab, partnerLeadsFilters, partnerLeadsDateFilter.type, partnerLeadsDateFilter.singleDate, partnerLeadsDateFilter.fromDate, partnerLeadsDateFilter.toDate, partnerForDetails, currentService]);
+  }, [partnerDetailsTab, partnerLeadsFilters, partnerLeadsDateFilter.type, partnerLeadsDateFilter.singleDate, partnerLeadsDateFilter.fromDate, partnerLeadsDateFilter.toDate, partnerLeadsDateFilter.week, partnerLeadsDateFilter.month, partnerLeadsDateFilter.year, partnerForDetails, currentService]);
 
   // Load partner settings when settings tab is selected
   useEffect(() => {
@@ -1946,11 +1961,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <span className="text-green-600">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </span>
+                        <span className="text-lg">📊</span>
                         <div>
                           <div className="font-medium">Export to Excel</div>
                           <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .xlsx file</div>
@@ -1963,11 +1974,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                         onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <span className="text-red-600">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
-                        </span>
+                        <span className="text-lg">📄</span>
                         <div>
                           <div className="font-medium">Export to PDF</div>
                           <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>Download as .pdf file</div>
@@ -2325,24 +2332,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <div>
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
               <div className="flex items-center justify-between mt-1">
-                <p className={`text-2xl font-bold ${
-                  stat.color === 'blue' ? 'text-blue-600' :
-                  stat.color === 'green' ? 'text-green-600' :
-                  stat.color === 'yellow' ? 'text-yellow-600' :
-                  stat.color === 'red' ? 'text-red-600' :
-                  stat.color === 'emerald' ? 'text-emerald-600' :
-                  stat.color === 'purple' ? 'text-purple-600' :
-                  ''
-                }`}>{stat.value}</p>
-                <div className={`${
-                  stat.color === 'blue' ? 'text-blue-600' :
-                  stat.color === 'green' ? 'text-green-600' :
-                  stat.color === 'yellow' ? 'text-yellow-600' :
-                  stat.color === 'red' ? 'text-red-600' :
-                  stat.color === 'emerald' ? 'text-emerald-600' :
-                  stat.color === 'purple' ? 'text-purple-600' :
-                  ''
-                }`}>{stat.icon}</div>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <div className="text-white">{stat.icon}</div>
               </div>
             </div>
           </motion.div>
@@ -3066,10 +3057,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
                       <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
                       <option value="range">{isGerman ? 'Datumsbereich' : 'Date Range'}</option>
-                      <option value="current_week">{isGerman ? 'Aktuelle Woche' : 'Current Week'}</option>
-                      <option value="last_week">{isGerman ? 'Letzte Woche' : 'Last Week'}</option>
-                      <option value="current_month">{isGerman ? 'Aktueller Monat' : 'Current Month'}</option>
-                      <option value="last_month">{isGerman ? 'Letzter Monat' : 'Last Month'}</option>
+                      <option value="week">{isGerman ? 'Woche' : 'Week'}</option>
+                      <option value="month">{isGerman ? 'Monat' : 'Month'}</option>
+                      <option value="year">{isGerman ? 'Jahr' : 'Year'}</option>
                     </select>
 
                     {/* Single Date */}
@@ -3119,6 +3109,71 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                           placeholderText={isGerman ? 'Bis' : 'To'}
                           minDate={partnerLeadsDateFilter.fromDate}
                           className="w-full px-3 py-1.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Week Picker */}
+                    {partnerLeadsDateFilter.type === 'week' && (
+                      <div className="mt-2">
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.week}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, week: date }))}
+                          dateFormat="dd/MM/yyyy"
+                          placeholderText={isGerman ? 'Woche auswählen' : 'Select week'}
+                          className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Month Picker */}
+                    {partnerLeadsDateFilter.type === 'month' && (
+                      <div className="mt-2">
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.month}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, month: date }))}
+                          dateFormat="MM/yyyy"
+                          placeholderText={isGerman ? 'Monat auswählen' : 'Select month'}
+                          showMonthYearPicker
+                          className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          wrapperClassName="w-full"
+                          showPopperArrow={false}
+                          popperPlacement="bottom-start"
+                          style={{
+                            backgroundColor: 'var(--theme-input-bg)',
+                            borderColor: 'var(--theme-border)',
+                            color: 'var(--theme-text)'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Year Picker */}
+                    {partnerLeadsDateFilter.type === 'year' && (
+                      <div className="mt-2">
+                        <DatePicker
+                          selected={partnerLeadsDateFilter.year}
+                          onChange={(date) => setPartnerLeadsDateFilter(prev => ({ ...prev, year: date }))}
+                          dateFormat="yyyy"
+                          placeholderText={isGerman ? 'Jahr auswählen' : 'Select year'}
+                          showYearPicker
+                          className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
                           wrapperClassName="w-full"
                           showPopperArrow={false}
                           popperPlacement="bottom-start"

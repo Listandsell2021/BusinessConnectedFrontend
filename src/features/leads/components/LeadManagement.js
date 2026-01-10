@@ -2694,12 +2694,15 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                📊 {t('common.export')}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {t('common.export')}
                 <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </motion.button>
-              
+
               {showExportMenu && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-lg shadow-lg z-50" style={{ backgroundColor: 'var(--theme-bg)', border: '1px solid var(--theme-border)' }}>
                   <div className="py-2">
@@ -2710,7 +2713,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                      <span className="text-green-600">📊</span>
+                      <span className="text-lg">📊</span>
                       <div>
                         <div className="font-medium">{isGerman ? 'Excel-Export' : 'Export to Excel'}</div>
                         <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>{isGerman ? '.xlsx Datei' : 'Download as .xlsx file'}</div>
@@ -2723,7 +2726,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--theme-bg-secondary)'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                      <span className="text-red-600">📄</span>
+                      <span className="text-lg">📄</span>
                       <div>
                         <div className="font-medium">{isGerman ? 'PDF-Export' : 'Export to PDF'}</div>
                         <div className="text-xs" style={{ color: 'var(--theme-muted)' }}>{isGerman ? '.pdf Datei' : 'Download as .pdf file'}</div>
@@ -3088,26 +3091,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             <div>
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
               <div className="flex items-center justify-between mt-1">
-                <p className={`text-2xl font-bold ${
-                  stat.color === 'blue' ? 'text-blue-600' :
-                  stat.color === 'green' ? 'text-green-600' :
-                  stat.color === 'yellow' ? 'text-yellow-600' :
-                  stat.color === 'red' ? 'text-red-600' :
-                  stat.color === 'orange' ? 'text-orange-600' :
-                  stat.color === 'gray' ? 'text-gray-600' :
-                  stat.color === 'indigo' ? 'text-indigo-600' :
-                  ''
-                }`}>{stat.value}</p>
-                <div className={`${
-                  stat.color === 'blue' ? 'text-blue-600' :
-                  stat.color === 'green' ? 'text-green-600' :
-                  stat.color === 'yellow' ? 'text-yellow-600' :
-                  stat.color === 'red' ? 'text-red-600' :
-                  stat.color === 'orange' ? 'text-orange-600' :
-                  stat.color === 'gray' ? 'text-gray-600' :
-                  stat.color === 'indigo' ? 'text-indigo-600' :
-                  ''
-                }`}>{stat.icon}</div>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <div className="text-white">{stat.icon}</div>
               </div>
             </div>
           </motion.div>
