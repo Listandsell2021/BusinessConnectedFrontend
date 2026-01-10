@@ -1390,23 +1390,17 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     setShowAddModal(false);
     setPartnerFormData({
       companyName: '',
-      contactPerson: {
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: ''
-      },
+      contactPerson: '',
+      email: '',
+      phone: '',
+      regions: [],
+      isNationwide: false,
+      availableEmployees: '',
+      periodOfAvailability: '',
+      budgetScope: [],
+      companyDescription: '',
       partnerType: 'basic',
-      serviceType: '',
-      address: {
-        street: '',
-        city: '',
-        zipCode: '',
-        country: 'Germany'
-      },
-      preferences: {
-        averageLeadsPerWeek: 5
-      }
+      serviceType: 'security'
     });
     setPartnerFormErrors({});
     setIsServiceDropdownOpen(false);
