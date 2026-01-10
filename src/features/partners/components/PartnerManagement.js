@@ -533,31 +533,39 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     setLoading(true);
     try {
       // Prepare date parameters for API
+      // Helper function to format date as YYYY-MM-DD using local date (no timezone conversion)
+      const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const dateParams = {};
       if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
-        dateParams.startDate = dateFilter.fromDate.toISOString().split('T')[0];
-        dateParams.endDate = dateFilter.toDate.toISOString().split('T')[0];
+        dateParams.startDate = formatLocalDate(dateFilter.fromDate);
+        dateParams.endDate = formatLocalDate(dateFilter.toDate);
       } else if (dateFilter.type === 'week' && dateFilter.week) {
         const selectedWeekDate = new Date(dateFilter.week);
         const startOfWeek = new Date(selectedWeekDate);
         startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        dateParams.startDate = startOfWeek.toISOString().split('T')[0];
-        dateParams.endDate = endOfWeek.toISOString().split('T')[0];
+        dateParams.startDate = formatLocalDate(startOfWeek);
+        dateParams.endDate = formatLocalDate(endOfWeek);
       } else if (dateFilter.type === 'month' && dateFilter.month) {
         const selectedMonthDate = new Date(dateFilter.month);
         const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
         const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
-        dateParams.startDate = startOfMonth.toISOString().split('T')[0];
-        dateParams.endDate = endOfMonth.toISOString().split('T')[0];
+        dateParams.startDate = formatLocalDate(startOfMonth);
+        dateParams.endDate = formatLocalDate(endOfMonth);
       } else if (dateFilter.type === 'year' && dateFilter.year) {
         const selectedYearDate = new Date(dateFilter.year);
         const targetYear = selectedYearDate.getFullYear();
         dateParams.startDate = `${targetYear}-01-01`;
         dateParams.endDate = `${targetYear}-12-31`;
       } else if (dateFilter.type === 'single' && dateFilter.singleDate) {
-        const singleDate = dateFilter.singleDate.toISOString().split('T')[0];
+        const singleDate = formatLocalDate(dateFilter.singleDate);
         dateParams.startDate = singleDate;
         dateParams.endDate = singleDate;
       }

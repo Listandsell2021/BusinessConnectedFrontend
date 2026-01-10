@@ -2451,13 +2451,17 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
       let exportParams;
       let response;
 
+      // Add language parameter based on current language setting
+      const language = isGerman ? 'de' : 'en';
+
       if (activeTab === 'cancelled') {
         // Export cancelled requests
         exportParams = {
           serviceType: currentService,
           status: filters.status !== 'all' ? filters.status : undefined,
           city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
-          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
+          language: language
         };
 
         // Remove undefined values
@@ -2476,7 +2480,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           assignedPartner: filters.partner === 'multiple'
             ? selectedPartnerFilters.map(p => p._id)
             : filters.partner !== 'all' ? filters.partner : undefined,
-          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
+          language: language
         };
 
         // Remove undefined values
