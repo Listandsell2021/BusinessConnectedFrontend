@@ -3137,6 +3137,9 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     : t('common.date')
                   }
                 </SortableHeader>
+                <SortableHeader sortKey="assignedAt">
+                  {isGerman ? 'Zugewiesen am' : 'Assigned Date'}
+                </SortableHeader>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {t('common.actions')}
                 </th>
@@ -3145,7 +3148,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
               {loading ? (
                 <tr>
-                  <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center">
+                  <td colSpan={isPartner ? "7" : "8"} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       <span style={{ color: 'var(--theme-text)' }}>
@@ -3158,7 +3161,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 <>
                   {console.log('Rendering no leads found - leads array:', leads, 'isPartner:', isPartner, 'loading:', loading)}
                   <tr>
-                    <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                    <td colSpan={isPartner ? "7" : "8"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
                       {t('leads.noLeadsFound') || (isGerman ? 'Keine Leads gefunden' : 'No leads found')}
                     </td>
                   </tr>
@@ -3286,6 +3289,19 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                     {lead.dateDisplay || formatDateGerman(new Date(lead.createdAt))}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
+                    {(() => {
+                      // Get the partner assignment for this lead
+                      const partnerAssignment = lead.partnerAssignments?.find(pa =>
+                        pa.partner === user?.id || pa.partner?._id === user?.id || pa.partner?.toString() === user?.id
+                      );
+
+                      if (partnerAssignment?.assignedAt) {
+                        return formatDateTimeGerman(new Date(partnerAssignment.assignedAt));
+                      }
+                      return '-';
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -4178,7 +4194,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     </div>
                     <div>
                       <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Standort:' : 'Location:'}</strong>
-                      <span style={{ color: 'var(--theme-text)' }}> {selectedLead.city}</span>
+                      <span style={{ color: 'var(--theme-text)' }}> {selectedLead.formData?.location?.city || selectedLead.city || (isGerman ? 'Nicht angegeben' : 'Not provided')}</span>
                     </div>
                     <div>
                       <strong style={{ color: 'var(--theme-text)' }}>{isGerman ? 'Dienst:' : 'Service:'}</strong>

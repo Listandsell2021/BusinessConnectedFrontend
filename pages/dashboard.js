@@ -102,8 +102,8 @@ export default function Dashboard({ initialData = {} }) {
     }
   }, [isAuthenticated, loading, router]);
 
-  // Fetch recent leads for partners - moved before useEffect
-  const fetchRecentLeads = async () => {
+  // Fetch recent leads for partners - use useCallback to prevent infinite loop
+  const fetchRecentLeads = useCallback(async () => {
     try {
       setLoadingRecentLeads(true);
       console.log('Fetching recent leads for partner:', user.id, 'service:', currentService);
@@ -174,7 +174,7 @@ export default function Dashboard({ initialData = {} }) {
     } finally {
       setLoadingRecentLeads(false);
     }
-  };
+  }, [user?.id, currentService]);
 
   useEffect(() => {
     if (isPartner && user?.id && currentService) {
