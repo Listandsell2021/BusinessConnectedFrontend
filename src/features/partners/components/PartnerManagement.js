@@ -17,53 +17,124 @@ import { formatDateGerman, formatDateTimeGerman } from '../../../lib/dateFormatt
 
 // Mapping for region codes to full names
 const regionMap = {
-  bb: 'Berlin',
-  be: 'Brandenburg',
+  bw: 'Baden-Württemberg',
+  by: 'Bavaria',
+  be: 'Berlin',
+  bb: 'Brandenburg',
+  hb: 'Bremen',
   hh: 'Hamburg',
+  he: 'Hesse',
+  mv: 'Mecklenburg-Vorpommern',
+  ni: 'Lower Saxony',
   nrw: 'North Rhine-Westphalia',
+  rp: 'Rhineland-Palatinate',
+  sl: 'Saarland',
+  sn: 'Saxony',
+  st: 'Saxony-Anhalt',
+  sh: 'Schleswig-Holstein',
+  th: 'Thuringia',
   nationwide: 'Nationwide'
 };
 
 const regionMapGerman = {
-  bb: 'Berlin',
-  be: 'Brandenburg',
+  bw: 'Baden-Württemberg',
+  by: 'Bayern',
+  be: 'Berlin',
+  bb: 'Brandenburg',
+  hb: 'Bremen',
   hh: 'Hamburg',
+  he: 'Hessen',
+  mv: 'Mecklenburg-Vorpommern',
+  ni: 'Niedersachsen',
   nrw: 'Nordrhein-Westfalen',
+  rp: 'Rheinland-Pfalz',
+  sl: 'Saarland',
+  sn: 'Sachsen',
+  st: 'Sachsen-Anhalt',
+  sh: 'Schleswig-Holstein',
+  th: 'Thüringen',
   nationwide: 'Bundesweit'
 };
 
 // Mapping for services with underscores to full names
 const serviceMap = {
-  personal_security: 'Personal Protection',
+  security_service: 'Security Service',
   property_protection: 'Property Protection',
-  construction_security: 'Construction Site Safety',
+  industrial_security: 'Industrial Security',
+  construction_security: 'Construction Site Security',
+  patrol_service: 'Patrol Service',
+  city_patrol: 'City Patrol',
+  doorkeeper: 'Doorkeeper',
+  reception_service: 'Reception Service',
+  personal_security: 'Personal Security',
+  doorman: 'Doorman',
+  security_dog_handler: 'Security Dog Handler',
+  detective: 'Detective',
   event_security: 'Event Security',
+  refugee_security: 'Refugee Home Security',
+  fire_watch: 'Fire Watch',
   miscellaneous: 'Miscellaneous'
 };
 
 const serviceMapGerman = {
-  personal_security: 'Personenschutz',
+  security_service: 'Sicherheitsdienst',
   property_protection: 'Objektschutz',
-  construction_security: 'Baustellen-Sicherheit',
-  event_security: 'Event-Sicherheit',
+  industrial_security: 'Werkschutz',
+  construction_security: 'Baustellenbewachung',
+  patrol_service: 'Revierdienst',
+  city_patrol: 'Citystreife',
+  doorkeeper: 'Pförtner',
+  reception_service: 'Empfangsdienst',
+  personal_security: 'Personenschutz',
+  doorman: 'Türsteher',
+  security_dog_handler: 'Diensthundeführer',
+  detective: 'Detektiv',
+  event_security: 'Veranstaltungsschutz',
+  refugee_security: 'Flüchtlingsheimbewachung',
+  fire_watch: 'Brandwache',
   miscellaneous: 'Sonstiges'
 };
 
 // Mapping for employee ranges
 const employeeMap = {
+  '1_5': '1 - 5 Employees',
+  '6_10': '6 - 10 Employees',
+  '11_25': '11 - 25 Employees',
+  '26_50': '26 - 50 Employees',
+  '51_plus': '51+ Employees',
   '1_10': '1-10 Employees',
-  '11_25': '11-25 Employees',
-  '26_50': '26-50 Employees',
   '51_100': '51-100 Employees',
   '100_plus': '100+ Employees'
 };
 
 const employeeMapGerman = {
+  '1_5': '1 - 5 Mitarbeiter',
+  '6_10': '6 - 10 Mitarbeiter',
+  '11_25': '11 - 25 Mitarbeiter',
+  '26_50': '26 - 50 Mitarbeiter',
+  '51_plus': '51+ Mitarbeiter',
   '1_10': '1-10 Mitarbeiter',
-  '11_25': '11-25 Mitarbeiter',
-  '26_50': '26-50 Mitarbeiter',
   '51_100': '51-100 Mitarbeiter',
   '100_plus': '100+ Mitarbeiter'
+};
+
+// Mapping for availability periods
+const availabilityMap = {
+  'einmalig': 'One-Time',
+  'next_1_month': '1 Month',
+  'next_3_months': 'Up to 3 Months',
+  'next_6_months': 'Up to 6 Months',
+  'ongoing': 'Available Permanently',
+  'seasonal': 'Seasonal'
+};
+
+const availabilityMapGerman = {
+  'einmalig': 'Einmalig',
+  'next_1_month': '1 Monat',
+  'next_3_months': 'bis zu 3 Monate',
+  'next_6_months': 'bis zu 6 Monate',
+  'ongoing': 'Dauerhaft verfügbar',
+  'seasonal': 'Saisonal'
 };
 
 // Function to convert underscore text to readable text
@@ -80,6 +151,11 @@ const formatServiceLabel = (service, isGerman = false) => {
 const formatEmployeeLabel = (employees, isGerman = false) => {
   const map = isGerman ? employeeMapGerman : employeeMap;
   return map[employees] || employees;
+};
+
+const formatAvailabilityLabel = (availability, isGerman = false) => {
+  const map = isGerman ? availabilityMapGerman : availabilityMap;
+  return map[availability] || availability;
 };
 
 const PartnerManagement = ({ initialPartners = [] }) => {
@@ -229,6 +305,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     email: '',
     phone: '',
     regions: [],
+    isNationwide: false,
     availableEmployees: '',
     periodOfAvailability: '',
     budgetScope: [],
@@ -1227,6 +1304,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         phone: partnerFormData.phone,
         securityFormData: {
           regions: partnerFormData.regions,
+          isNationwide: partnerFormData.isNationwide,
           budgetScope: partnerFormData.budgetScope,
           availableEmployees: partnerFormData.availableEmployees,
           periodOfAvailability: partnerFormData.periodOfAvailability,
@@ -2714,7 +2792,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                             {isGerman ? 'Verfügbarkeitszeitraum' : 'Availability Period'}:
                           </td>
                           <td className="px-6 py-3 text-sm w-2/3" style={{ color: 'var(--theme-text)', borderBottom: '1px solid var(--theme-border)' }}>
-                            {partnerForDetails.securityFormData?.periodOfAvailability || '-'}
+                            {partnerForDetails.securityFormData?.periodOfAvailability ? formatAvailabilityLabel(partnerForDetails.securityFormData.periodOfAvailability, isGerman) : '-'}
                           </td>
                         </tr>
                       </tbody>
@@ -3950,35 +4028,73 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                 </div>
 
                 {/* Regions */}
-                <div>
+                <div className="mt-6 mb-6">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
                     🗺️ {isGerman ? 'In welchen Regionen sind Einsätze möglich?' : 'In which regions are assignments possible?'} *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { id: 'be', label: 'Berlin' },
-                      { id: 'bb', label: 'Brandenburg' },
-                      { id: 'hh', label: 'Hamburg' },
-                      { id: 'nrw', label: 'Nordrhein-Westfalen' },
-                      { id: 'nationwide', label: isGerman ? 'Bundesweit' : 'Nationwide' }
-                    ].map(region => (
-                      <label key={region.id} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          name="regions"
-                          value={region.id}
-                          checked={partnerFormData.regions.includes(region.id)}
-                          onChange={(e) => {
-                            const newRegions = e.target.checked
-                              ? [...partnerFormData.regions, region.id]
-                              : partnerFormData.regions.filter(r => r !== region.id);
-                            handlePartnerFormChange('regions', newRegions);
-                          }}
-                          className="w-4 h-4 rounded"
-                        />
-                        <span style={{ color: 'var(--theme-text)' }}>{region.label}</span>
-                      </label>
-                    ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {(() => {
+                      const regions = [
+                        { id: 'bw', label: 'Baden-Württemberg' },
+                        { id: 'by', label: 'Bayern' },
+                        { id: 'be', label: 'Berlin' },
+                        { id: 'bb', label: 'Brandenburg' },
+                        { id: 'hb', label: 'Bremen' },
+                        { id: 'hh', label: 'Hamburg' },
+                        { id: 'he', label: 'Hessen' },
+                        { id: 'mv', label: 'Mecklenburg-Vorpommern' },
+                        { id: 'ni', label: 'Niedersachsen' },
+                        { id: 'nrw', label: 'Nordrhein-Westfalen' },
+                        { id: 'rp', label: 'Rheinland-Pfalz' },
+                        { id: 'sl', label: 'Saarland' },
+                        { id: 'sn', label: 'Sachsen' },
+                        { id: 'st', label: 'Sachsen-Anhalt' },
+                        { id: 'sh', label: 'Schleswig-Holstein' },
+                        { id: 'th', label: 'Thüringen' },
+                        { id: 'nationwide', label: isGerman ? 'Bundesweit' : 'Nationwide' }
+                      ];
+                      return regions.map(region => (
+                        <label key={region.id} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="regions"
+                            value={region.id}
+                            checked={partnerFormData.regions.includes(region.id)}
+                            onChange={(e) => {
+                              let newRegions;
+                              const currentRegions = partnerFormData.regions;
+                              const nonNationwideRegions = regions.filter(r => r.id !== 'nationwide');
+
+                              // Handle "nationwide" option
+                              if (region.id === 'nationwide') {
+                                if (e.target.checked) {
+                                  // When nationwide is checked, select all non-nationwide regions
+                                  newRegions = nonNationwideRegions.map(r => r.id);
+                                  handlePartnerFormChange('isNationwide', true);
+                                } else {
+                                  // When nationwide is unchecked, clear all
+                                  newRegions = [];
+                                  handlePartnerFormChange('isNationwide', false);
+                                }
+                              } else {
+                                // Handle regular region selection
+                                newRegions = e.target.checked
+                                  ? [...currentRegions, region.id]
+                                  : currentRegions.filter(r => r !== region.id);
+
+                                // Auto-set isNationwide if all regions are selected
+                                const allNonNationwideSelected = nonNationwideRegions.every(r => newRegions.includes(r.id));
+                                handlePartnerFormChange('isNationwide', allNonNationwideSelected && newRegions.length === nonNationwideRegions.length);
+                              }
+
+                              handlePartnerFormChange('regions', newRegions);
+                            }}
+                            className="w-4 h-4 rounded flex-shrink-0"
+                          />
+                          <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{region.label}</span>
+                        </label>
+                      ));
+                    })()}
                   </div>
                   {partnerFormErrors.regions && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.regions}</p>}
                 </div>
@@ -4028,9 +4144,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       }}
                     >
                       <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
-                      <option value="next_1_month">{isGerman ? 'Nächsten 1 Monat' : 'Next 1 month'}</option>
-                      <option value="next_3_months">{isGerman ? 'Nächsten 3 Monate' : 'Next 3 months'}</option>
-                      <option value="next_6_months">{isGerman ? 'Nächsten 6 Monate' : 'Next 6 months'}</option>
+                      <option value="next_1_month">{isGerman ? '1 Monat' : '1 month'}</option>
+                      <option value="next_3_months">{isGerman ? 'bis zu 3 Monate' : 'up to 3 months'}</option>
+                      <option value="next_6_months">{isGerman ? 'bis zu 6 Monate' : 'up to 6 months'}</option>
                       <option value="ongoing">{isGerman ? 'Dauerhaft verfügbar' : 'Permanently available'}</option>
                       <option value="seasonal">{isGerman ? 'Saisonal' : 'Seasonal'}</option>
                     </select>
@@ -4038,18 +4154,28 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                   </div>
                 </div>
 
-                {/* Budget Scope */}
-                <div>
+                {/* Services */}
+                <div className="mt-6 mb-6">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
-                    💰 {isGerman ? 'Budget-Umfang bis zu einem Maximum von' : 'Budget scope up to a maximum of'} *
+                    💰 Wählen Sie alle Leistungen aus, die Sie erbringen können *
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {[
-                      { id: 'property_protection', label: isGerman ? 'Objektschutz' : 'Property Protection' },
-                      { id: 'personal_security', label: isGerman ? 'Personenschutz' : 'Personal Security' },
-                      { id: 'construction_security', label: isGerman ? 'Baustellensicherheit' : 'Construction Security' },
-                      { id: 'event_security', label: isGerman ? 'Veranstaltungssicherheit' : 'Event Security' },
-                      { id: 'other', label: isGerman ? 'Sonstiges' : 'Others' }
+                      { id: 'security_service', label: 'Sicherheitsdienst' },
+                      { id: 'property_protection', label: 'Objektschutz' },
+                      { id: 'industrial_security', label: 'Werkschutz' },
+                      { id: 'construction_security', label: 'Baustellenbewachung' },
+                      { id: 'patrol_service', label: 'Revierdienst' },
+                      { id: 'city_patrol', label: 'Citystreife' },
+                      { id: 'doorkeeper', label: 'Pförtner' },
+                      { id: 'reception_service', label: 'Empfangsdienst' },
+                      { id: 'personal_security', label: 'Personenschutz' },
+                      { id: 'doorman', label: 'Türsteher' },
+                      { id: 'security_dog_handler', label: 'Diensthundeführer' },
+                      { id: 'detective', label: 'Detektiv' },
+                      { id: 'event_security', label: 'Veranstaltungsschutz' },
+                      { id: 'refugee_security', label: 'Flüchtlingsheimbewachung' },
+                      { id: 'fire_watch', label: 'Brandwache' }
                     ].map(scope => (
                       <label key={scope.id} className="flex items-center space-x-2 cursor-pointer">
                         <input
@@ -4063,19 +4189,19 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               : partnerFormData.budgetScope.filter(b => b !== scope.id);
                             handlePartnerFormChange('budgetScope', newBudgetScope);
                           }}
-                          className="w-4 h-4 rounded"
+                          className="w-4 h-4 rounded flex-shrink-0"
                         />
-                        <span style={{ color: 'var(--theme-text)' }}>{scope.label}</span>
+                        <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{scope.label}</span>
                       </label>
                     ))}
                   </div>
                   {partnerFormErrors.budgetScope && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.budgetScope}</p>}
                 </div>
 
-                {/* Company Description */}
+                {/* Comments and Notes */}
                 <div>
                   <label htmlFor="partner-description" className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                    📝 {isGerman ? 'Kurzbeschreibung des Projekts' : 'Brief description of the project'} *
+                    💬 Kommentare und Notizen *
                   </label>
                   <textarea
                     id="partner-description"
@@ -4089,7 +4215,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       borderColor: partnerFormErrors.companyDescription ? '#ef4444' : 'var(--theme-border)',
                       color: 'var(--theme-text)'
                     }}
-                    placeholder={isGerman ? 'Kurzbeschreibung...' : 'Brief description...'}
+                    placeholder="Kommentare und Notizen eingeben..."
                   />
                   {partnerFormErrors.companyDescription && <p className="text-red-500 text-sm mt-1">{partnerFormErrors.companyDescription}</p>}
                 </div>

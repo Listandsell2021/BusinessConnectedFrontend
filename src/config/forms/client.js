@@ -38,7 +38,7 @@ export const securityClientFormConfig = {
         {
           id: 'email',
           type: 'email',
-          label: 'E-Mail Id',
+          label: 'E-Mail',
           placeholder: 'example@email.com',
           required: true,
           gridCol: 1
@@ -103,6 +103,14 @@ export const securityClientFormConfig = {
           required: true,
           gridCol: 2,
           options: [
+            {
+              id: 'einmalig',
+              label: 'Einmalig'
+            },
+            {
+              id: '1',
+              label: '1 Monat'
+            },
             {
               id: '3',
               label: '3 Monate'

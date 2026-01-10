@@ -26,6 +26,7 @@ export default function PartnerRequest() {
     email: '',
     phone: '',
     regions: [],
+    isNationwide: false,
     availableEmployees: '',
     periodOfAvailability: '',
     budgetScope: [],
@@ -141,7 +142,40 @@ export default function PartnerRequest() {
     const { name, value, type, checked } = e.target;
 
     setFormData(prev => {
-      if (name === 'regions' || name === 'budgetScope') {
+      if (name === 'regions') {
+        // Handle regions with Bundesweit logic
+        let updatedArray = [...prev[name]];
+        const nonNationwideRegions = ['bw', 'by', 'be', 'bb', 'hb', 'hh', 'he', 'mv', 'ni', 'nrw', 'rp', 'sl', 'sn', 'st', 'sh', 'th'];
+
+        if (value === 'nationwide') {
+          if (checked) {
+            // Select all regions when nationwide is checked
+            updatedArray = [...nonNationwideRegions];
+          } else {
+            // Clear all when nationwide is unchecked
+            updatedArray = [];
+          }
+        } else {
+          // Handle regular region selection
+          if (checked) {
+            if (!updatedArray.includes(value)) {
+              updatedArray.push(value);
+            }
+          } else {
+            updatedArray = updatedArray.filter(item => item !== value);
+          }
+        }
+
+        // Set isNationwide boolean if all regions are selected
+        const allNonNationwideSelected = nonNationwideRegions.every(r => updatedArray.includes(r));
+        const isNationwideChecked = allNonNationwideSelected && updatedArray.length === nonNationwideRegions.length;
+
+        return {
+          ...prev,
+          [name]: updatedArray,
+          isNationwide: isNationwideChecked
+        };
+      } else if (name === 'budgetScope') {
         // Handle checkbox arrays
         let updatedArray = [...prev[name]];
         if (checked) {
@@ -294,6 +328,7 @@ export default function PartnerRequest() {
           },
           securityFormData: {
             regions: formData.regions,
+            isNationwide: formData.isNationwide,
             budgetScope: formData.budgetScope,
             availableEmployees: formData.availableEmployees,
             periodOfAvailability: formData.periodOfAvailability,
@@ -865,17 +900,30 @@ export default function PartnerRequest() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.9 }}
+                    className="mt-6 mb-6"
                   >
                     <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>
-                      🗺️ {isGerman ? 'In welchen Regionen sind Einsätze möglich?' : 'In which regions are assignments possible?'}
+                      🗺️ In welchen Regionen sind Einsätze möglich?
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {[
+                        { id: 'bw', label: 'Baden-Württemberg' },
+                        { id: 'by', label: 'Bayern' },
                         { id: 'be', label: 'Berlin' },
                         { id: 'bb', label: 'Brandenburg' },
+                        { id: 'hb', label: 'Bremen' },
                         { id: 'hh', label: 'Hamburg' },
+                        { id: 'he', label: 'Hessen' },
+                        { id: 'mv', label: 'Mecklenburg-Vorpommern' },
+                        { id: 'ni', label: 'Niedersachsen' },
                         { id: 'nrw', label: 'Nordrhein-Westfalen' },
-                        { id: 'nationwide', label: isGerman ? 'Bundesweit' : 'Nationwide' }
+                        { id: 'rp', label: 'Rheinland-Pfalz' },
+                        { id: 'sl', label: 'Saarland' },
+                        { id: 'sn', label: 'Sachsen' },
+                        { id: 'st', label: 'Sachsen-Anhalt' },
+                        { id: 'sh', label: 'Schleswig-Holstein' },
+                        { id: 'th', label: 'Thüringen' },
+                        { id: 'nationwide', label: 'Bundesweit' }
                       ].map(region => (
                         <label key={region.id} className="flex items-center space-x-2 cursor-pointer">
                           <input
@@ -884,9 +932,9 @@ export default function PartnerRequest() {
                             value={region.id}
                             checked={formData.regions.includes(region.id)}
                             onChange={handleChange}
-                            className="w-4 h-4 rounded"
+                            className="w-4 h-4 rounded flex-shrink-0"
                           />
-                          <span style={{ color: 'var(--theme-text)' }}>{region.label}</span>
+                          <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{region.label}</span>
                         </label>
                       ))}
                     </div>
@@ -946,7 +994,7 @@ export default function PartnerRequest() {
                         className="block text-sm font-semibold mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
-                        ⏰ {isGerman ? 'Verfügbarkeitszeitraum' : 'Availability period'}
+                        ⏰ Verfügbarkeitszeitraum
                       </label>
                       <select
                         id="periodOfAvailability"
@@ -967,12 +1015,12 @@ export default function PartnerRequest() {
                           backdropFilter: 'blur(10px)'
                         }}
                       >
-                        <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
-                        <option value="next_1_month">{isGerman ? 'Nächsten 1 Monat' : 'Next 1 month'}</option>
-                        <option value="next_3_months">{isGerman ? 'Nächsten 3 Monate' : 'Next 3 months'}</option>
-                        <option value="next_6_months">{isGerman ? 'Nächsten 6 Monate' : 'Next 6 months'}</option>
-                        <option value="ongoing">{isGerman ? 'Dauerhaft verfügbar' : 'Permanently available'}</option>
-                        <option value="seasonal">{isGerman ? 'Saisonal' : 'Seasonal'}</option>
+                        <option value="">Bitte wählen...</option>
+                        <option value="next_1_month">1 Monat</option>
+                        <option value="next_3_months">bis zu 3 Monate</option>
+                        <option value="next_6_months">bis zu 6 Monate</option>
+                        <option value="ongoing">Dauerhaft verfügbar</option>
+                        <option value="seasonal">Saisonal</option>
                       </select>
                       {errors.periodOfAvailability && <p className="text-red-500 text-sm mt-1">{errors.periodOfAvailability}</p>}
                     </motion.div>
@@ -983,17 +1031,28 @@ export default function PartnerRequest() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.2 }}
+                    className="mt-6 mb-6"
                   >
                     <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>
-                      💰 {isGerman ? 'Budget-Umfang bis zu einem Maximum von' : 'Budget scope up to a maximum of'}
+                      💰 Sicherheitsdienste - Welche Services bieten Sie an?
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {[
-                        { id: 'property_protection', label: isGerman ? 'Objektschutz' : 'Property Protection' },
-                        { id: 'personal_security', label: isGerman ? 'Personenschutz' : 'Personal Security' },
-                        { id: 'construction_security', label: isGerman ? 'Baustellensicherheit' : 'Construction Security' },
-                        { id: 'event_security', label: isGerman ? 'Veranstaltungssicherheit' : 'Event Security' },
-                        { id: 'other', label: isGerman ? 'Sonstiges' : 'Others' }
+                        { id: 'sicherheitsdienst', label: 'Sicherheitsdienst' },
+                        { id: 'objektschutz', label: 'Objektschutz' },
+                        { id: 'werkschutz', label: 'Werkschutz' },
+                        { id: 'baustellenbewachung', label: 'Baustellenbewachung' },
+                        { id: 'revierdienst', label: 'Revierdienst' },
+                        { id: 'citystreife', label: 'Citystreife' },
+                        { id: 'pfoertner', label: 'Pförtner' },
+                        { id: 'empfangsdienst', label: 'Empfangsdienst' },
+                        { id: 'personenschutz', label: 'Personenschutz' },
+                        { id: 'tuersteher', label: 'Türsteher' },
+                        { id: 'diensthundfuehrer', label: 'Diensthundeführer' },
+                        { id: 'detektiv', label: 'Detektiv' },
+                        { id: 'veranstaltungsschutz', label: 'Veranstaltungsschutz' },
+                        { id: 'fluechtlingsheimbewachung', label: 'Flüchtlingsheimbewachung' },
+                        { id: 'brandwache', label: 'Brandwache' }
                       ].map(scope => (
                         <label key={scope.id} className="flex items-center space-x-2 cursor-pointer">
                           <input
@@ -1002,9 +1061,9 @@ export default function PartnerRequest() {
                             value={scope.id}
                             checked={formData.budgetScope.includes(scope.id)}
                             onChange={handleChange}
-                            className="w-4 h-4 rounded"
+                            className="w-4 h-4 rounded flex-shrink-0"
                           />
-                          <span style={{ color: 'var(--theme-text)' }}>{scope.label}</span>
+                          <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{scope.label}</span>
                         </label>
                       ))}
                     </div>
@@ -1016,13 +1075,14 @@ export default function PartnerRequest() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.3 }}
+                    className="mt-6 mb-6"
                   >
                     <label
                       htmlFor="companyDescription"
                       className="block text-sm font-semibold mb-3"
                       style={{ color: 'var(--theme-text)' }}
                     >
-                      📝 {isGerman ? 'Kurzbeschreibung des Projekts' : 'Brief description of the project'}
+                      💬 Kommentare und Notizen
                     </label>
                     <textarea
                       id="companyDescription"
@@ -1043,7 +1103,7 @@ export default function PartnerRequest() {
                         color: 'var(--theme-text)',
                         backdropFilter: 'blur(10px)'
                       }}
-                      placeholder={isGerman ? 'Kurzbeschreibung...' : 'Brief description...'}
+                      placeholder="Kommentare und Notizen eingeben..."
                     />
                     {errors.companyDescription && <p className="text-red-500 text-sm mt-1">{errors.companyDescription}</p>}
                   </motion.div>

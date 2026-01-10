@@ -533,7 +533,17 @@ const SinglePageForm = ({ formType }) => {
                                     </select>
                                   ) : field.type === 'checkbox' && field.options ? (
                                     // Multi-select checkboxes
-                                    <div className="space-y-2">
+                                    <div className={`grid gap-2 ${
+                                      field.responsive ? (
+                                        field.columns === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                        field.columns === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                                        'grid-cols-1'
+                                      ) : (
+                                        field.columns === 3 ? 'grid-cols-3' :
+                                        field.columns === 2 ? 'grid-cols-2' :
+                                        'grid-cols-1'
+                                      )
+                                    }`}>
                                       {field.options.map(opt => (
                                         <label key={opt.id} className="flex items-center space-x-2 cursor-pointer">
                                           <input
@@ -542,14 +552,37 @@ const SinglePageForm = ({ formType }) => {
                                             checked={(formData[field.id] || []).includes(opt.id)}
                                             onChange={(e) => {
                                               const currentValues = formData[field.id] || [];
-                                              const newValues = e.target.checked
-                                                ? [...currentValues, opt.id]
-                                                : currentValues.filter(v => v !== opt.id);
+                                              const nonNationwideOptions = field.options.filter(o => o.id !== 'nationwide');
+                                              let newValues;
+
+                                              // Handle "nationwide" (Bundesweit) option
+                                              if (opt.id === 'nationwide') {
+                                                if (e.target.checked) {
+                                                  // When nationwide is checked, select all non-nationwide regions
+                                                  newValues = nonNationwideOptions.map(option => option.id);
+                                                  // Set isNationwide boolean
+                                                  handleChange('isNationwide', true);
+                                                } else {
+                                                  // When nationwide is unchecked, clear all
+                                                  newValues = [];
+                                                  handleChange('isNationwide', false);
+                                                }
+                                              } else {
+                                                // Handle regular region selection
+                                                newValues = e.target.checked
+                                                  ? [...currentValues, opt.id]
+                                                  : currentValues.filter(v => v !== opt.id);
+
+                                                // Auto-set isNationwide if all regions are selected
+                                                const allNonNationwideSelected = nonNationwideOptions.every(o => newValues.includes(o.id));
+                                                handleChange('isNationwide', allNonNationwideSelected && newValues.length === nonNationwideOptions.length);
+                                              }
+
                                               handleChange(field.id, newValues);
                                             }}
-                                            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                                            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer flex-shrink-0"
                                           />
-                                          <span className="text-slate-200 text-sm">{getLocalizedText(opt.label)}</span>
+                                          <span className="text-slate-200 text-xs sm:text-sm break-words">{getLocalizedText(opt.label)}</span>
                                         </label>
                                       ))}
                                     </div>

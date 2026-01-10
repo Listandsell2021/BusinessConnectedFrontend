@@ -36,7 +36,7 @@ export const securityCompanyFormConfig = {
         {
           id: 'email',
           type: 'email',
-          label: 'E-Mail Id',
+          label: 'E-Mail',
           placeholder: 'example@company.com',
           required: true,
           gridCol: 1
@@ -58,11 +58,24 @@ export const securityCompanyFormConfig = {
           description: 'Wählen Sie alle Regionen aus, in denen Sie tätig sind',
           required: true,
           gridCol: 'full',
+          columns: 3,
           options: [
+            { id: 'bw', label: 'Baden-Württemberg' },
+            { id: 'by', label: 'Bayern' },
             { id: 'be', label: 'Berlin' },
             { id: 'bb', label: 'Brandenburg' },
+            { id: 'hb', label: 'Bremen' },
             { id: 'hh', label: 'Hamburg' },
+            { id: 'he', label: 'Hessen' },
+            { id: 'mv', label: 'Mecklenburg-Vorpommern' },
+            { id: 'ni', label: 'Niedersachsen' },
             { id: 'nrw', label: 'Nordrhein-Westfalen' },
+            { id: 'rp', label: 'Rheinland-Pfalz' },
+            { id: 'sl', label: 'Saarland' },
+            { id: 'sn', label: 'Sachsen' },
+            { id: 'st', label: 'Sachsen-Anhalt' },
+            { id: 'sh', label: 'Schleswig-Holstein' },
+            { id: 'th', label: 'Thüringen' },
             { id: 'nationwide', label: 'Bundesweit' }
           ]
         },
@@ -91,37 +104,48 @@ export const securityCompanyFormConfig = {
           required: true,
           gridCol: 2,
           options: [
-            { id: 'next_1_month', label: 'Nächsten 1 Monat' },
-            { id: 'next_3_months', label: 'Nächsten 3 Monate' },
-            { id: 'next_6_months', label: 'Nächsten 6 Monate' },
+            { id: 'next_1_month', label: '1 Monat' },
+            { id: 'next_3_months', label: 'bis zu 3 Monate' },
+            { id: 'next_6_months', label: 'bis zu 6 Monate' },
             { id: 'ongoing', label: 'Dauerhaft verfügbar' },
             { id: 'seasonal', label: 'Saisonal' }
           ]
         },
 
-        // Budget Scope / Specializations
+        // Services / Specializations
         {
           id: 'budgetScope',
           type: 'checkbox',
-          label: 'Budget-Umfang bis zu einem Maximum von',
-          description: 'Wählen Sie alle Leistungen aus, die Sie erbringen können',
+          label: 'Wählen Sie alle Leistungen aus, die Sie erbringen können',
           required: true,
           gridCol: 'full',
+          columns: 3,
+          responsive: true,
           options: [
+            { id: 'security_service', label: 'Sicherheitsdienst' },
             { id: 'property_protection', label: 'Objektschutz' },
+            { id: 'industrial_security', label: 'Werkschutz' },
+            { id: 'construction_security', label: 'Baustellenbewachung' },
+            { id: 'patrol_service', label: 'Revierdienst' },
+            { id: 'city_patrol', label: 'Citystreife' },
+            { id: 'doorkeeper', label: 'Pförtner' },
+            { id: 'reception_service', label: 'Empfangsdienst' },
             { id: 'personal_security', label: 'Personenschutz' },
-            { id: 'construction_security', label: 'Baustellensicherheit' },
-            { id: 'event_security', label: 'Veranstaltungssicherheit' },
-            { id: 'other', label: 'Sonstiges' }
+            { id: 'doorman', label: 'Türsteher' },
+            { id: 'security_dog_handler', label: 'Diensthundeführer' },
+            { id: 'detective', label: 'Detektiv' },
+            { id: 'event_security', label: 'Veranstaltungsschutz' },
+            { id: 'refugee_security', label: 'Flüchtlingsheimbewachung' },
+            { id: 'fire_watch', label: 'Brandwache' }
           ]
         },
 
-        // Project Description
+        // Comments and Notes
         {
           id: 'companyDescription',
           type: 'textarea',
-          label: 'Kurzbeschreibung des Projekts',
-          placeholder: 'Kurzbeschreibung des Projekts...',
+          label: 'Kommentare und Notizen',
+          placeholder: 'Kommentare und Notizen...',
           required: true,
           gridCol: 'full',
           rows: 6

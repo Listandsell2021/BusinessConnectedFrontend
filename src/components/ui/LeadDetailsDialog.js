@@ -429,6 +429,11 @@ const LeadDetailsDialog = ({
         return commonTranslations[lowerValue];
       }
 
+      // Don't capitalize email addresses - return as-is
+      if (key === 'email' || key.toLowerCase().includes('email')) {
+        return value;
+      }
+
       return value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
