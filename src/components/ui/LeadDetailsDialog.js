@@ -156,6 +156,46 @@ const LeadDetailsDialog = ({
       return '';
     }
 
+    // Handle date fields - format in German way (DD.MM.YYYY)
+    if (key === 'desiredStartDate' || key === 'startDate' || key === 'endDate' || key === 'moveDate' || key === 'desiredMoveDate') {
+      if (typeof value === 'string') {
+        // Handle ISO date strings (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+        if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+          try {
+            const date = new Date(value);
+            return date.toLocaleDateString('de-DE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+          } catch (e) {
+            return value;
+          }
+        }
+      } else if (value instanceof Date) {
+        return value.toLocaleDateString('de-DE', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      }
+    }
+
+    // Handle time fields - format in German way (HH:mm)
+    if (key === 'time' || key === 'appointmentTime' || key === 'preferredTime') {
+      if (typeof value === 'string') {
+        // Handle ISO time strings (HH:mm or HH:mm:ss)
+        if (/^\d{1,2}:\d{2}/.test(value)) {
+          try {
+            const [hours, minutes] = value.split(':');
+            return `${String(parseInt(hours)).padStart(2, '0')}:${String(parseInt(minutes)).padStart(2, '0')} ${isGerman ? 'Uhr' : ''}`.trim();
+          } catch (e) {
+            return value;
+          }
+        }
+      }
+    }
+
     // Property type translations
     if (key === 'propertyType' || key === 'currentPropertyType' || key === 'futurePropertyType') {
       const propertyTypes = {
@@ -420,7 +460,23 @@ const LeadDetailsDialog = ({
         'weekly': isGerman ? 'Wöchentlich' : 'Weekly',
         'biweekly': isGerman ? 'Zweiwöchentlich' : 'Biweekly',
         'monthly': isGerman ? 'Monatlich' : 'Monthly',
-        'daily': isGerman ? 'Täglich' : 'Daily'
+        'daily': isGerman ? 'Täglich' : 'Daily',
+        // Budget Scope
+        'up_to_5k': isGerman ? 'Bis zu €5.000' : 'Up to €5,000',
+        'up to €5.000': isGerman ? 'Bis zu €5.000' : 'Up to €5,000',
+        'up to 5k': isGerman ? 'Bis zu €5.000' : 'Up to €5,000',
+        '5k_to_10k': isGerman ? '€5.000 - €10.000' : '€5,000 - €10,000',
+        '€5.000 - €10.000': isGerman ? '€5.000 - €10.000' : '€5,000 - €10,000',
+        '5k to 10k': isGerman ? '€5.000 - €10.000' : '€5,000 - €10,000',
+        '10k_to_25k': isGerman ? '€10.000 - €25.000' : '€10,000 - €25,000',
+        '€10.000 - €25.000': isGerman ? '€10.000 - €25.000' : '€10,000 - €25,000',
+        '10k to 25k': isGerman ? '€10.000 - €25.000' : '€10,000 - €25,000',
+        '25k_to_50k': isGerman ? '€25.000 - €50.000' : '€25,000 - €50,000',
+        '€25.000 - €50.000': isGerman ? '€25.000 - €50.000' : '€25,000 - €50,000',
+        '25k to 50k': isGerman ? '€25.000 - €50.000' : '€25,000 - €50,000',
+        '50k_plus': isGerman ? 'Über €50.000' : 'Over €50,000',
+        'über €50.000': isGerman ? 'Über €50.000' : 'Over €50,000',
+        '50k plus': isGerman ? 'Über €50.000' : 'Over €50,000'
       };
 
       // Check if the lowercase value has a translation
@@ -461,6 +517,10 @@ const LeadDetailsDialog = ({
       'estimatedCommercialArea': isGerman ? 'Geschätzte Gewerbefläche' : 'Estimated Commercial Area',
       'startDate': isGerman ? 'Startdatum' : 'Start Date',
       'endDate': isGerman ? 'Enddatum' : 'End Date',
+      'desiredStartDate': isGerman ? 'Gewünschtes Startdatum' : 'Desired Start Date',
+      'duration': isGerman ? 'Dauer' : 'Duration',
+      'budgetScope': isGerman ? 'Budget bis maximal' : 'Budget Scope',
+      'projectDescription': isGerman ? 'Kurze Beschreibung des Projekts' : 'Project Description',
       'services': isGerman ? 'Dienste' : 'Services',
       'serviceTypes': isGerman ? 'Diensttypen' : 'Service Types',
       'servicesWanted': isGerman ? 'Gewünschte Dienste' : 'Services Wanted',
@@ -481,7 +541,12 @@ const LeadDetailsDialog = ({
       'transportType': isGerman ? 'Transportart' : 'Transport Type',
       'roomsIncluded': isGerman ? 'Zimmer inbegriffen' : 'Rooms Included',
       'estimatedLivingSpace': isGerman ? 'Geschätzte Wohnfläche' : 'Estimated Living Space',
-      'costCoverage': isGerman ? 'Kostenübernahme' : 'Cost Coverage'
+      'costCoverage': isGerman ? 'Kostenübernahme' : 'Cost Coverage',
+      'company': isGerman ? 'Unternehmen' : 'Company',
+      'location_address': isGerman ? 'Straße und Hausnummer' : 'Address',
+      'location_city': isGerman ? 'Stadt' : 'City',
+      'location_postalCode': isGerman ? 'Postleitzahl' : 'Postal Code',
+      'location_country': isGerman ? 'Land' : 'Country'
     };
 
     if (labelTranslations[key]) {
@@ -705,6 +770,14 @@ const LeadDetailsDialog = ({
                             if (value === null || value === undefined || value === '' || key.startsWith('_')) {
                               return null;
                             }
+
+                            // Skip consent fields that are not in the form
+                            const consentFields = [
+                              'gdprConsent',
+                              'dataProcessingConsent',
+                              'marketingConsent'
+                            ];
+                            if (consentFields.includes(key)) return null;
 
                             // Skip duplicate/redundant fields (prefer more specific names)
                             const redundantFields = [
