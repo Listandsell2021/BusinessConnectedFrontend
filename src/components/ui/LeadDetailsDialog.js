@@ -711,7 +711,7 @@ const LeadDetailsDialog = ({
                       <TableRow
                         label={t('leads.service')}
                         value={
-                          `${leadData.serviceType === 'security' ? '🚛' : '🧽'} ${t(`services.${leadData.serviceType}`)}${leadData.moveType ? ` - ${leadData.moveType.replace('_', ' ')}` : ''}`
+                          `${t(`services.${leadData.serviceType}`)}${leadData.moveType ? ` - ${leadData.moveType.replace('_', ' ')}` : ''}`
                         }
                       />
                       {leadData.sourceDomain && (

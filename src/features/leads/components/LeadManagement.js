@@ -1733,8 +1733,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 }
               }
 
-              // Date filtering is now handled server-side only
-
               // Extract partner ID safely
               const partnerId = assignment.partner?._id || assignment.partner || 'unknown';
               const leadId = lead._id || lead.id;
@@ -1747,6 +1745,27 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 pickupDateDisplay = formatDateGerman(new Date(leadDate));
               }
 
+              // Extract city and postal code properly
+              let cityPostalCode = '';
+              if (lead.formData?.location?.city || lead.formData?.location?.postalCode) {
+                const city = lead.formData?.location?.city || '';
+                const postalCode = lead.formData?.location?.postalCode || '';
+                cityPostalCode = `${city} ${postalCode}`.trim();
+              } else if (lead.formData?.city || lead.formData?.postalCode) {
+                const city = lead.formData?.city || '';
+                const postalCode = lead.formData?.postalCode || '';
+                cityPostalCode = `${city} ${postalCode}`.trim();
+              } else if (lead.city || lead.postalCode) {
+                const city = lead.city || '';
+                const postalCode = lead.postalCode || '';
+                cityPostalCode = `${city} ${postalCode}`.trim();
+              }
+
+              // Extract desired start date
+              const desiredStartDate = lead.formData?.desiredStartDate ?
+                new Date(lead.formData.desiredStartDate).toLocaleDateString(isGerman ? 'de-DE' : 'en-US') :
+                '-';
+
               // Create a cancellation request entry
               const cancelRequest = {
                 id: `${leadId}_${partnerId}`, // Unique ID for each request
@@ -1755,13 +1774,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 customerName: lead.user ? `${lead.user.firstName} ${lead.user.lastName}` : (lead.name || 'Unknown'),
                 customerEmail: lead.user?.email || lead.email || '',
                 serviceType: lead.serviceType,
-                city: (() => {
-                  // For security services
-                  return lead.formData?.location || lead.formData?.city || lead.city || '';
-                })(),
+                city: cityPostalCode || 'Unknown Location',
                 reason: assignment.cancellationReason || 'No reason provided',
                 rejectionReason: assignment.cancellationRejectionReason || null,
                 status: requestStatus,
+                desiredStartDate: desiredStartDate,
+                desiredStartDateRaw: lead.formData?.desiredStartDate, // Store raw date for filtering
                 createdAt: assignment.cancellationRequestedAt,
                 requestedAt: assignment.cancellationRequestedAt,
                 // Add date information
@@ -1787,8 +1805,83 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
       console.log('Processed cancellation requests:', cancelRequests);
 
+      // Apply status filter for cancelled requests (admin only)
+      let filteredRequests = cancelRequests;
+      if (filters.status && filters.status !== 'all' && !isPartner) {
+        // Map dropdown values to actual status values
+        let statusToFilter;
+        switch (filters.status) {
+          case 'pending':
+            statusToFilter = 'pending';
+            break;
+          case 'cancel_request_approved':
+            statusToFilter = 'cancellation_approved';
+            break;
+          case 'cancel_request_rejected':
+            statusToFilter = 'cancellation_rejected';
+            break;
+          default:
+            statusToFilter = filters.status;
+        }
+
+        filteredRequests = cancelRequests.filter(r => r.status === statusToFilter);
+        console.log('Applied status filter:', filters.status, '-> actual status:', statusToFilter, 'Filtered requests:', filteredRequests.length);
+      }
+
+      // Apply date filter for desired start date (same logic as leads tab)
+      if (dateFilter.type !== 'all') {
+        // Helper function to format date as YYYY-MM-DD
+        const formatLocalDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        // Calculate date range based on filter type
+        let startDate, endDate;
+
+        if (dateFilter.type === 'single' && dateFilter.singleDate) {
+          startDate = formatLocalDate(dateFilter.singleDate);
+          endDate = formatLocalDate(dateFilter.singleDate);
+        } else if (dateFilter.type === 'range' && dateFilter.fromDate && dateFilter.toDate) {
+          startDate = formatLocalDate(dateFilter.fromDate);
+          endDate = formatLocalDate(dateFilter.toDate);
+        } else if (dateFilter.type === 'week' && dateFilter.week) {
+          const selectedWeekDate = new Date(dateFilter.week);
+          const startOfWeek = new Date(selectedWeekDate);
+          startOfWeek.setDate(selectedWeekDate.getDate() - selectedWeekDate.getDay());
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          startDate = formatLocalDate(startOfWeek);
+          endDate = formatLocalDate(endOfWeek);
+        } else if (dateFilter.type === 'month' && dateFilter.month) {
+          const selectedMonthDate = new Date(dateFilter.month);
+          const startOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
+          const endOfMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0);
+          startDate = formatLocalDate(startOfMonth);
+          endDate = formatLocalDate(endOfMonth);
+        } else if (dateFilter.type === 'year' && dateFilter.year) {
+          const selectedYearDate = new Date(dateFilter.year);
+          const targetYear = selectedYearDate.getFullYear();
+          startDate = `${targetYear}-01-01`;
+          endDate = `${targetYear}-12-31`;
+        }
+
+        // Filter requests by date range
+        if (startDate && endDate) {
+          filteredRequests = filteredRequests.filter(request => {
+            if (!request.desiredStartDateRaw) {
+              return false;
+            }
+            const requestDateStr = formatLocalDate(new Date(request.desiredStartDateRaw));
+            return requestDateStr >= startDate && requestDateStr <= endDate;
+          });
+        }
+      }
+
       // Sort by request date (most recent first) with safe date handling
-      cancelRequests.sort((a, b) => {
+      filteredRequests.sort((a, b) => {
         const dateA = a.requestedAt ? new Date(a.requestedAt) : new Date(0);
         const dateB = b.requestedAt ? new Date(b.requestedAt) : new Date(0);
         return dateB - dateA;
@@ -1796,19 +1889,19 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
       // Calculate stats on filtered data (before pagination)
       const stats = {
-        total: cancelRequests.length,
-        pending: cancelRequests.filter(r => r.status === 'pending').length,
-        approved: cancelRequests.filter(r => r.status === 'cancellation_approved').length,
-        rejected: cancelRequests.filter(r => r.status === 'cancellation_rejected').length
+        total: filteredRequests.length,
+        pending: filteredRequests.filter(r => r.status === 'pending').length,
+        approved: filteredRequests.filter(r => r.status === 'cancellation_approved').length,
+        rejected: filteredRequests.filter(r => r.status === 'cancellation_rejected').length
       };
 
       // Apply pagination client-side
       const startIndex = (cancelledCurrentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
-      const paginatedRequests = cancelRequests.slice(startIndex, endIndex);
+      const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
 
       setCancelledRequests(paginatedRequests);
-      setTotalCancelRequests(cancelRequests.length);
+      setTotalCancelRequests(filteredRequests.length);
       setCancelledRequestStats(stats);
 
     } catch (error) {
@@ -1934,6 +2027,32 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     }
   }, [activeTab, currentService, isPartner, isSuperAdmin]);
 
+  // Reset all filters when switching tabs
+  useEffect(() => {
+    // Reset filters (search, status, city, partner)
+    setFilters({
+      status: 'all',
+      city: '',
+      partner: 'all',
+      searchTerm: ''
+    });
+
+    // Reset date filter
+    setDateFilter({
+      type: 'all',
+      singleDate: null,
+      fromDate: null,
+      toDate: null,
+      week: null,
+      month: null,
+      year: null
+    });
+
+    // Reset current pages
+    setCurrentPage(1);
+    setCancelledCurrentPage(1);
+  }, [activeTab]);
+
   // DEPRECATED: Client-side filtering is now handled server-side for multi-partner assignments
   // This function is kept for backward compatibility but should be removed eventually
   const applyFilters = () => {
@@ -1942,7 +2061,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
 
     // Filter by status
     if (filters.status !== 'all') {
-      filtered = filtered.filter(lead => lead.status === filters.status);
+      filtered = filtered.filter(lead => {
+        // For partners, use partnerStatus; for admins, use status
+        const statusToCheck = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
+        return statusToCheck === filters.status;
+      });
     }
 
     // Filter by city
@@ -2369,6 +2492,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
     try {
       let exportParams;
       let response;
+      const language = isGerman ? 'de' : 'en';
 
       if (activeTab === 'cancelled') {
         // Export cancelled requests
@@ -2376,7 +2500,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           serviceType: currentService,
           status: filters.status !== 'all' ? filters.status : undefined,
           city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
-          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
+          language: language
         };
 
         // Remove undefined values
@@ -2393,7 +2518,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           partnerView: true, // Flag to indicate partner export
           status: filters.status !== 'all' ? filters.status : undefined,
           city: filters.city && filters.city.trim() ? filters.city.trim() : undefined,
-          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined
+          search: filters.searchTerm && filters.searchTerm.trim() ? filters.searchTerm.trim() : undefined,
+          language: language
         };
 
         // Remove undefined values
@@ -2837,7 +2963,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
                     <option value="accepted">{isGerman ? 'Akzeptiert' : 'Accepted'}</option>
                     <option value="rejected">{isGerman ? 'Abgelehnt' : 'Rejected'}</option>
-                    <option value="cancel_requested">{isGerman ? 'Stornierung angefragt' : 'Cancel Requested'}</option>
+                    <option value="cancellationRequested">{isGerman ? 'Stornierung angefragt' : 'Cancel Requested'}</option>
                     <option value="cancelled">{isGerman ? 'Storniert' : 'Cancelled'}</option>
                   </>
                 ) : (
@@ -2875,7 +3001,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               }}
             />
           </div>
-
 
           {/* Date Filter */}
           <div className="space-y-2 min-w-0">
@@ -3137,9 +3262,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     : t('common.date')
                   }
                 </SortableHeader>
-                <SortableHeader sortKey="assignedAt">
-                  {isGerman ? 'Zugewiesen am' : 'Assigned Date'}
-                </SortableHeader>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {t('common.actions')}
                 </th>
@@ -3148,7 +3270,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
               {loading ? (
                 <tr>
-                  <td colSpan={isPartner ? "7" : "8"} className="px-6 py-12 text-center">
+                  <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                       <span style={{ color: 'var(--theme-text)' }}>
@@ -3161,7 +3283,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 <>
                   {console.log('Rendering no leads found - leads array:', leads, 'isPartner:', isPartner, 'loading:', loading)}
                   <tr>
-                    <td colSpan={isPartner ? "7" : "8"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
+                    <td colSpan={isPartner ? "6" : "7"} className="px-6 py-12 text-center" style={{ color: 'var(--theme-muted)' }}>
                       {t('leads.noLeadsFound') || (isGerman ? 'Keine Leads gefunden' : 'No leads found')}
                     </td>
                   </tr>
@@ -3289,19 +3411,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                     {lead.dateDisplay || formatDateGerman(new Date(lead.createdAt))}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
-                    {(() => {
-                      // Get the partner assignment for this lead
-                      const partnerAssignment = lead.partnerAssignments?.find(pa =>
-                        pa.partner === user?.id || pa.partner?._id === user?.id || pa.partner?.toString() === user?.id
-                      );
-
-                      if (partnerAssignment?.assignedAt) {
-                        return formatDateTimeGerman(new Date(partnerAssignment.assignedAt));
-                      }
-                      return '-';
-                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -3632,10 +3741,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     {isGerman ? 'Grund' : 'Reason'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
-                    {t('common.status')}
+                    {isGerman ? 'Gewünschtes Startdatum' : 'Desired Start Date'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-text)' }}>
-                    {t('common.date')}
+                    {t('common.status')}
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider min-w-0" style={{ color: 'var(--theme-text)' }}>
                     {t('common.actions')}
@@ -3645,7 +3754,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               <tbody className="divide-y" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <div className="flex justify-center items-center space-x-2">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         <span style={{ color: 'var(--theme-text)' }}>
@@ -3711,14 +3820,14 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
+                        {request.desiredStartDate ? formatDateGerman(new Date(request.desiredStartDate)) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                           getStatusColor(request.status)
                         }`}>
                           {translateStatus(request.status)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {request.pickupDateDisplay ? formatDateGerman(new Date(request.pickupDateDisplay)) : formatDateGerman(new Date(request.createdAt))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
