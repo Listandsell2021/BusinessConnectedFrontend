@@ -4,7 +4,6 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { settingsAPI } from '../../../lib/api/api';
-import FormSettings from './FormSettings';
 import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
 import { validatePasswordStrength } from '../../../utils/passwordGenerator';
 
@@ -14,7 +13,7 @@ const AdminSettings = () => {
   
   const [settings, setSettings] = useState({
     pricing: {
-      moving: {
+      security: {
         basic: {
           perLeadPrice: 25
         },
@@ -24,7 +23,7 @@ const AdminSettings = () => {
       }
     },
     leadDistribution: {
-      moving: {
+      security: {
         basic: {
           leadsPerWeek: 3
         },
@@ -323,8 +322,7 @@ const AdminSettings = () => {
   const tabs = [
     { id: 'pricing', label: isGerman ? 'Pricing' : 'Pricing' },
     { id: 'leads', label: isGerman ? 'Lead-Verteilung' : 'Lead Distribution' },
-    { id: 'system', label: isGerman ? 'System' : 'System' },
-    { id: 'formSettings', label: isGerman ? 'Formular' : 'Form Settings' }
+    { id: 'system', label: isGerman ? 'System' : 'System' }
   ];
 
   const renderPricingTab = () => (
@@ -349,7 +347,7 @@ const AdminSettings = () => {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
           </svg>
           <h3 className="text-base font-semibold" style={{ color: 'var(--theme-text)' }}>
-            {isGerman ? 'Umzugsservice Preise' : 'Moving Service Pricing'}
+            {isGerman ? 'Sicherheitsservice Preise' : 'Security Service Pricing'}
           </h3>
         </div>
 
@@ -363,10 +361,10 @@ const AdminSettings = () => {
               <span className="text-3xl font-bold text-green-600">€</span>
               <input
                 type="number"
-                value={settings.pricing.moving.basic.perLeadPrice}
+                value={settings.pricing.security.basic.perLeadPrice}
                 onChange={(e) =>
                   updateNestedSetting(
-                    'pricing.moving.basic.perLeadPrice',
+                    'pricing.security.basic.perLeadPrice',
                     parseFloat(e.target.value)
                   )
                 }
@@ -390,10 +388,10 @@ const AdminSettings = () => {
               <span className="text-3xl font-bold text-green-700">€</span>
               <input
                 type="number"
-                value={settings.pricing.moving.exclusive.perLeadPrice}
+                value={settings.pricing.security.exclusive.perLeadPrice}
                 onChange={(e) =>
                   updateNestedSetting(
-                    'pricing.moving.exclusive.perLeadPrice',
+                    'pricing.security.exclusive.perLeadPrice',
                     parseFloat(e.target.value)
                   )
                 }
@@ -411,8 +409,8 @@ const AdminSettings = () => {
 
         <p className="text-xs mt-3" style={{ color: 'var(--theme-muted)' }}>
           {isGerman
-            ? 'Betrag, den Partner pro zugewiesenem und akzeptiertem Moving-Lead zahlen'
-            : 'Amount partners pay per assigned and accepted moving lead'}
+            ? 'Betrag, den Partner pro zugewiesenem und akzeptiertem Sicherheits-Lead zahlen'
+            : 'Amount partners pay per assigned and accepted security lead'}
         </p>
       </motion.div>
     </motion.div>
@@ -453,10 +451,10 @@ const AdminSettings = () => {
             <div className="flex items-center">
               <input
                 type="number"
-                value={settings.leadDistribution.moving.basic.leadsPerWeek}
+                value={settings.leadDistribution.security.basic.leadsPerWeek}
                 onChange={(e) =>
                   updateNestedSetting(
-                    'leadDistribution.moving.basic.leadsPerWeek',
+                    'leadDistribution.security.basic.leadsPerWeek',
                     parseInt(e.target.value)
                   )
                 }
@@ -482,10 +480,10 @@ const AdminSettings = () => {
             <div className="flex items-center">
               <input
                 type="number"
-                value={settings.leadDistribution.moving.exclusive.leadsPerWeek}
+                value={settings.leadDistribution.security.exclusive.leadsPerWeek}
                 onChange={(e) =>
                   updateNestedSetting(
-                    'leadDistribution.moving.exclusive.leadsPerWeek',
+                    'leadDistribution.security.exclusive.leadsPerWeek',
                     parseInt(e.target.value)
                   )
                 }
@@ -825,17 +823,6 @@ const AdminSettings = () => {
     </motion.div>
   );
 
-  const renderFormSettingsTab = () => (
-    <motion.div
-      key="formSettings"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-    >
-      <FormSettings />
-    </motion.div>
-  );
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'pricing':
@@ -844,8 +831,6 @@ const AdminSettings = () => {
         return renderLeadDistributionTab();
       case 'system':
         return renderSystemTab();
-      case 'formSettings':
-        return renderFormSettingsTab();
       default:
         return renderPricingTab();
     }

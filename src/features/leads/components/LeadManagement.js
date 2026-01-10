@@ -1046,8 +1046,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         }
       }
     } catch (error) {
-      console.error('Error assigning lead:', error);
-
       // Translate error messages to German if needed
       let errorMessage = error.response?.data?.message || 'Failed to assign lead';
 
