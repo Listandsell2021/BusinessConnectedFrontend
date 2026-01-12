@@ -7,6 +7,7 @@ import { partnersAPI, authAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
 import { validatePasswordStrength } from '../../../utils/passwordGenerator';
+import { getRegionName, regionMapping } from '../../../utils/regionMapping';
 
 const PartnerSettingsNew = () => {
   const { isGerman } = useLanguage();
@@ -203,6 +204,12 @@ const PartnerSettingsNew = () => {
           // Format: { 'DE-Berlin': { radius: 50, country: 'DE' }, 'AT-Vienna': { radius: 30, country: 'AT' } }
         }
       }
+    },
+
+    // Security Form Data - for security service partners
+    securityFormData: {
+      regions: [],
+      nationwide: false
     }
   });
 
@@ -345,24 +352,22 @@ const PartnerSettingsNew = () => {
           leadsPerWeek: partner.customPricing?.leadsPerWeek || null
         },
         preferences: {
-          serviceArea: (() => {
-            let serviceAreaCountries = [];
-            let serviceAreaCitySettings = {};
-            let securityServiceArea = {};
-
-            if (partner.preferences?.security?.serviceArea) {
-              const securityData = processAddressType(partner.preferences.security, 'security');
-              serviceAreaCountries = securityData.countries;
-              serviceAreaCitySettings = securityData.citySettings;
-              securityServiceArea = securityData.serviceArea;
-            }
-
-            return {
-              countries: serviceAreaCountries,
-              citySettings: serviceAreaCitySettings,
-              serviceArea: securityServiceArea
-            };
-          })()
+          pickup: {
+            countries: [],
+            citySettings: {}
+          },
+          destination: {
+            countries: [],
+            citySettings: {}
+          },
+          serviceArea: {
+            countries: [],
+            citySettings: {}
+          }
+        },
+        securityFormData: {
+          regions: partner.securityFormData?.regions || [],
+          nationwide: partner.securityFormData?.nationwide || false
         }
       });
       
@@ -510,15 +515,22 @@ const PartnerSettingsNew = () => {
         email: settings.email,
         phone: settings.phone,
         address: settings.address,
-        services: settings.services || [],
-        numberOfEmployees: settings.numberOfEmployees || null,
-        availabilityPeriod: settings.availabilityPeriod || null,
         leadAcceptance: {
           requireManualAcceptance: settings.requireManualAcceptance
         },
         customPricing: {
           perLeadPrice: settings.customPricing?.perLeadPrice || null,
           leadsPerWeek: settings.customPricing?.leadsPerWeek || null
+        },
+        // Preserve all existing securityFormData fields and properly map all fields into securityFormData
+        securityFormData: {
+          ...partnerData?.securityFormData, // Keep all existing fields
+          regions: settings.securityFormData?.regions || [],
+          nationwide: settings.securityFormData?.nationwide || false,
+          companyDescription: settings.comments || '', // Comments → companyDescription
+          availableEmployees: settings.numberOfEmployees || null, // Number of Available Employees → availableEmployees
+          periodOfAvailability: settings.availabilityPeriod || null, // Availability Period → periodOfAvailability
+          budgetScope: settings.services || [] // Services → budgetScope
         },
         preferences: preferences
       };
@@ -1268,6 +1280,9 @@ const PartnerSettingsNew = () => {
       label: isGerman ? 'Partner-Einstellungen' : 'Partner Settings'
     }
   ];
+
+  // Derived value for partner service type
+  const partnerServiceType = partnerData?.serviceType || '';
 
   const renderContactTab = () => (
     <div className="space-y-6">
@@ -2023,6 +2038,125 @@ const PartnerSettingsNew = () => {
               ) : null
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* Area Preferences - For Security Service Partners */}
+      {(currentService === 'security' || partnerServiceType === 'security') && (
+        <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            🗺️ {isGerman ? 'Gebietspräferenzen' : 'Area Preferences'}
+          </h3>
+
+          <p className="text-sm mb-4" style={{ color: 'var(--theme-muted)' }}>
+            {isGerman
+              ? 'Aktualisieren Sie Ihre verfügbaren Arbeitsregionen'
+              : 'Update your available service regions'
+            }
+          </p>
+
+          {/* Current Regions Display */}
+          {settings.securityFormData?.regions && settings.securityFormData.regions.length > 0 && (
+            <div className="mb-6 p-4 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
+              <h4 className="font-medium mb-3" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Aktuelle Regionen:' : 'Current Regions:'}
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {settings.securityFormData.regions.map(regionCode => (
+                  <span
+                    key={regionCode}
+                    className="px-3 py-1 rounded-full text-sm font-medium"
+                    style={{
+                      backgroundColor: '#DBEAFE',
+                      color: '#1E40AF'
+                    }}
+                  >
+                    {getRegionName(regionCode, isGerman ? 'de' : 'en')}
+                  </span>
+                ))}
+              </div>
+              {settings.securityFormData.nationwide && (
+                <p className="mt-3 text-sm" style={{ color: 'var(--theme-text)' }}>
+                  ✓ {isGerman ? 'Bundesweit verfügbar' : 'Available nationwide'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Region Selection */}
+          <div className="space-y-4">
+            <h4 className="font-medium" style={{ color: 'var(--theme-text)' }}>
+              {isGerman ? 'Regionen auswählen:' : 'Select Regions:'}
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {Object.entries(regionMapping)
+                .filter(([code]) => code !== 'nationwide')
+                .map(([regionCode]) => (
+                  <label key={regionCode} className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.securityFormData?.regions?.includes(regionCode) || false}
+                      onChange={(e) => {
+                        const newRegions = e.target.checked
+                          ? [...(settings.securityFormData?.regions || []), regionCode]
+                          : (settings.securityFormData?.regions || []).filter(r => r !== regionCode);
+
+                        // Check if all regions are selected
+                        const allRegions = Object.keys(regionMapping).filter(r => r !== 'nationwide');
+                        const allSelected = allRegions.every(r => newRegions.includes(r));
+
+                        setSettings(prev => ({
+                          ...prev,
+                          securityFormData: {
+                            regions: newRegions,
+                            nationwide: allSelected
+                          }
+                        }));
+                      }}
+                      className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="ml-3 text-sm" style={{ color: 'var(--theme-text)' }}>
+                      {getRegionName(regionCode, isGerman ? 'de' : 'en')}
+                    </span>
+                  </label>
+                ))}
+            </div>
+
+            {/* Nationwide Option */}
+            <div className="mt-6 p-4 border-t" style={{ borderColor: 'var(--theme-border)' }}>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.securityFormData?.nationwide || false}
+                  onChange={(e) => {
+                    const allRegions = Object.keys(regionMapping).filter(r => r !== 'nationwide');
+                    setSettings(prev => ({
+                      ...prev,
+                      securityFormData: {
+                        regions: e.target.checked ? allRegions : [],
+                        nationwide: e.target.checked
+                      }
+                    }));
+                  }}
+                  className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="ml-3 font-medium" style={{ color: 'var(--theme-text)' }}>
+                  {isGerman ? 'Bundesweit' : 'Nationwide'}
+                </span>
+              </label>
+              <p className="text-sm mt-2" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman
+                  ? 'Wählen Sie alle Regionen gleichzeitig aus'
+                  : 'Select all regions at once'
+                }
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -26,7 +26,7 @@ export default function PartnerRequest() {
     email: '',
     phone: '',
     regions: [],
-    isNationwide: false,
+    nationwide: false,
     availableEmployees: '',
     periodOfAvailability: '',
     budgetScope: [],
@@ -166,14 +166,14 @@ export default function PartnerRequest() {
           }
         }
 
-        // Set isNationwide boolean if all regions are selected
+        // Set nationwide boolean if all regions are selected
         const allNonNationwideSelected = nonNationwideRegions.every(r => updatedArray.includes(r));
-        const isNationwideChecked = allNonNationwideSelected && updatedArray.length === nonNationwideRegions.length;
+        const nationwideChecked = allNonNationwideSelected && updatedArray.length === nonNationwideRegions.length;
 
         return {
           ...prev,
           [name]: updatedArray,
-          isNationwide: isNationwideChecked
+          nationwide: nationwideChecked
         };
       } else if (name === 'budgetScope') {
         // Handle checkbox arrays
@@ -328,7 +328,7 @@ export default function PartnerRequest() {
           },
           securityFormData: {
             regions: formData.regions,
-            isNationwide: formData.isNationwide,
+            nationwide: formData.nationwide,
             budgetScope: formData.budgetScope,
             availableEmployees: formData.availableEmployees,
             periodOfAvailability: formData.periodOfAvailability,

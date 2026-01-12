@@ -305,7 +305,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     email: '',
     phone: '',
     regions: [],
-    isNationwide: false,
+    nationwide: false,
     availableEmployees: '',
     periodOfAvailability: '',
     budgetScope: [],
@@ -1319,7 +1319,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         phone: partnerFormData.phone,
         securityFormData: {
           regions: partnerFormData.regions,
-          isNationwide: partnerFormData.isNationwide,
+          nationwide: partnerFormData.nationwide,
           budgetScope: partnerFormData.budgetScope,
           availableEmployees: partnerFormData.availableEmployees,
           periodOfAvailability: partnerFormData.periodOfAvailability,
@@ -1343,6 +1343,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           email: '',
           phone: '',
           regions: [],
+          nationwide: false,
           availableEmployees: '',
           periodOfAvailability: '',
           budgetScope: [],
@@ -1401,7 +1402,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       email: '',
       phone: '',
       regions: [],
-      isNationwide: false,
+      nationwide: false,
       availableEmployees: '',
       periodOfAvailability: '',
       budgetScope: [],
@@ -4127,11 +4128,11 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 if (e.target.checked) {
                                   // When nationwide is checked, select all non-nationwide regions
                                   newRegions = nonNationwideRegions.map(r => r.id);
-                                  handlePartnerFormChange('isNationwide', true);
+                                  handlePartnerFormChange('nationwide', true);
                                 } else {
                                   // When nationwide is unchecked, clear all
                                   newRegions = [];
-                                  handlePartnerFormChange('isNationwide', false);
+                                  handlePartnerFormChange('nationwide', false);
                                 }
                               } else {
                                 // Handle regular region selection
@@ -4139,9 +4140,9 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                   ? [...currentRegions, region.id]
                                   : currentRegions.filter(r => r !== region.id);
 
-                                // Auto-set isNationwide if all regions are selected
+                                // Auto-set nationwide if all regions are selected
                                 const allNonNationwideSelected = nonNationwideRegions.every(r => newRegions.includes(r.id));
-                                handlePartnerFormChange('isNationwide', allNonNationwideSelected && newRegions.length === nonNationwideRegions.length);
+                                handlePartnerFormChange('nationwide', allNonNationwideSelected && newRegions.length === nonNationwideRegions.length);
                               }
 
                               handlePartnerFormChange('regions', newRegions);
