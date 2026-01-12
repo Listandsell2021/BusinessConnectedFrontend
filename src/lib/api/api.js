@@ -279,7 +279,8 @@ export const revenueAPI = {
 
 export const settingsAPI = {
   get: () => api.get('/settings'),
-  update: (data) => api.put('/settings', data)
+  update: (data) => api.put('/settings', data),
+  getPartnerDefaults: () => api.get('/settings/pricing')
 };
 
 export const securityServicesAPI = {

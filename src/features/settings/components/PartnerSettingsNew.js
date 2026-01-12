@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useService } from '../../../contexts/ServiceContext';
-import { partnersAPI, authAPI } from '../../../lib/api/api';
+import { partnersAPI, authAPI, settingsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import PasswordStrengthIndicator from '../../../components/ui/PasswordStrengthIndicator';
 import { validatePasswordStrength } from '../../../utils/passwordGenerator';
@@ -18,6 +18,7 @@ const PartnerSettingsNew = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [partnerData, setPartnerData] = useState(null);
+  const [globalSettings, setGlobalSettings] = useState(null);
   const [remountKey, setRemountKey] = useState(0);
 
   //Password change dialog state
@@ -223,16 +224,38 @@ const PartnerSettingsNew = () => {
     setLoading(true);
     try {
       console.log('Loading partner data for user ID:', user.id);
-      const response = await partnersAPI.getById(user.id);
-      console.log('Partner API response:', response.data);
-      console.log('Partner preferences from API:', JSON.stringify(response.data.partner?.preferences, null, 2));
 
-      const partner = response.data.partner || response.data;
+      // Load both partner and global settings in parallel with error handling
+      let partnerResponse, globalSettingsResponse;
+
+      try {
+        partnerResponse = await partnersAPI.getById(user.id);
+      } catch (error) {
+        console.error('Error loading partner:', error);
+        throw new Error('Failed to load partner data');
+      }
+
+      try {
+        globalSettingsResponse = await settingsAPI.getPartnerDefaults();
+      } catch (error) {
+        console.warn('Warning: Could not load global settings, using defaults');
+        globalSettingsResponse = { data: { data: null } };
+      }
+
+      console.log('Partner API response:', partnerResponse.data);
+      console.log('Partner preferences from API:', JSON.stringify(partnerResponse.data.partner?.preferences, null, 2));
+
+      const partner = partnerResponse.data.partner || partnerResponse.data;
 
       if (!partner) {
         throw new Error('No partner data received');
       }
-      
+
+      // Set global settings if available
+      if (globalSettingsResponse.data?.data) {
+        setGlobalSettings(globalSettingsResponse.data.data);
+      }
+
       setPartnerData(partner);
       
       // Handle pickup and destination preferences (now directly under preferences)
@@ -407,6 +430,28 @@ const PartnerSettingsNew = () => {
   useEffect(() => {
     loadPartnerData();
   }, [user]);
+
+  // Reset pricing to default (admin's global default)
+  const resetToDefaultPrice = () => {
+    setSettings(prev => ({
+      ...prev,
+      customPricing: {
+        ...prev.customPricing,
+        perLeadPrice: null
+      }
+    }));
+  };
+
+  // Reset leads per week to default (admin's global default)
+  const resetToDefaultLeadsPerWeek = () => {
+    setSettings(prev => ({
+      ...prev,
+      customPricing: {
+        ...prev.customPricing,
+        leadsPerWeek: null
+      }
+    }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -1273,7 +1318,7 @@ const PartnerSettingsNew = () => {
     },
     {
       id: 'services',
-      label: isGerman ? 'Service-Präferenzen' : 'Service Preferences'
+      label: isGerman ? 'Gebietspräferenzen' : 'Area Preferences'
     },
     {
       id: 'pricing',
@@ -2188,35 +2233,50 @@ const PartnerSettingsNew = () => {
               {isGerman ? 'Preis pro Lead (€)' : 'Price per Lead (€)'}
             </label>
             <div className="flex items-center gap-3 mb-3">
-              <input
-                type="number"
-                value={settings.customPricing?.perLeadPrice || ''}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  customPricing: {
-                    ...prev.customPricing,
-                    perLeadPrice: e.target.value ? parseFloat(e.target.value) : null
-                  }
-                }))}
-                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <div className="flex-1 flex items-center border rounded-lg" style={{ borderColor: 'var(--theme-border)' }}>
+                <span style={{ color: 'var(--theme-muted)', padding: '0 12px', borderRight: '1px solid var(--theme-border)' }}>€</span>
+                <input
+                  type="number"
+                  value={settings.customPricing?.perLeadPrice ?? (globalSettings?.pricing?.[partnerData?.serviceType]?.[partnerData?.partnerType]?.perLeadPrice ?? 25)}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    customPricing: {
+                      ...prev.customPricing,
+                      perLeadPrice: e.target.value ? parseFloat(e.target.value) : null
+                    }
+                  }))}
+                  className="flex-1 px-3 py-2 focus:outline-none focus:ring-0"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    color: 'var(--theme-text)',
+                    border: 'none'
+                  }}
+                  placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
+                  min="1"
+                  step="0.01"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={resetToDefaultPrice}
+                className="px-3 py-2 text-sm rounded-lg border transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'var(--theme-input-bg)',
                   borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
+                  color: 'var(--theme-text)',
+                  backgroundColor: 'var(--theme-card-bg)',
+                  height: '48px',
+                  minWidth: '80px'
                 }}
-                placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
-                min="1"
-                step="0.01"
-              />
-              {settings.customPricing?.perLeadPrice ? (
-                <span className="text-sm font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
-                  ✓ {isGerman ? 'Benutzerdefiniert' : 'Custom'}
-                </span>
-              ) : (
-                <span className="text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                  {isGerman ? 'Standard' : 'Default'}
-                </span>
-              )}
+                title={isGerman ? 'Standard verwenden' : 'Use Default'}
+              >
+                {isGerman ? 'Standard' : 'Default'}
+              </button>
+            </div>
+            <div className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {settings.customPricing?.perLeadPrice ?
+                (isGerman ? '✓ Benutzerdefiniert' : '✓ Custom') :
+                (isGerman ? '(Standard)' : '(Default)')
+              }
             </div>
             <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
               {isGerman
@@ -2232,35 +2292,49 @@ const PartnerSettingsNew = () => {
               {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
             </label>
             <div className="flex items-center gap-3 mb-3">
-              <input
-                type="number"
-                value={settings.customPricing?.leadsPerWeek || ''}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  customPricing: {
-                    ...prev.customPricing,
-                    leadsPerWeek: e.target.value ? parseInt(e.target.value) : null
-                  }
-                }))}
-                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={settings.customPricing?.leadsPerWeek ?? (globalSettings?.leadDistribution?.[partnerData?.serviceType]?.[partnerData?.partnerType]?.leadsPerWeek ?? 3)}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    customPricing: {
+                      ...prev.customPricing,
+                      leadsPerWeek: e.target.value ? parseInt(e.target.value) : null
+                    }
+                  }))}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    backgroundColor: 'var(--theme-input-bg)',
+                    borderColor: 'var(--theme-border)',
+                    color: 'var(--theme-text)'
+                  }}
+                  placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
+                  min="1"
+                  max="50"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={resetToDefaultLeadsPerWeek}
+                className="px-3 py-2 text-sm rounded-lg border transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'var(--theme-input-bg)',
                   borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
+                  color: 'var(--theme-text)',
+                  backgroundColor: 'var(--theme-card-bg)',
+                  height: '48px',
+                  minWidth: '80px'
                 }}
-                placeholder={isGerman ? 'Wert eingeben...' : 'Enter value...'}
-                min="1"
-                max="50"
-              />
-              {settings.customPricing?.leadsPerWeek ? (
-                <span className="text-sm font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
-                  ✓ {isGerman ? 'Benutzerdefiniert' : 'Custom'}
-                </span>
-              ) : (
-                <span className="text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                  {isGerman ? 'Standard' : 'Default'}
-                </span>
-              )}
+                title={isGerman ? 'Standard verwenden' : 'Use Default'}
+              >
+                {isGerman ? 'Standard' : 'Default'}
+              </button>
+            </div>
+            <div className="text-xs mt-2" style={{ color: 'var(--theme-muted)' }}>
+              {settings.customPricing?.leadsPerWeek ?
+                (isGerman ? '✓ Benutzerdefiniert' : '✓ Custom') :
+                (isGerman ? '(Standard)' : '(Default)')
+              }
             </div>
             <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
               {isGerman
@@ -2279,6 +2353,52 @@ const PartnerSettingsNew = () => {
               : ' You can adjust your pricing settings here and save them. Leave fields empty to use global admin default settings.'
             }
           </p>
+        </div>
+
+        {/* Current Settings Summary */}
+        <div className="mt-6 p-6 rounded-lg border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}>
+          <h4 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {isGerman ? 'Aktuelle Einstellungen' : 'Current Settings'}
+          </h4>
+          <div className="flex flex-row gap-4">
+            <div className="flex-1 text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
+              <div className="text-2xl font-bold text-green-600 mb-2">
+                €{settings.customPricing?.perLeadPrice ||
+                  (globalSettings?.pricing?.[partnerData?.serviceType]?.[partnerData?.partnerType]?.perLeadPrice) ||
+                  '25'
+                }
+              </div>
+              <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? 'Preis pro Lead' : 'Price per Lead'}
+              </div>
+              <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                {settings.customPricing?.perLeadPrice ?
+                  (isGerman ? '(Individuell)' : '(Custom)') :
+                  (isGerman ? '(Standard)' : '(Default)')
+                }
+              </div>
+            </div>
+            <div className="flex-1 text-center p-4 rounded-lg" style={{ backgroundColor: 'var(--theme-bg)' }}>
+              <div className="text-2xl font-bold text-blue-600 mb-2">
+                {settings.customPricing?.leadsPerWeek ||
+                  (globalSettings?.leadDistribution?.[partnerData?.serviceType]?.[partnerData?.partnerType]?.leadsPerWeek) ||
+                  '3'
+                }
+              </div>
+              <div className="text-xs font-medium" style={{ color: 'var(--theme-muted)' }}>
+                {isGerman ? 'Leads pro Woche' : 'Leads per Week'}
+              </div>
+              <div className="text-xs mt-1" style={{ color: 'var(--theme-muted)' }}>
+                {settings.customPricing?.leadsPerWeek ?
+                  (isGerman ? '(Individuell)' : '(Custom)') :
+                  (isGerman ? '(Standard)' : '(Default)')
+                }
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
