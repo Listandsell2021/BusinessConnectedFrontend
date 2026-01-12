@@ -20,7 +20,7 @@ export const LanguageProvider = ({ children }) => {
         return savedLanguage;
       }
     }
-    return 'en'; // Default to English
+    return 'de'; // Default to German
   };
 
   const [language, setLanguage] = useState(getInitialLanguage);

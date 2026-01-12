@@ -15,7 +15,7 @@ import { validatePasswordStrength } from '../src/utils/passwordGenerator';
 
 export default function ForgotPassword() {
   const router = useRouter();
-  const { isGerman } = useLanguage();
+  const { isGerman, language } = useLanguage();
   const { mounted, isDark } = useTheme();
 
   // Error message translations
@@ -159,7 +159,8 @@ export default function ForgotPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          service: formData.service
+          service: formData.service,
+          language: language // Send the current language selection
         })
       });
 
@@ -271,7 +272,7 @@ export default function ForgotPassword() {
 
   const handleResendOTP = async () => {
     if (countdown > 0) return;
-    
+
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/auth/forgot-password', {
@@ -279,7 +280,8 @@ export default function ForgotPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          service: formData.service
+          service: formData.service,
+          language: language // Send the current language selection
         })
       });
 
