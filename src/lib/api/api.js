@@ -251,7 +251,10 @@ export const invoicesAPI = {
   delete: (id) => api.delete(`/invoices/${id}`),
   markPaid: (id) => api.patch(`/invoices/${id}/paid`),
   markUnpaid: (id) => api.put(`/invoices/${id}/mark-unpaid`),
-  generatePDF: (id) => api.get(`/invoices/${id}/download`, { responseType: 'blob' }),
+  generatePDF: (id, language = 'de') => api.get(`/invoices/${id}/download`, {
+    params: { language },
+    responseType: 'blob'
+  }),
   getStats: () => api.get('/invoices/stats'),
   getPartnerInvoices: (partnerId, params) => api.get(`/invoices/partner/${partnerId}`, { params }),
   export: (format, filters) => api.get(`/invoices/export/${format}`, {

@@ -1,4 +1,5 @@
 import '../src/styles/globals.css';
+import 'react-datepicker/dist/react-datepicker.css';
 import '../src/styles/react-datepicker-theme.css';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';

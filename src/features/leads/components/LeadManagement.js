@@ -3578,7 +3578,11 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                                   >
                                     📄 {isGerman ? 'Rechnung erstellt' : 'Invoice Generated'}
                                   </button>
-                                ) : !partnerStatus?.isCancellationRequested && !isCancellationRequestRejected(lead) && (
+                                ) : isCancellationRequestRejected(lead) ? (
+                                  <span className="text-xs px-3 py-1 rounded bg-red-100 text-red-800 border border-red-300">
+                                    ❌ {isGerman ? 'Stornierung abgelehnt' : 'Cancel req rejected'}
+                                  </span>
+                                ) : !partnerStatus?.isCancellationRequested && (
                                   <button
                                     onClick={() => handleCancelLead(lead)}
                                     className="text-xs px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1 font-medium shadow-sm hover:shadow-md"

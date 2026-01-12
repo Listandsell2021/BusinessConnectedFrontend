@@ -7,6 +7,7 @@ import { partnersAPI, invoicesAPI, leadsAPI } from '../../../lib/api/api';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../components/ui/Pagination';
 import { formatDateGerman, formatDateLongGerman, getGermanMonthName } from '../../../lib/dateFormatter';
+import DatePicker from 'react-datepicker';
 
 const EnhancedIncomeInvoices = () => {
   const { currentService } = useService();
@@ -69,6 +70,15 @@ const EnhancedIncomeInvoices = () => {
     year: new Date().getFullYear(),
     invoiceStatus: 'all' // 'pending', 'generated', 'all'
   });
+
+  // Helper function to format Date to YYYY-MM-DD (respects local timezone)
+  const formatDateString = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // Load Partners with Invoice Status
   const loadPartners = useCallback(async () => {
@@ -288,7 +298,7 @@ const EnhancedIncomeInvoices = () => {
       });
 
       // Categorize leads based on invoice status
-      const unpaidLeads = []; // Leads NOT in any invoice
+      const unpaidLeads = []; // Leads NOT in any invoice (and NOT cancelled)
       const invoicedLeads = []; // Leads in unpaid invoices
       const paidLeads = []; // Leads in paid invoices
 
@@ -296,14 +306,17 @@ const EnhancedIncomeInvoices = () => {
         const leadIdStr = item._id.toString();
         const invoiceInfo = leadsInInvoices.get(leadIdStr);
 
-        if (!invoiceInfo) {
-          // Lead is not in any invoice
+        // Exclude leads with cancellation requests from unpaid leads
+        const hasCancellationRequest = item.currentAssignment?.status === 'cancellationRequested';
+
+        if (!invoiceInfo && !hasCancellationRequest) {
+          // Lead is not in any invoice AND doesn't have cancellation request
           unpaidLeads.push(item);
-        } else if (invoiceInfo.invoiceStatus === 'paid') {
+        } else if (invoiceInfo?.invoiceStatus === 'paid') {
           // Lead is in a paid invoice
           paidLeads.push(item);
-        } else {
-          // Lead is in an unpaid invoice (pending/generated)
+        } else if (invoiceInfo && !hasCancellationRequest) {
+          // Lead is in an unpaid invoice (pending/generated) AND doesn't have cancellation request
           invoicedLeads.push(item);
         }
       });
@@ -376,16 +389,21 @@ const EnhancedIncomeInvoices = () => {
         }
       }
 
-      // Week Filter - Get Monday and Sunday of the selected week
+      // Week Filter - Get Sunday to Saturday of the selected week
       if (dateFilters.filterType === 'week' && dateFilters.week) {
-        const [weekYear, weekNumber] = dateFilters.week.split('-W');
-        const weekStart = new Date(parseInt(weekYear), 0, 1);
-        const day = weekStart.getDay();
-        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-        weekStart.setDate(diff + (parseInt(weekNumber) - 1) * 7);
+        const selectedDate = new Date(dateFilters.week);
+        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+        // Calculate Sunday of the current week
+        const weekStart = new Date(selectedDate);
+        weekStart.setDate(selectedDate.getDate() - dayOfWeek);
+        weekStart.setHours(0, 0, 0, 0);
+
+        // Calculate Saturday of the current week
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
+
         return acceptedDate >= weekStart && acceptedDate <= weekEnd;
       }
 
@@ -406,13 +424,17 @@ const EnhancedIncomeInvoices = () => {
 
   // Lead Selection Functions
   const toggleLeadSelection = (leadId) => {
+    console.log('🔍 TOGGLE LEAD SELECTION - leadId:', leadId);
     setSelectedLeadsForInvoice(prev => {
       const newSet = new Set(prev);
       if (newSet.has(leadId)) {
         newSet.delete(leadId);
+        console.log('❌ DESELECTED:', leadId, 'New size:', newSet.size);
       } else {
         newSet.add(leadId);
+        console.log('✅ SELECTED:', leadId, 'New size:', newSet.size);
       }
+      console.log('📊 SELECTED LEADS TOTAL:', newSet.size);
       return newSet;
     });
   };
@@ -538,30 +560,31 @@ const EnhancedIncomeInvoices = () => {
   // Generate Invoice for Selected Unpaid Leads
   const generateInvoiceForPartner = async (partnerId) => {
     try {
-      const allUnpaidLeads = partnerDetails.unpaidLeads;
+      console.log('🎯 BUTTON CLICKED - generateInvoiceForPartner');
+      console.log('📋 selectedLeadsForInvoice.size:', selectedLeadsForInvoice.size);
+      console.log('📋 selectedLeadsForInvoice contents:', Array.from(selectedLeadsForInvoice));
+
+      // Use filtered leads to match what's shown in the table
+      const displayedUnpaidLeads = filterLeadsByDate(partnerDetails.unpaidLeads);
+      console.log('📋 displayedUnpaidLeads count:', displayedUnpaidLeads.length);
 
       // Get selected leads only
-      const selectedLeads = allUnpaidLeads.filter(item =>
-        selectedLeadsForInvoice.has(item._id.toString())
-      );
+      const selectedLeads = displayedUnpaidLeads.filter(item => {
+        const itemId = item._id.toString();
+        const isSelected = selectedLeadsForInvoice.has(itemId);
+        console.log('🔎 Checking lead:', itemId, 'isSelected:', isSelected);
+        return isSelected;
+      });
+
+      console.log('✅ selectedLeads count:', selectedLeads.length);
 
       if (selectedLeads.length === 0) {
+        console.error('❌ No leads selected for invoice generation');
         toast.error(isGerman ? 'Bitte wählen Sie mindestens einen Lead aus' : 'Please select at least one lead');
         return;
       }
 
-      // Check for leads with cancellationRequested status
-      const cancelRequestedLeads = selectedLeads.filter(item => {
-        // Each item now has currentAssignment
-        return item.currentAssignment?.status === 'cancellationRequested';
-      });
-
-      if (cancelRequestedLeads.length > 0) {
-        // Show dialog with cancel_requested leads
-        setCancelRequestedLeads(cancelRequestedLeads);
-        setShowCancelRequestDialog(true);
-        return;
-      }
+      console.log('✅ All selected leads are valid for invoice (no cancellation requests)');
 
       const startDate = new Date(filters.year, filters.month - 1, 1).toISOString();
       const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999).toISOString();
@@ -591,6 +614,7 @@ const EnhancedIncomeInvoices = () => {
       });
 
       const response = await invoicesAPI.create(invoiceData);
+      console.log('✅ INVOICE CREATED:', response);
       toast.success(isGerman ? 'Rechnung erfolgreich erstellt' : 'Invoice created successfully');
 
       // Clear selections and reload data
@@ -600,8 +624,16 @@ const EnhancedIncomeInvoices = () => {
         loadPartnerDetails(selectedPartner._id);
       }
     } catch (error) {
-      console.error('Error creating invoice:', error);
-      toast.error(isGerman ? 'Fehler beim Erstellen der Rechnung' : 'Error creating invoice');
+      console.error('❌ INVOICE CREATION ERROR:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data,
+        invoiceData: JSON.stringify(invoiceData, null, 2)
+      });
+
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(isGerman ? `Fehler: ${errorMessage}` : `Error: ${errorMessage}`);
     }
   };
 
@@ -664,7 +696,9 @@ const EnhancedIncomeInvoices = () => {
   // Download Invoice PDF
   const downloadInvoicePDF = async (invoiceId) => {
     try {
-      const response = await invoicesAPI.generatePDF(invoiceId);
+      // Pass the current language to the PDF generation
+      const language = isGerman ? 'de' : 'en';
+      const response = await invoicesAPI.generatePDF(invoiceId, language);
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -795,9 +829,14 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
 
           {/* Generate Invoice Button - Export Button Style */}
           {activeDetailTab === 'unpaid' && partnerDetails.unpaidLeads.length > 0 && (
-            <motion.button
-              onClick={() => generateInvoiceForPartner(selectedPartner._id)}
-              disabled={selectedLeadsForInvoice.size === 0}
+            <>
+              {console.log('📌 BUTTON RENDERED - unpaid leads:', partnerDetails.unpaidLeads.length, 'selected:', selectedLeadsForInvoice.size)}
+              <motion.button
+                onClick={() => {
+                  console.log('🖱️ BUTTON CLICKED EVENT FIRED');
+                  generateInvoiceForPartner(selectedPartner._id);
+                }}
+                disabled={selectedLeadsForInvoice.size === 0}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
               style={{
                 backgroundColor: selectedLeadsForInvoice.size === 0 ? 'var(--theme-border)' : 'var(--theme-button-bg)',
@@ -816,33 +855,161 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                 : `Generate Invoice (${selectedLeadsForInvoice.size} selected)`
               }
             </motion.button>
+            </>
           )}
         </div>
 
-        {/* Tab Navigation - Lead Management Style */}
-        <div className="flex space-x-0 border-b" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)' }}>
-          {[
-            { id: 'unpaid', label: isGerman ? 'Unbezahlte Leads' : 'Unpaid Leads', count: partnerDetails.unpaidLeads.length },
-            { id: 'invoiced', label: isGerman ? 'Rechnungen erstellt' : 'Invoice Created Leads', count: partnerDetails.invoicedLeads.length },
-            { id: 'invoices', label: isGerman ? 'Rechnungen' : 'Invoices', count: partnerDetails.invoices.length },
-            { id: 'paid', label: isGerman ? 'Bezahlte Leads' : 'Paid Leads', count: partnerDetails.paidLeads.length }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveDetailTab(tab.id)}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeDetailTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              style={{
-                backgroundColor: activeDetailTab === tab.id ? 'var(--theme-bg)' : 'transparent',
-                color: activeDetailTab === tab.id ? 'var(--theme-primary)' : 'var(--theme-muted)'
-              }}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
+        {/* Tab Navigation with Filter on Right - Lead Management Style */}
+        <div className="flex justify-between items-end border-b" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)' }}>
+          {/* Tabs on the left */}
+          <div className="flex space-x-0">
+            {[
+              { id: 'unpaid', label: isGerman ? 'Unbezahlte Leads' : 'Unpaid Leads', count: partnerDetails.unpaidLeads.length },
+              { id: 'invoiced', label: isGerman ? 'Rechnungen erstellt' : 'Invoice Created Leads', count: partnerDetails.invoicedLeads.length },
+              { id: 'invoices', label: isGerman ? 'Rechnungen' : 'Invoices', count: partnerDetails.invoices.length },
+              { id: 'paid', label: isGerman ? 'Bezahlte Leads' : 'Paid Leads', count: partnerDetails.paidLeads.length }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveDetailTab(tab.id)}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeDetailTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                style={{
+                  backgroundColor: activeDetailTab === tab.id ? 'var(--theme-bg)' : 'transparent',
+                  color: activeDetailTab === tab.id ? 'var(--theme-primary)' : 'var(--theme-muted)'
+                }}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Filter on the right */}
+          {(activeDetailTab === 'unpaid' || activeDetailTab === 'invoiced') && (
+            <div className="flex items-end gap-2 px-4 pb-3">
+              <select
+                value={dateFilters.filterType}
+                onChange={(e) => setDateFilters(prev => ({ ...prev, filterType: e.target.value }))}
+                className="px-3 py-2 rounded border text-sm font-medium transition-colors hover:border-blue-400 focus:border-blue-500"
+                style={{
+                  borderColor: 'var(--theme-border)',
+                  backgroundColor: 'var(--theme-bg)',
+                  color: 'var(--theme-text)',
+                  width: '140px',
+                  height: '38px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
+                <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
+                <option value="range">{isGerman ? 'Datumsbereich' : 'Date Range'}</option>
+                <option value="week">{isGerman ? 'Woche' : 'Week'}</option>
+                <option value="month">{isGerman ? 'Monat' : 'Month'}</option>
+                <option value="year">{isGerman ? 'Jahr' : 'Year'}</option>
+              </select>
+
+              {/* Single Date Filter */}
+              {dateFilters.filterType === 'single' && (
+                <DatePicker
+                  selected={dateFilters.singleDate ? new Date(dateFilters.singleDate) : null}
+                  onChange={(date) => setDateFilters(prev => ({ ...prev, singleDate: date ? formatDateString(date) : '' }))}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText={isGerman ? 'Datum auswählen' : 'Select date'}
+                  popperPlacement="top"
+                  className="px-3 py-2 rounded border text-sm transition-colors"
+                  style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px', boxSizing: 'border-box' }}
+                />
+              )}
+
+              {/* Date Range Filter */}
+              {dateFilters.filterType === 'range' && (
+                <>
+                  <DatePicker
+                    selected={dateFilters.dateRange.from ? new Date(dateFilters.dateRange.from) : null}
+                    onChange={(date) => setDateFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, from: date ? formatDateString(date) : '' } }))}
+                    maxDate={dateFilters.dateRange.to ? new Date(dateFilters.dateRange.to) : new Date()}
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText={isGerman ? 'Von' : 'From'}
+                    popperPlacement="top"
+                    className="px-3 py-2 rounded border text-sm transition-colors"
+                    style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '140px', height: '38px', boxSizing: 'border-box' }}
+                  />
+                  <DatePicker
+                    selected={dateFilters.dateRange.to ? new Date(dateFilters.dateRange.to) : null}
+                    onChange={(date) => setDateFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, to: date ? formatDateString(date) : '' } }))}
+                    minDate={dateFilters.dateRange.from ? new Date(dateFilters.dateRange.from) : null}
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText={isGerman ? 'Bis' : 'To'}
+                    popperPlacement="top"
+                    className="px-3 py-2 rounded border text-sm transition-colors"
+                    style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '140px', height: '38px', boxSizing: 'border-box' }}
+                  />
+                </>
+              )}
+
+              {/* Week Filter */}
+              {dateFilters.filterType === 'week' && (
+                <DatePicker
+                  selected={dateFilters.week ? new Date(dateFilters.week) : null}
+                  onChange={(date) => setDateFilters(prev => ({ ...prev, week: date ? formatDateString(date) : '' }))}
+                  dateFormat="dd/MM/yyyy"
+                  showWeekNumbers
+                  popperPlacement="top"
+                  placeholderText={isGerman ? 'Woche auswählen' : 'Select week'}
+                  className="px-3 py-2 rounded border text-sm transition-colors"
+                  style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px', boxSizing: 'border-box' }}
+                />
+              )}
+
+              {/* Month Filter */}
+              {dateFilters.filterType === 'month' && (
+                <DatePicker
+                  selected={dateFilters.month ? new Date(2024, dateFilters.month - 1, 1) : null}
+                  onChange={(date) => setDateFilters(prev => ({ ...prev, month: date ? date.getMonth() + 1 : new Date().getMonth() + 1 }))}
+                  dateFormat="MM/yyyy"
+                  showMonthYearPicker
+                  popperPlacement="top"
+                  placeholderText={isGerman ? 'Monat auswählen' : 'Select month'}
+                  className="px-3 py-2 rounded border text-sm transition-colors"
+                  style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px', boxSizing: 'border-box' }}
+                />
+              )}
+
+              {/* Year Filter */}
+              {dateFilters.filterType === 'year' && (
+                <DatePicker
+                  selected={dateFilters.year ? new Date(dateFilters.year, 0, 1) : null}
+                  onChange={(date) => setDateFilters(prev => ({ ...prev, year: date ? date.getFullYear() : new Date().getFullYear() }))}
+                  dateFormat="yyyy"
+                  showYearPicker
+                  popperPlacement="top"
+                  placeholderText={isGerman ? 'Jahr auswählen' : 'Select year'}
+                  className="px-3 py-2 rounded border text-sm transition-colors"
+                  style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '140px', height: '38px', boxSizing: 'border-box' }}
+                />
+              )}
+
+              {/* Reset Button */}
+              {dateFilters.filterType !== 'all' && (
+                <button
+                  onClick={() => setDateFilters({ filterType: 'all', singleDate: '', dateRange: { from: '', to: '' }, week: '', month: new Date().getMonth() + 1, year: new Date().getFullYear() })}
+                  className="px-3 py-2 rounded text-sm font-medium transition-all duration-200 hover:shadow-md"
+                  style={{
+                    backgroundColor: 'var(--theme-primary)',
+                    color: 'white',
+                    border: '1px solid var(--theme-primary)',
+                    height: '38px'
+                  }}
+                  title={isGerman ? 'Filter zurücksetzen' : 'Clear filters'}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -863,154 +1030,6 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
               </div>
             ) : (
               <div style={{ backgroundColor: 'var(--theme-bg)' }}>
-                {/* Date Filter - Top Right */}
-                {(activeDetailTab === 'unpaid' || activeDetailTab === 'invoiced') && (
-                  <div className="p-4 border-b flex justify-end" style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border)' }}>
-                    <div className="flex flex-row gap-3 items-end flex-wrap" style={{ maxWidth: '1200px' }}>
-                      <div>
-                        <select
-                          value={dateFilters.filterType}
-                          onChange={(e) => setDateFilters(prev => ({ ...prev, filterType: e.target.value }))}
-                          className="px-3 py-2 rounded border text-sm font-medium"
-                          style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                        >
-                          <option value="all">{isGerman ? 'Alle Daten' : 'All Dates'}</option>
-                          <option value="single">{isGerman ? 'Einzelnes Datum' : 'Single Date'}</option>
-                          <option value="range">{isGerman ? 'Datumsbereich' : 'Date Range'}</option>
-                          <option value="week">{isGerman ? 'Woche' : 'Week'}</option>
-                          <option value="month">{isGerman ? 'Monat' : 'Month'}</option>
-                          <option value="year">{isGerman ? 'Jahr' : 'Year'}</option>
-                        </select>
-                      </div>
-
-                      {/* Single Date Filter */}
-                      {dateFilters.filterType === 'single' && (
-                        <div>
-                          <input
-                            type="date"
-                            placeholder={isGerman ? 'Datum auswählen' : 'Select date'}
-                            value={dateFilters.singleDate || ''}
-                            onChange={(e) => setDateFilters(prev => ({ ...prev, singleDate: e.target.value }))}
-                            className="px-3 py-2 rounded border text-sm"
-                            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Date Range Filter */}
-                      {dateFilters.filterType === 'range' && (
-                        <div className="flex flex-row gap-2 items-end">
-                          <div>
-                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Von' : 'From'}
-                            </label>
-                            <input
-                              type="date"
-                              value={dateFilters.dateRange.from || ''}
-                              onChange={(e) => setDateFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, from: e.target.value } }))}
-                              className="px-3 py-2 rounded border text-sm"
-                              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Zu' : 'To'}
-                            </label>
-                            <input
-                              type="date"
-                              value={dateFilters.dateRange.to || ''}
-                              onChange={(e) => setDateFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, to: e.target.value } }))}
-                              className="px-3 py-2 rounded border text-sm"
-                              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Week Filter */}
-                      {dateFilters.filterType === 'week' && (
-                        <div>
-                          <input
-                            type="week"
-                            placeholder={isGerman ? 'Woche auswählen' : 'Select week'}
-                            value={dateFilters.week || ''}
-                            onChange={(e) => setDateFilters(prev => ({ ...prev, week: e.target.value }))}
-                            className="px-3 py-2 rounded border text-sm"
-                            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Month Filter */}
-                      {dateFilters.filterType === 'month' && (
-                        <div className="flex flex-row gap-2 items-end">
-                          <div>
-                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Monat' : 'Month'}
-                            </label>
-                            <select
-                              value={dateFilters.month}
-                              onChange={(e) => setDateFilters(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                              className="px-3 py-2 rounded border text-sm"
-                              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                            >
-                              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                                <option key={month} value={month}>
-                                  {new Date(2024, month - 1, 1).toLocaleString(isGerman ? 'de-DE' : 'en-US', { month: 'long' })}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted)' }}>
-                              {isGerman ? 'Jahr' : 'Year'}
-                            </label>
-                            <select
-                              value={dateFilters.year}
-                              onChange={(e) => setDateFilters(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                              className="px-3 py-2 rounded border text-sm"
-                              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                            >
-                              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                                <option key={year} value={year}>{year}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Year Filter */}
-                      {dateFilters.filterType === 'year' && (
-                        <div>
-                          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--theme-muted)' }}>
-                            {isGerman ? 'Jahr' : 'Year'}
-                          </label>
-                          <select
-                            value={dateFilters.year}
-                            onChange={(e) => setDateFilters(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                            className="px-3 py-2 rounded border text-sm"
-                            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px' }}
-                          >
-                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Reset Button */}
-                      {dateFilters.filterType !== 'all' && (
-                        <button
-                          onClick={() => setDateFilters({ filterType: 'all', singleDate: '', dateRange: { from: '', to: '' }, week: '', month: new Date().getMonth() + 1, year: new Date().getFullYear() })}
-                          className="px-3 py-2 rounded border text-sm font-medium transition-colors"
-                          style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', width: '160px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          {isGerman ? 'Zurücksetzen' : 'Reset'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Main Table Content */}
                 <div className="overflow-x-auto">
@@ -1099,6 +1118,9 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
               {isGerman ? 'Akzeptiert am' : 'Accepted Date'}
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+              {isGerman ? 'Gewünschtes Startdatum' : 'Desired Start Date'}
             </th>
           </tr>
         </thead>
@@ -1218,6 +1240,9 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                   {formatDate(partnerAssignment?.acceptedAt || item.createdAt)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
+                  {item.formData?.desiredStartDate ? formatDate(item.formData.desiredStartDate) : 'N/A'}
                 </td>
               </tr>
             );

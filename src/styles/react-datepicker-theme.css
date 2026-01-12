@@ -312,12 +312,29 @@
   color: var(--theme-text) !important;
 }
 
+/* Popper positioning - calendar appears above input */
+.react-datepicker__popper {
+  position: absolute !important;
+  z-index: 10000 !important;
+  bottom: auto !important;
+  top: auto !important;
+}
+
+.react-datepicker__popper[data-placement^="bottom"] {
+  margin-top: 0.5rem !important;
+}
+
+.react-datepicker__popper[data-placement^="top"] {
+  margin-bottom: 0.5rem !important;
+  margin-top: 0 !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .react-datepicker {
     font-size: 0.875rem !important;
   }
-  
+
   .react-datepicker__day {
     padding: 0.375rem !important;
   }

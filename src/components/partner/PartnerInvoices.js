@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,8 +66,8 @@ const PartnerInvoices = () => {
   // Track if initial load is done
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // Load Partner Invoices
-  const loadInvoices = async () => {
+  // Load Partner Invoices - wrapped in useCallback to prevent infinite loop
+  const loadInvoices = useCallback(async () => {
     // Wait for router to be ready before loading
     if (!router.isReady) {
       console.log('⏳ Router not ready yet, skipping load');
@@ -174,7 +174,7 @@ const PartnerInvoices = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters, searchQuery, router.isReady, user.id, isGerman]);
 
   useEffect(() => {
     // Only load when router is ready
@@ -197,7 +197,9 @@ const PartnerInvoices = () => {
   // Download Invoice PDF
   const downloadInvoice = async (invoiceId) => {
     try {
-      const response = await invoicesAPI.generatePDF(invoiceId);
+      // Pass the current language to the PDF generation
+      const language = isGerman ? 'de' : 'en';
+      const response = await invoicesAPI.generatePDF(invoiceId, language);
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
