@@ -359,10 +359,9 @@ export default function PartnerRequest() {
             const field = error.path || error.param;
             const translatedMsg = getTranslatedError(error.msg);
             // Map backend nested fields to frontend fields
-            if (field === 'contactPerson.firstName') newErrors.contactPerson = translatedMsg;
-            else if (field === 'contactPerson.lastName') newErrors.contactPerson = translatedMsg;
-            else if (field === 'contactPerson.email') newErrors.email = translatedMsg;
-            else if (field === 'contactPerson.phone') newErrors.phone = translatedMsg;
+            if (field === 'contactPerson') newErrors.contactPerson = translatedMsg;
+            else if (field === 'email') newErrors.email = translatedMsg;
+            else if (field === 'phone') newErrors.phone = translatedMsg;
             else if (field === 'companyName') newErrors.companyName = translatedMsg;
             else if (field === 'securityFormData.regions') newErrors.regions = translatedMsg;
             else if (field === 'securityFormData.budgetScope') newErrors.budgetScope = translatedMsg;

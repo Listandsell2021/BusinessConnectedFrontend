@@ -747,7 +747,7 @@ const EnhancedIncomeInvoices = () => {
   // Send Invoice Email to Partner
   const sendInvoiceEmail = async (invoice) => {
     try {
-      const partnerEmail = invoice.partnerId.contactPerson?.email;
+      const partnerEmail = invoice.partnerId.email;
       if (!partnerEmail) {
         toast.error(isGerman ? 'Partner E-Mail nicht gefunden' : 'Partner email not found');
         return;
@@ -1604,15 +1604,15 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
       },
       {
         label: isGerman ? 'Kontaktperson' : 'Contact Person',
-        value: `${invoice.partnerId.contactPerson?.firstName || ''} ${invoice.partnerId.contactPerson?.lastName || ''}`.trim() || 'N/A'
+        value: invoice.partnerId.contactPerson || 'N/A'
       },
       {
         label: isGerman ? 'E-Mail' : 'Email',
-        value: invoice.partnerId.contactPerson?.email || 'N/A'
+        value: invoice.partnerId.email || 'N/A'
       },
       {
         label: isGerman ? 'Telefon' : 'Phone',
-        value: invoice.partnerId.contactPerson?.phone || 'N/A'
+        value: invoice.partnerId.phone || 'N/A'
       },
       {
         label: isGerman ? 'Erstellt am' : 'Created Date',

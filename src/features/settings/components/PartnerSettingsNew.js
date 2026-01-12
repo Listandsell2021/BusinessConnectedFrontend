@@ -29,8 +29,52 @@ const PartnerSettingsNew = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Available services - security only
-  const [availableServices] = useState(['security']);
+  // Available services - from registration form
+  const [availableServices] = useState([
+    { id: 'security_service', label: { de: 'Sicherheitsdienst', en: 'Security Service' } },
+    { id: 'property_protection', label: { de: 'Objektschutz', en: 'Property Protection' } },
+    { id: 'industrial_security', label: { de: 'Werkschutz', en: 'Industrial Security' } },
+    { id: 'construction_security', label: { de: 'Baustellenbewachung', en: 'Construction Security' } },
+    { id: 'patrol_service', label: { de: 'Revierdienst', en: 'Patrol Service' } },
+    { id: 'city_patrol', label: { de: 'Citystreife', en: 'City Patrol' } },
+    { id: 'doorkeeper', label: { de: 'Pförtner', en: 'Doorkeeper' } },
+    { id: 'reception_service', label: { de: 'Empfangsdienst', en: 'Reception Service' } },
+    { id: 'personal_security', label: { de: 'Personenschutz', en: 'Personal Security' } },
+    { id: 'doorman', label: { de: 'Türsteher', en: 'Doorman' } },
+    { id: 'security_dog_handler', label: { de: 'Diensthundeführer', en: 'Security Dog Handler' } },
+    { id: 'detective', label: { de: 'Detektiv', en: 'Detective' } },
+    { id: 'event_security', label: { de: 'Veranstaltungsschutz', en: 'Event Security' } },
+    { id: 'refugee_security', label: { de: 'Flüchtlingsheimbewachung', en: 'Refugee Security' } },
+    { id: 'fire_watch', label: { de: 'Brandwache', en: 'Fire Watch' } }
+  ]);
+
+  // Mapping for available employees - matches form config
+  const employeesMap = {
+    '1_5': { de: '1 - 5 Mitarbeiter', en: '1 - 5 Employees' },
+    '6_10': { de: '6 - 10 Mitarbeiter', en: '6 - 10 Employees' },
+    '11_25': { de: '11 - 25 Mitarbeiter', en: '11 - 25 Employees' },
+    '26_50': { de: '26 - 50 Mitarbeiter', en: '26 - 50 Employees' },
+    '51_plus': { de: '51+ Mitarbeiter', en: '51+ Employees' }
+  };
+
+  // Mapping for availability period - matches form config
+  const availabilityMap = {
+    'next_1_month': { de: '1 Monat', en: '1 Month' },
+    'next_3_months': { de: 'bis zu 3 Monate', en: 'up to 3 Months' },
+    'next_6_months': { de: 'bis zu 6 Monate', en: 'up to 6 Months' },
+    'ongoing': { de: 'Dauerhaft verfügbar', en: 'Permanently available' },
+    'seasonal': { de: 'Saisonal', en: 'Seasonal' }
+  };
+
+  // Helper function to get display label for employees
+  const getEmployeesLabel = (id) => {
+    return employeesMap[id]?.[isGerman ? 'de' : 'en'] || id;
+  };
+
+  // Helper function to get display label for availability period
+  const getAvailabilityLabel = (id) => {
+    return availabilityMap[id]?.[isGerman ? 'de' : 'en'] || id;
+  };
   
   // European countries and cities data - always show in English
   const [availableCountries] = useState([
@@ -114,18 +158,21 @@ const PartnerSettingsNew = () => {
   const [settings, setSettings] = useState({
     // Contact Information
     companyName: '',
-    contactPerson: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: ''
-    },
+    contactPerson: '',
+    email: '',
+    phone: '',
+    comments: '', // For Comments and Notes
     address: {
       street: '',
       city: '',
       postalCode: '',
       country: 'DE'
     },
+
+    // Services & Capacity
+    services: [],
+    numberOfEmployees: '',
+    availabilityPeriod: '',
 
     // Lead Acceptance Settings
     requireManualAcceptance: true,
@@ -279,18 +326,19 @@ const PartnerSettingsNew = () => {
 
       setSettings({
         companyName: partner.companyName || '',
-        contactPerson: partner.contactPerson || {
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: ''
-        },
-        address: {
+        contactPerson: partner.contactPerson || '',
+        email: partner.email || '',
+        phone: partner.phone || '',
+        comments: partner.securityFormData?.companyDescription || '',
+        address: partner.address || {
           street: '',
           city: '',
           postalCode: '',
           country: 'DE'
         },
+        services: partner.services && partner.services.length > 0 ? partner.services : (partner.securityFormData?.budgetScope || []),
+        numberOfEmployees: partner.numberOfEmployees || partner.securityFormData?.availableEmployees || '',
+        availabilityPeriod: partner.availabilityPeriod || partner.securityFormData?.periodOfAvailability || '',
         requireManualAcceptance: partner.leadAcceptance?.requireManualAcceptance ?? true,
         customPricing: {
           perLeadPrice: partner.customPricing?.perLeadPrice || null,
@@ -459,7 +507,12 @@ const PartnerSettingsNew = () => {
       const updateData = {
         companyName: settings.companyName,
         contactPerson: settings.contactPerson,
+        email: settings.email,
+        phone: settings.phone,
         address: settings.address,
+        services: settings.services || [],
+        numberOfEmployees: settings.numberOfEmployees || null,
+        availabilityPeriod: settings.availabilityPeriod || null,
         leadAcceptance: {
           requireManualAcceptance: settings.requireManualAcceptance
         },
@@ -523,7 +576,7 @@ const PartnerSettingsNew = () => {
       const response = await authAPI.changePartnerPassword({
         partnerId: user.id,
         newPassword: passwordData.newPassword,
-        email: partnerData?.contactPerson?.email || user.email,
+        email: partnerData?.email || user.email,
         isGerman: isGerman
       });
 
@@ -1246,46 +1299,25 @@ const PartnerSettingsNew = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Vorname' : 'First Name'}
-                </label>
-                <input
-                  type="text"
-                  value={settings.contactPerson.firstName}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    contactPerson: { ...prev.contactPerson, firstName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Nachname' : 'Last Name'}
-                </label>
-                <input
-                  type="text"
-                  value={settings.contactPerson.lastName}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    contactPerson: { ...prev.contactPerson, lastName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Ansprechpartner' : 'Contact Person'}
+              </label>
+              <input
+                type="text"
+                value={settings.contactPerson || ''}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  contactPerson: e.target.value
+                }))}
+                placeholder={isGerman ? 'Name des Ansprechpartners' : 'Name of contact person'}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
             </div>
 
             <div>
@@ -1294,16 +1326,14 @@ const PartnerSettingsNew = () => {
               </label>
               <input
                 type="email"
-                value={settings.contactPerson.email}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  contactPerson: { ...prev.contactPerson, email: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={settings.email || ''}
+                disabled
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-60"
                 style={{
                   backgroundColor: 'var(--theme-input-bg)',
                   borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
+                  color: 'var(--theme-text)',
+                  cursor: 'not-allowed'
                 }}
               />
             </div>
@@ -1314,12 +1344,33 @@ const PartnerSettingsNew = () => {
               </label>
               <input
                 type="tel"
-                value={settings.contactPerson.phone}
+                value={settings.phone || ''}
                 onChange={(e) => setSettings(prev => ({
                   ...prev,
-                  contactPerson: { ...prev.contactPerson, phone: e.target.value }
+                  phone: e.target.value
                 }))}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Kommentare und Notizen' : 'Comments and Notes'}
+              </label>
+              <textarea
+                value={settings.comments || ''}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  comments: e.target.value
+                }))}
+                placeholder={isGerman ? 'Zusätzliche Informationen und Notizen...' : 'Additional information and notes...'}
+                rows="4"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 style={{
                   backgroundColor: 'var(--theme-input-bg)',
                   borderColor: 'var(--theme-border)',
@@ -1330,88 +1381,54 @@ const PartnerSettingsNew = () => {
           </div>
         </div>
 
-        {/* Address Information */}
+        {/* Services & Capacity Information */}
         <div className="p-6 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
             <svg className="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
-            {isGerman ? 'Adressinformationen' : 'Address Information'}
+            {isGerman ? 'Services & Kapazität' : 'Services & Capacity'}
           </h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Straße' : 'Street'}
+                {isGerman ? 'Services' : 'Services'} *
               </label>
-              <input
-                type="text"
-                value={settings.address.street}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  address: { ...prev.address, street: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: 'var(--theme-input-bg)',
-                  borderColor: 'var(--theme-border)',
-                  color: 'var(--theme-text)'
-                }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'Stadt' : 'City'}
-                </label>
-                <input
-                  type="text"
-                  value={settings.address.city}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    address: { ...prev.address, city: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                  {isGerman ? 'PLZ' : 'Postal Code'}
-                </label>
-                <input
-                  type="text"
-                  value={settings.address.postalCode}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    address: { ...prev.address, postalCode: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--theme-input-bg)',
-                    borderColor: 'var(--theme-border)',
-                    color: 'var(--theme-text)'
-                  }}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availableServices.map(service => (
+                  <label key={service.id} className="flex items-center space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all hover:bg-opacity-70" style={{
+                    backgroundColor: 'var(--theme-bg)',
+                    borderColor: settings.services && settings.services.includes(service.id) ? '#3b82f6' : 'var(--theme-border)'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.services && settings.services.includes(service.id)}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        services: e.target.checked
+                          ? [...(prev.services || []), service.id]
+                          : (prev.services || []).filter(s => s !== service.id)
+                      }))}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span style={{ color: 'var(--theme-text)' }}>
+                      {service.label[isGerman ? 'de' : 'en']}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
-                {isGerman ? 'Land' : 'Country'}
+                {isGerman ? 'Anzahl verfügbarer Mitarbeiter' : 'Number of Available Employees'} *
               </label>
               <select
-                value={settings.address.country}
+                value={settings.numberOfEmployees || ''}
                 onChange={(e) => setSettings(prev => ({
                   ...prev,
-                  address: { ...prev.address, country: e.target.value }
+                  numberOfEmployees: e.target.value
                 }))}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{
@@ -1420,11 +1437,38 @@ const PartnerSettingsNew = () => {
                   color: 'var(--theme-text)'
                 }}
               >
-                {availableCountries.map(country => (
-                  <option key={country.code} value={country.code}>
-                    {country.name}
-                  </option>
-                ))}
+                <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
+                <option value="1_5">{getEmployeesLabel('1_5')}</option>
+                <option value="6_10">{getEmployeesLabel('6_10')}</option>
+                <option value="11_25">{getEmployeesLabel('11_25')}</option>
+                <option value="26_50">{getEmployeesLabel('26_50')}</option>
+                <option value="51_plus">{getEmployeesLabel('51_plus')}</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>
+                {isGerman ? 'Verfügbarkeitszeitraum' : 'Availability Period'} *
+              </label>
+              <select
+                value={settings.availabilityPeriod || ''}
+                onChange={(e) => setSettings(prev => ({
+                  ...prev,
+                  availabilityPeriod: e.target.value
+                }))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{
+                  backgroundColor: 'var(--theme-input-bg)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text)'
+                }}
+              >
+                <option value="">{isGerman ? 'Bitte wählen...' : 'Please select...'}</option>
+                <option value="next_1_month">{getAvailabilityLabel('next_1_month')}</option>
+                <option value="next_3_months">{getAvailabilityLabel('next_3_months')}</option>
+                <option value="next_6_months">{getAvailabilityLabel('next_6_months')}</option>
+                <option value="ongoing">{getAvailabilityLabel('ongoing')}</option>
+                <option value="seasonal">{getAvailabilityLabel('seasonal')}</option>
               </select>
             </div>
           </div>

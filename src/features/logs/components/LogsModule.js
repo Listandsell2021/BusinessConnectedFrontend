@@ -383,7 +383,7 @@ const LogsModule = () => {
           leadCustomer: log.leadId ? `${log.leadId.user?.firstName || ''} ${log.leadId.user?.lastName || ''}`.trim() : null,
           partnerId: log.partnerId?._id || log.partnerId,
           partnerName: log.partnerId?.companyName,
-          partnerEmail: log.partnerId?.contactPerson?.email,
+          partnerEmail: log.partnerId?.email,
           // Always generate description based on current language (for proper translations)
           // If DB has the message in the selected language, use it; otherwise generate
           details: isGerman

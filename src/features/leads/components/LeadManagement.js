@@ -259,12 +259,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
         sourcePartners = sourcePartners.filter(partner => {
           const companyMatch = partner.companyName?.toLowerCase().includes(query);
           const partnerIdMatch = partner.partnerId?.toLowerCase().includes(query);
-          const firstNameMatch = partner.contactPerson?.firstName?.toLowerCase().includes(query);
-          const lastNameMatch = partner.contactPerson?.lastName?.toLowerCase().includes(query);
-          const emailMatch = partner.contactPerson?.email?.toLowerCase().includes(query);
-          const fullNameMatch = `${partner.contactPerson?.firstName || ''} ${partner.contactPerson?.lastName || ''}`.toLowerCase().includes(query);
+          const contactPersonMatch = partner.contactPerson?.toLowerCase().includes(query);
+          const emailMatch = partner.email?.toLowerCase().includes(query);
 
-          const matches = companyMatch || partnerIdMatch || firstNameMatch || lastNameMatch || emailMatch || fullNameMatch;
+          const matches = companyMatch || partnerIdMatch || contactPersonMatch || emailMatch;
 
           // Debug logging for search issues
           if (query.includes('abc') && partner.companyName?.toLowerCase().includes('abc')) {
@@ -3798,7 +3796,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             {request.partnerInfo?.companyName || request.partner?.companyName || 'Unknown Partner'}
                           </div>
                           <div className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>
-                            {request.partnerInfo?.contactPerson?.email || request.partner?.contactPerson?.email || ''}
+                            {request.partnerInfo?.email || request.partner?.email || ''}
                           </div>
                         </div>
                       </td>
@@ -3993,7 +3991,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                             {request.partnerName || request.partner?.companyName}
                           </div>
                           <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
-                            {request.partnerEmail || request.partner?.contactPerson?.email}
+                            {request.partnerEmail || request.partner?.email}
                           </div>
                         </div>
                       </td>
@@ -4935,10 +4933,10 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                               </span>
                             </div>
 
-                            {partner.contactPerson?.email && (
+                            {partner.email && (
                               <div>
                                 <span className="font-medium">{isGerman ? 'E-Mail:' : 'Email:'}</span>{' '}
-                                {partner.contactPerson.email}
+                                {partner.email}
                               </div>
                             )}
                             {assignment.price && (

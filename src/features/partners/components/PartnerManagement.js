@@ -124,7 +124,7 @@ const availabilityMap = {
   'next_1_month': '1 Month',
   'next_3_months': 'Up to 3 Months',
   'next_6_months': 'Up to 6 Months',
-  'ongoing': 'Available Permanently',
+  'ongoing': 'Permanently available',
   'seasonal': 'Seasonal'
 };
 
@@ -640,7 +640,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
           id: partner._id || partner.id,
           partnerId: partner.partnerId || partner.id,
           name: partner.companyName || partner.name,
-          email: partner.contactPerson?.email || partner.email,
+          email: partner.email,
           type: partner.partnerType || partner.type,
           services: partner.services || [currentService],
           cities: cities,
@@ -1060,7 +1060,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         ...partnerData,
         id: partnerData._id || partnerData.id,
         name: partnerData.companyName || partnerData.name,
-        email: partnerData.contactPerson?.email || partnerData.email,
+        email: partnerData.email,
         type: partnerData.partnerType || partnerData.type
       };
       
@@ -2426,7 +2426,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       </span>
                     </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {partner.phone || partner.contactPerson?.phone || 'N/A'}
+                        {partner.phone || 'N/A'}
                       </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partner.status)}`}>
