@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useService } from '../../../contexts/ServiceContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -71,7 +71,7 @@ const EnhancedIncomeInvoices = () => {
   });
 
   // Load Partners with Invoice Status
-  const loadPartners = async () => {
+  const loadPartners = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch more partners to account for client-side filtering
@@ -98,38 +98,44 @@ const EnhancedIncomeInvoices = () => {
         return isValidStatus && isApprovedBeforeOrInMonth;
       });
 
-      // For each partner, check their invoice status for the selected period
-      const partnersWithInvoiceStatus = await Promise.all(
-        partnersData.map(async (partner) => {
-          try {
-            // Check if partner has invoice for selected period
-            const invoiceParams = {
-              partnerId: partner._id,
-              startDate: new Date(filters.year, filters.month - 1, 1).toISOString(),
-              endDate: new Date(filters.year, filters.month, 0).toISOString()
-            };
+      // Get all invoices for the selected period once (instead of per-partner)
+      let invoicesByPartner = {};
+      let allInvoices = [];
+      try {
+        const periodParams = {
+          startDate: new Date(filters.year, filters.month - 1, 1).toISOString(),
+          endDate: new Date(filters.year, filters.month, 0, 23, 59, 59, 999).toISOString(),
+          serviceType: currentService
+          // No limit - fetch all invoices for the period
+        };
 
-            const invoicesResponse = await invoicesAPI.getAll(invoiceParams);
-            const hasInvoice = invoicesResponse.data.invoices?.length > 0;
-            const lastInvoice = invoicesResponse.data.invoices?.[0];
+        const allInvoicesResponse = await invoicesAPI.getAll(periodParams);
+        allInvoices = allInvoicesResponse.data.invoices || [];
 
-            return {
-              ...partner,
-              invoiceStatus: hasInvoice ? 'generated' : 'pending',
-              lastInvoiceDate: lastInvoice?.createdAt || null,
-              lastInvoiceId: lastInvoice?._id || null
-            };
-          } catch (error) {
-            console.error(`Error checking invoice status for partner ${partner._id}:`, error);
-            return {
-              ...partner,
-              invoiceStatus: 'pending',
-              lastInvoiceDate: null,
-              lastInvoiceId: null
-            };
+        // Create a map of partner ID to their last invoice
+        invoicesByPartner = {};
+        allInvoices.forEach(invoice => {
+          const partnerId = invoice.partnerId?._id || invoice.partnerId;
+          if (!invoicesByPartner[partnerId]) {
+            invoicesByPartner[partnerId] = invoice;
           }
-        })
-      );
+        });
+      } catch (error) {
+        console.error('Error fetching invoices for period:', error);
+      }
+
+      // Map partners with invoice status from the fetched data
+      const partnersWithInvoiceStatus = partnersData.map((partner) => {
+        const hasInvoice = !!invoicesByPartner[partner._id];
+        const lastInvoice = invoicesByPartner[partner._id];
+
+        return {
+          ...partner,
+          invoiceStatus: hasInvoice ? 'generated' : 'pending',
+          lastInvoiceDate: lastInvoice?.createdAt || null,
+          lastInvoiceId: lastInvoice?._id || null
+        };
+      });
 
       // Filter by invoice status if not 'all'
       let filteredPartners = partnersWithInvoiceStatus;
@@ -147,34 +153,16 @@ const EnhancedIncomeInvoices = () => {
 
       setPartners(paginatedPartners);
 
-      // Calculate total revenue for the selected month from all invoices
-      try {
-        const periodParams = {
-          startDate: new Date(filters.year, filters.month - 1, 1).toISOString(),
-          endDate: new Date(filters.year, filters.month, 0, 23, 59, 59, 999).toISOString()
-        };
-
-        // Get all invoices for the selected period across all partners
-        const allInvoicesResponse = await invoicesAPI.getAll({
-          ...periodParams,
-          serviceType: currentService
-        });
-
-        const monthlyInvoices = allInvoicesResponse.data.invoices || [];
-        const monthlyRevenue = monthlyInvoices.reduce((total, invoice) => total + (invoice.total || 0), 0);
-
-        setTotalRevenue(monthlyRevenue);
-      } catch (error) {
-        console.error('Error calculating total revenue:', error);
-        setTotalRevenue(0);
-      }
+      // Calculate total revenue from already fetched invoices
+      const monthlyRevenue = allInvoices.reduce((total, invoice) => total + (invoice.total || 0), 0);
+      setTotalRevenue(monthlyRevenue);
     } catch (error) {
       console.error('Error loading partners:', error);
       toast.error(isGerman ? 'Fehler beim Laden der Partner' : 'Error loading partners');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentService, filters, currentPage, isGerman]);
 
   // Load Partner Details (Leads and Invoices)
   const loadPartnerDetails = async (partnerId) => {
@@ -348,7 +336,7 @@ const EnhancedIncomeInvoices = () => {
 
   useEffect(() => {
     loadPartners();
-  }, [currentPage, filters, currentService, loadPartners]);
+  }, [currentPage, filters.month, filters.year, filters.search, filters.invoiceStatus, currentService, loadPartners]);
 
 
   // Filter Functions
@@ -1058,10 +1046,12 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
     }
 
     // Check if we have any leads and what service type they are
-    const hasMovingLeads = leads.some(lead => lead.serviceType === 'security');
+    const hasSecurityLeads = leads.some(lead => lead.serviceType === 'security');
+    const hasMovingLeads = leads.some(lead => lead.serviceType === 'moving');
     const hasCleaningLeads = leads.some(lead => lead.serviceType === 'cleaning');
-    const isMovingOnly = hasMovingLeads && !hasCleaningLeads;
-    const isCleaningOnly = hasCleaningLeads && !hasMovingLeads;
+    const isSecurityOnly = hasSecurityLeads && !hasMovingLeads && !hasCleaningLeads;
+    const isMovingOnly = hasMovingLeads && !hasCleaningLeads && !hasSecurityLeads;
+    const isCleaningOnly = hasCleaningLeads && !hasMovingLeads && !hasSecurityLeads;
 
     return (
       <table className="min-w-full divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -1089,15 +1079,17 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
               {isGerman ? 'Kunde' : 'Customer'}
             </th>
-            {/* Show Pickup column only for moving leads or mixed */}
-            {!isCleaningOnly && (
+            {/* Show Pickup column only for moving leads */}
+            {isMovingOnly && (
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                 {isGerman ? 'Abholung' : 'Pickup'}
               </th>
             )}
+            {/* Show single location column for security and cleaning, destination for moving */}
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
-              {/* Change column header based on service type */}
-              {isCleaningOnly
+              {isSecurityOnly
+                ? (isGerman ? 'Service-Ort' : 'Service Location')
+                : isCleaningOnly
                 ? (isGerman ? 'Service-Adresse' : 'Service Address')
                 : (isGerman ? 'Ziel' : 'Destination')
               }
@@ -1158,6 +1150,12 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
               if (city || postalCode) {
                 locationDisplay = `${city}${postalCode ? ` ${postalCode}` : ''}, ${country}`;
               }
+            } else if (item.serviceType === 'moving') {
+              // For moving: show destination/delivery location
+              const deliveryLocation = item.deliveryLocation ||
+                                     item.formData?.deliveryLocation ||
+                                     item.formData?.destination;
+              locationDisplay = extractCityCountry(deliveryLocation);
             } else if (item.serviceType === 'cleaning') {
               // For cleaning: only destination/service address, no pickup
               const serviceAddress = item.serviceLocation?.serviceAddress ||
@@ -1196,7 +1194,15 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                     </div>
                   </div>
                 </td>
-                {/* Show Location column */}
+                {/* Show Pickup column only for moving services */}
+                {isMovingOnly && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
+                      {item.pickupLocation ? extractCityCountry(item.pickupLocation) : 'N/A'}
+                    </div>
+                  </td>
+                )}
+                {/* Show Location column (single for security, destination for moving, service address for cleaning) */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm" style={{ color: 'var(--theme-text)' }}>
                     {locationDisplay}
@@ -2005,7 +2011,7 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                       {typeof partner.companyName === 'object' ? partner.companyName?.companyName || partner.companyName?._id || 'N/A' : partner.companyName || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                      {partner.contactPerson?.email || 'N/A'}
+                      {partner.email || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -2020,7 +2026,7 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                      {partner.contactPerson?.phone || 'N/A'}
+                      {partner.phone || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
                       {formatDate(partner.lastInvoiceDate)}
