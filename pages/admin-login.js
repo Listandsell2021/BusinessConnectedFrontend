@@ -24,6 +24,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [lastErrorResult, setLastErrorResult] = useState(null);
   const redirectAfterLogin = useRef(false);
 
 useEffect(() => {
@@ -33,6 +34,7 @@ useEffect(() => {
 }, [loading, isAuthenticated, router]);
 
 // Update error messages when language changes
+
 useEffect(() => {
   if (Object.keys(errors).length > 0) {
     const newErrors = {};
@@ -48,10 +50,15 @@ useEffect(() => {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
     }
 
-    // Keep general error message as-is (already properly set in handleSubmit with correct language)
-    // Server error messages already contain detailed information with proper translations
-    if (errors.general) {
-      newErrors.general = errors.general;
+    // Update general error message based on current language
+    if (errors.general && lastErrorResult) {
+      if (isGerman && lastErrorResult.messageDE) {
+        newErrors.general = lastErrorResult.messageDE;
+      } else if (!isGerman && lastErrorResult.message) {
+        newErrors.general = lastErrorResult.message;
+      } else {
+        newErrors.general = errors.general;
+      }
     }
 
     // Update errors
@@ -66,7 +73,7 @@ useEffect(() => {
       setErrors(updatedErrors);
     }
   }
-}, [isGerman, formData.email, formData.password, errors]);
+}, [isGerman, formData.email, formData.password, errors, lastErrorResult]);
 
   // // Additional useEffect to handle post-login redirect
   // useEffect(() => {
@@ -136,6 +143,9 @@ const handleSubmit = async (e) => {
       router.reload()
       router.replace("/dashboard");
     } else {
+      // Store the result for language-based re-evaluation
+      setLastErrorResult(result);
+
       // Use backend error message with language support
       let errorMessage = result?.error || result?.message;
 

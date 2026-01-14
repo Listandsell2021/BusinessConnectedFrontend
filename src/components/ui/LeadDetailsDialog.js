@@ -379,6 +379,56 @@ const LeadDetailsDialog = ({
       return moveTypes[value.toLowerCase()] || moveTypes[value] || value;
     }
 
+    // Duration field (with unit like "1 Monat", "6 Monate", "Einmalig", "Sonstiges")
+    if (key === 'duration' || key === 'periodOfAvailability') {
+      const durationMap = {
+        'once': isGerman ? 'Einmalig' : 'One-time',
+        'einmalig': isGerman ? 'Einmalig' : 'One-time',
+        '1_monat': isGerman ? '1 Monat' : '1 Month',
+        '1 monat': isGerman ? '1 Monat' : '1 Month',
+        '3_monate': isGerman ? '3 Monate' : '3 Months',
+        '3 monate': isGerman ? '3 Monate' : '3 Months',
+        '6_monate': isGerman ? '6 Monate' : '6 Months',
+        '6 monate': isGerman ? '6 Monate' : '6 Months',
+        '12_monate': isGerman ? '12 Monate' : '12 Months',
+        '12 monate': isGerman ? '12 Monate' : '12 Months',
+        'sonstiges': isGerman ? 'Sonstiges' : 'Other',
+        'other': isGerman ? 'Sonstiges' : 'Other'
+      };
+
+      // Check if it's a numeric value followed by a unit indicator
+      const numericMatch = String(value).match(/^(\d+)\s*(monat|month|tag|day|woche|week)?s?$/i);
+      if (numericMatch) {
+        const num = numericMatch[1];
+        const unit = numericMatch[2];
+
+        if (unit && unit.toLowerCase().includes('monat') || unit && unit.toLowerCase().includes('month')) {
+          return isGerman ? `${num} Monat${num !== '1' ? 'e' : ''}` : `${num} Month${num !== '1' ? 's' : ''}`;
+        }
+        if (unit && (unit.toLowerCase().includes('tag') || unit.toLowerCase().includes('day'))) {
+          return isGerman ? `${num} Tag${num !== '1' ? 'e' : ''}` : `${num} Day${num !== '1' ? 's' : ''}`;
+        }
+        if (unit && (unit.toLowerCase().includes('woche') || unit.toLowerCase().includes('week'))) {
+          return isGerman ? `${num} Woche${num !== '1' ? 'n' : ''}` : `${num} Week${num !== '1' ? 's' : ''}`;
+        }
+        // Default to months if just a number
+        return isGerman ? `${num} Monat${num !== '1' ? 'e' : ''}` : `${num} Month${num !== '1' ? 's' : ''}`;
+      }
+
+      // Check predefined mappings
+      const lowerValue = String(value).toLowerCase();
+      if (durationMap[lowerValue]) {
+        return durationMap[lowerValue];
+      }
+
+      // Default fallback - assume months if just a number
+      if (/^\d+$/.test(String(value))) {
+        return isGerman ? `${value} Monat${value !== '1' ? 'e' : ''}` : `${value} Month${value !== '1' ? 's' : ''}`;
+      }
+
+      return value;
+    }
+
     // Building types
     if (key === 'buildingType' || key === 'building_type') {
       const buildingTypes = {

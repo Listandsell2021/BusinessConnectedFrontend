@@ -29,6 +29,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [lastErrorResult, setLastErrorResult] = useState(null);
   const redirectAfterLogin = useRef(false);
   const hasShownSuccessToast = useRef(false);
 
@@ -79,10 +80,15 @@ useEffect(() => {
       newErrors.password = isGerman ? 'Passwort ist erforderlich' : 'Password is required';
     }
 
-    // Keep general error message as-is (already properly set in handleSubmit with correct language)
-    // Server error messages already contain detailed information with proper translations
-    if (errors.general) {
-      newErrors.general = errors.general;
+    // Update general error message based on current language
+    if (errors.general && lastErrorResult) {
+      if (isGerman && lastErrorResult.messageDE) {
+        newErrors.general = lastErrorResult.messageDE;
+      } else if (!isGerman && lastErrorResult.message) {
+        newErrors.general = lastErrorResult.message;
+      } else {
+        newErrors.general = errors.general;
+      }
     }
 
     // Update errors only if there were existing errors for those fields
@@ -97,7 +103,7 @@ useEffect(() => {
       setErrors(updatedErrors);
     }
   }
-}, [isGerman, formData.email, formData.password, formData.selectedService, errors]);
+}, [isGerman, formData.email, formData.password, formData.selectedService, errors, lastErrorResult]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -161,6 +167,9 @@ const handleSubmit = async (e) => {
       router.reload();
       router.replace("/dashboard");
     } else {
+      // Store the result for language-based re-evaluation
+      setLastErrorResult(result);
+
       // Use backend error message with language support
       let errorMessage = result?.error || result?.message;
 
