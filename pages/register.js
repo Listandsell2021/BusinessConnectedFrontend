@@ -149,8 +149,8 @@ export default function PartnerRequest() {
 
         if (value === 'nationwide') {
           if (checked) {
-            // Select all regions when nationwide is checked
-            updatedArray = [...nonNationwideRegions];
+            // Select all regions when nationwide is checked (include 'nationwide' in the array)
+            updatedArray = [...nonNationwideRegions, 'nationwide'];
           } else {
             // Clear all when nationwide is unchecked
             updatedArray = [];
@@ -162,13 +162,14 @@ export default function PartnerRequest() {
               updatedArray.push(value);
             }
           } else {
-            updatedArray = updatedArray.filter(item => item !== value);
+            // Remove the unchecked region and remove nationwide if all aren't selected anymore
+            updatedArray = updatedArray.filter(item => item !== value && item !== 'nationwide');
           }
         }
 
         // Set nationwide boolean if all regions are selected
         const allNonNationwideSelected = nonNationwideRegions.every(r => updatedArray.includes(r));
-        const nationwideChecked = allNonNationwideSelected && updatedArray.length === nonNationwideRegions.length;
+        const nationwideChecked = allNonNationwideSelected && updatedArray.filter(r => r !== 'nationwide').length === nonNationwideRegions.length;
 
         return {
           ...prev,
@@ -377,29 +378,13 @@ export default function PartnerRequest() {
           // Handle specific error messages - show as server error
           setErrors({});
           if (result.message?.includes('email already exists')) {
-            setServerError(
-              isGerman
-                ? 'Ein Partner mit dieser E-Mail-Adresse existiert bereits.'
-                : 'A partner with this email address already exists.'
-            );
+            setServerError('Dieses Konto mit dieser E-Mail-Adresse existiert bereits. Bitte verwenden Sie eine andere E-Mail-Adresse oder melden Sie sich an.');
           } else if (result.message?.includes('Services already registered')) {
-            setServerError(
-              isGerman
-                ? 'Services bereits registriert: Sicherheitsservice. Duplizierte Services können nicht registriert werden, es sei denn, sie wurden zuvor abgelehnt.'
-                : result.message
-            );
+            setServerError('Partner bereits registriert. Bitte verwenden Sie eine andere E-Mail-Adresse oder kontaktieren Sie den Support.');
           } else if (result.message?.includes('company name already exists') || result.message?.includes('Company') && result.message?.includes('already offers')) {
-            setServerError(
-              isGerman
-                ? 'Ein Partner mit diesem Firmennamen bietet bereits diesen Service an.'
-                : 'A partner with this company name already offers this service.'
-            );
+            setServerError('Ein Unternehmen mit diesem Namen und dieser Sicherheitsservice ist bereits registriert. Bitte verwenden Sie einen anderen Unternehmesnamen.');
           } else {
-            setServerError(
-              result.message || (isGerman
-                ? 'Partner-Registrierung fehlgeschlagen'
-                : 'Partner registration failed')
-            );
+            setServerError(result.message || 'Partner-Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.');
           }
         }
       }

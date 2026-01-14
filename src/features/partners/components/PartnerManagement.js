@@ -4126,8 +4126,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                               // Handle "nationwide" option
                               if (region.id === 'nationwide') {
                                 if (e.target.checked) {
-                                  // When nationwide is checked, select all non-nationwide regions
-                                  newRegions = nonNationwideRegions.map(r => r.id);
+                                  // When nationwide is checked, select all non-nationwide regions + 'nationwide'
+                                  newRegions = [...nonNationwideRegions.map(r => r.id), 'nationwide'];
                                   handlePartnerFormChange('nationwide', true);
                                 } else {
                                   // When nationwide is unchecked, clear all
@@ -4136,13 +4136,16 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                                 }
                               } else {
                                 // Handle regular region selection
-                                newRegions = e.target.checked
-                                  ? [...currentRegions, region.id]
-                                  : currentRegions.filter(r => r !== region.id);
+                                if (e.target.checked) {
+                                  newRegions = [...currentRegions, region.id];
+                                } else {
+                                  // When unchecking a region, remove both the region and nationwide
+                                  newRegions = currentRegions.filter(r => r !== region.id && r !== 'nationwide');
+                                }
 
                                 // Auto-set nationwide if all regions are selected
                                 const allNonNationwideSelected = nonNationwideRegions.every(r => newRegions.includes(r.id));
-                                handlePartnerFormChange('nationwide', allNonNationwideSelected && newRegions.length === nonNationwideRegions.length);
+                                handlePartnerFormChange('nationwide', allNonNationwideSelected && newRegions.filter(r => r !== 'nationwide').length === nonNationwideRegions.length);
                               }
 
                               handlePartnerFormChange('regions', newRegions);

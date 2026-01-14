@@ -241,10 +241,23 @@ const SinglePageForm = ({ formType }) => {
           ? '/thank-you?type=kunden'
           : '/thank-you?type=unternehmen';
         window.location.href = redirectUrl;
+      } else {
+        // Handle specific error messages - German only
+        let errorMessage = 'Fehler beim Einreichen des Formulars. Bitte versuchen Sie es später erneut.';
+
+        if (response?.data?.message?.includes('email already exists')) {
+          errorMessage = 'Dieses Konto mit dieser E-Mail-Adresse existiert bereits. Bitte verwenden Sie eine andere E-Mail-Adresse.';
+        } else if (response?.data?.message?.includes('Services already registered')) {
+          errorMessage = 'Partner bereits registriert. Bitte verwenden Sie eine andere E-Mail-Adresse oder kontaktieren Sie den Support.';
+        } else if (response?.data?.message?.includes('company name already exists') || response?.data?.message?.includes('already offers')) {
+          errorMessage = 'Ein Unternehmen mit diesem Namen und dieser Sicherheitsservice ist bereits registriert.';
+        }
+
+        toast.error(errorMessage);
       }
     } catch (err) {
       console.error('Error submitting form:', err);
-      toast.error(err.response?.data?.message || 'Fehler beim Einreichen des Formulars');
+      toast.error('Fehler beim Einreichen des Formulars. Bitte versuchen Sie es später erneut.');
     } finally {
       setIsSubmitting(false);
     }
@@ -331,49 +344,49 @@ const SinglePageForm = ({ formType }) => {
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
         {/* Header */}
         <header className="border-b border-slate-800">
-          <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center relative">
-              {/* Back Button - Left Absolute */}
+          <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 lg:px-8">
+            <div className="flex items-center justify-between gap-2">
+              {/* Back Button - Left */}
               <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => window.history.back()}
-                className="absolute left-0 flex items-center space-x-2 text-slate-400 hover:text-white transition"
+                className="flex items-center space-x-1 text-slate-400 hover:text-white transition text-xs sm:text-sm flex-shrink-0"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                <span className="text-sm">Zurück</span>
+                <span className="hidden sm:inline">Zurück</span>
               </motion.button>
 
-              {/* Logo - Center */}
+              {/* Logo - Center (Flex Grow) */}
               <motion.button
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={handleLogoClick}
-                className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0 mx-auto"
               >
                 <Image
                   src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
                   alt="BusinessConnected"
-                  width={280}
-                  height={80}
+                  width={200}
+                  height={60}
                   priority
-                  className="h-10 w-auto"
+                  className="h-7 sm:h-10 w-auto"
                 />
               </motion.button>
 
-              {/* Right: Phone - Right Absolute */}
+              {/* Right: Phone - Right */}
               <motion.a
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 href="tel:+491767568479"
-                className="absolute right-0 flex items-center space-x-2 text-slate-400 hover:text-white transition text-sm"
+                className="flex items-center space-x-1 text-slate-400 hover:text-white transition text-xs sm:text-sm flex-shrink-0"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <span>+49 176 75768479</span>
+                <span className="hidden sm:inline">+49 176 75768479</span>
               </motion.a>
             </div>
           </div>
@@ -448,7 +461,7 @@ const SinglePageForm = ({ formType }) => {
                             {getLocalizedText(step.title)}
                           </h3>
                           {step.description && (
-                            <p className="text-slate-400 text-xs">
+                            <p className="text-slate-400 text-sm">
                               {getLocalizedText(step.description)}
                             </p>
                           )}
@@ -499,13 +512,13 @@ const SinglePageForm = ({ formType }) => {
 
                                 return (
                                 <div key={field.id}>
-                                  <label className="block text-xs font-medium text-white mb-2">
+                                  <label className="block text-sm font-medium text-white mb-2">
                                     {getLocalizedText(field.label)}
                                     {field.required && <span className="text-red-400 ml-1">*</span>}
                                   </label>
 
                                   {field.description && field.type === 'checkbox' && field.options && (
-                                    <p className="text-slate-400 text-xs mb-2">{getLocalizedText(field.description)}</p>
+                                    <p className="text-slate-400 text-sm mb-2">{getLocalizedText(field.description)}</p>
                                   )}
 
                                   {field.type === 'textarea' ? (
@@ -515,14 +528,14 @@ const SinglePageForm = ({ formType }) => {
                                       onChange={(e) => handleChange(field.id, e.target.value)}
                                       placeholder={getLocalizedText(field.placeholder)}
                                       rows={field.rows || 4}
-                                      className="w-full px-3 py-2 border rounded text-sm focus:outline-none transition"
+                                      className="w-full px-3 py-2 border rounded text-base focus:outline-none transition"
                                     />
                                   ) : field.type === 'select' ? (
                                     <select
                                       id={field.id}
                                       value={formData[field.id] || ''}
                                       onChange={(e) => handleChange(field.id, e.target.value)}
-                                      className="w-full px-3 py-2 border rounded text-sm focus:outline-none transition"
+                                      className="w-full px-3 py-2 border rounded text-base focus:outline-none transition"
                                     >
                                       <option value="">{getLocalizedText(field.placeholder)}</option>
                                       {field.options?.map(opt => (
@@ -558,8 +571,8 @@ const SinglePageForm = ({ formType }) => {
                                               // Handle "nationwide" (Bundesweit) option
                                               if (opt.id === 'nationwide') {
                                                 if (e.target.checked) {
-                                                  // When nationwide is checked, select all non-nationwide regions
-                                                  newValues = nonNationwideOptions.map(option => option.id);
+                                                  // When nationwide is checked, select all non-nationwide regions + nationwide
+                                                  newValues = [...nonNationwideOptions.map(option => option.id), 'nationwide'];
                                                   // Set isNationwide boolean
                                                   handleChange('isNationwide', true);
                                                 } else {
@@ -569,20 +582,24 @@ const SinglePageForm = ({ formType }) => {
                                                 }
                                               } else {
                                                 // Handle regular region selection
-                                                newValues = e.target.checked
-                                                  ? [...currentValues, opt.id]
-                                                  : currentValues.filter(v => v !== opt.id);
+                                                if (e.target.checked) {
+                                                  newValues = [...currentValues, opt.id];
+                                                } else {
+                                                  // When unchecking a region, remove both the region and nationwide if present
+                                                  newValues = currentValues.filter(v => v !== opt.id && v !== 'nationwide');
+                                                }
 
                                                 // Auto-set isNationwide if all regions are selected
                                                 const allNonNationwideSelected = nonNationwideOptions.every(o => newValues.includes(o.id));
-                                                handleChange('isNationwide', allNonNationwideSelected && newValues.length === nonNationwideOptions.length);
+                                                const shouldBeNationwide = allNonNationwideSelected && newValues.filter(v => v !== 'nationwide').length === nonNationwideOptions.length;
+                                                handleChange('isNationwide', shouldBeNationwide);
                                               }
 
                                               handleChange(field.id, newValues);
                                             }}
                                             className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer flex-shrink-0"
                                           />
-                                          <span className="text-slate-200 text-xs sm:text-sm break-words">{getLocalizedText(opt.label)}</span>
+                                          <span className="text-slate-200 text-sm break-words">{getLocalizedText(opt.label)}</span>
                                         </label>
                                       ))}
                                     </div>
@@ -629,12 +646,12 @@ const SinglePageForm = ({ formType }) => {
                                       placeholder={getLocalizedText(field.placeholder)}
                                       min={field.min}
                                       max={field.max}
-                                      className="w-full px-3 py-2 border rounded text-sm focus:outline-none transition"
+                                      className="w-full px-3 py-2 border rounded text-base focus:outline-none transition"
                                     />
                                   )}
 
                                   {errors[field.id] && (
-                                    <p className="mt-1 text-red-400 text-xs">{errors[field.id]}</p>
+                                    <p className="mt-1 text-red-400 text-sm">{errors[field.id]}</p>
                                   )}
                                 </div>
                                 );
@@ -655,7 +672,7 @@ const SinglePageForm = ({ formType }) => {
                 transition={{ delay: 0.9 }}
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full mt-8 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm shadow-lg hover:shadow-xl"
+                className="w-full mt-8 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-base shadow-lg hover:shadow-xl"
               >
                 {isSubmitting
                   ? 'Wird eingereicht...'
