@@ -2337,8 +2337,8 @@ const PartnerManagement = ({ initialPartners = [] }) => {
             <div>
               <p className="text-sm" style={{ color: 'var(--theme-muted)' }}>{stat.label}</p>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                <div className="text-white">{stat.icon}</div>
+                <p className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{stat.value}</p>
+                <div style={{ color: 'var(--theme-text)' }}>{stat.icon}</div>
               </div>
             </div>
           </motion.div>

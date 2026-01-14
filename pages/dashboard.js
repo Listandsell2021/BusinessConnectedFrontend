@@ -890,7 +890,7 @@ export default function Dashboard({ initialData = {} }) {
                   key={stat.id}
                   className="relative p-6 rounded-2xl border backdrop-blur-xl overflow-hidden group cursor-pointer"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: 'var(--theme-bg-secondary)',
                     borderColor: 'var(--theme-border)',
                     backgroundImage: stat.gradient
                   }}
@@ -932,7 +932,11 @@ export default function Dashboard({ initialData = {} }) {
                       </motion.div>
                       <div className="text-right">
                         <motion.div
-                          className="text-xs px-3 py-1 rounded-full bg-white/20 text-white font-bold"
+                          className="text-xs px-3 py-1 rounded-full font-bold"
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            color: 'var(--theme-text)'
+                          }}
                           animate={{ scale: [1, 1.1, 1] }}
                           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                         >
@@ -941,18 +945,19 @@ export default function Dashboard({ initialData = {} }) {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-white/80">
+                      <h3 className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                         {stat.title}
                       </h3>
                       <motion.p
-                        className="text-3xl font-bold text-white"
+                        className="text-3xl font-bold"
+                        style={{ color: 'var(--theme-text)' }}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: index * 0.1 + 0.3, type: "spring", stiffness: 300 }}
                       >
                         {stat.value}
                       </motion.p>
-                      <p className="text-xs text-white/70">
+                      <p className="text-xs" style={{ color: 'var(--theme-muted)' }}>
                         {stat.details}
                       </p>
                     </div>

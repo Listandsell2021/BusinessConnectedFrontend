@@ -375,6 +375,15 @@ const handleSubmit = async (e) => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 }}
                   >
+                    <style>{`
+                      #email:-webkit-autofill,
+                      #email:-webkit-autofill:hover,
+                      #email:-webkit-autofill:focus,
+                      #email:-webkit-autofill:active {
+                        -webkit-box-shadow: 0 0 0 30px var(--theme-bg-secondary, rgba(0, 0, 0, 0.05)) inset !important;
+                        -webkit-text-fill-color: var(--theme-text) !important;
+                      }
+                    `}</style>
                     <label
                       htmlFor="email"
                       className="block text-sm font-semibold mb-3"
@@ -423,6 +432,15 @@ const handleSubmit = async (e) => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.8 }}
                   >
+                    <style>{`
+                      #password:-webkit-autofill,
+                      #password:-webkit-autofill:hover,
+                      #password:-webkit-autofill:focus,
+                      #password:-webkit-autofill:active {
+                        -webkit-box-shadow: 0 0 0 30px var(--theme-bg-secondary, rgba(0, 0, 0, 0.05)) inset !important;
+                        -webkit-text-fill-color: var(--theme-text) !important;
+                      }
+                    `}</style>
                     <label
                       htmlFor="password"
                       className="block text-sm font-semibold mb-3"
