@@ -13,6 +13,7 @@ import Button from '../src/components/ui/Button';
 import Logo from '../src/components/ui/Logo';
 import { API_BASE_URL } from '../src/lib/config';
 import { translations } from '../src/lib/translations';
+import { isValidGermanPhoneNumber, formatPhoneToInternational, getPhoneValidationError } from '../src/utils/phoneValidation';
 
 export default function PartnerRequest() {
   const router = useRouter();
@@ -80,9 +81,10 @@ export default function PartnerRequest() {
         newErrors.email = isGerman ? 'E-Mail ist ungültig' : 'Email is invalid';
       }
 
-      // Phone validation
-      if (!formData.phone.trim()) {
-        newErrors.phone = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
+      // Phone validation - use German phone validation
+      const phoneError = getPhoneValidationError(formData.phone);
+      if (phoneError) {
+        newErrors.phone = phoneError;
       }
 
       // Regions validation
@@ -234,9 +236,10 @@ export default function PartnerRequest() {
       newErrors.email = isGerman ? 'E-Mail ist ungültig' : 'Email is invalid';
     }
 
-    // Phone validation
-    if (!formData.phone.trim()) {
-      newErrors.phone = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
+    // Phone validation - use German phone validation
+    const phoneError = getPhoneValidationError(formData.phone);
+    if (phoneError) {
+      newErrors.phone = phoneError;
     }
 
     // Regions validation
@@ -319,7 +322,7 @@ export default function PartnerRequest() {
           companyName: formData.companyName,
           contactPerson: formData.contactPerson,  // ← String
           email: formData.email,  // ← Root level
-          phone: formData.phone,  // ← Root level
+          phone: formatPhoneToInternational(formData.phone),  // ← Root level, formatted to +49...
           serviceType: 'security',
           address: {
             street: '',
@@ -587,17 +590,17 @@ export default function PartnerRequest() {
         </div>
 
         {/* Main Form Container */}
-        <div className="flex-1 flex flex-col py-4 sm:py-6 px-4 sm:px-6 lg:px-8 lg:w-1/2 relative z-10 overflow-y-auto">
-          <div className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-2xl my-auto">
+        <div className="flex-1 flex flex-col py-3 sm:py-4 md:py-6 px-3 sm:px-6 md:px-8 lg:px-8 lg:w-1/2 relative z-10 overflow-y-auto">
+          <div className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl my-auto">
             {/* Header Controls */}
             <motion.div
-              className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-12"
+              className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 lg:mb-12"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
               <Logo />
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                 <LanguageToggle />
                 <ThemeToggle />
               </div>
@@ -605,7 +608,7 @@ export default function PartnerRequest() {
 
             {/* Partner Request Card */}
             <motion.div
-              className="backdrop-blur-xl rounded-2xl p-6 sm:p-8 border shadow-2xl relative"
+              className="backdrop-blur-xl rounded-2xl p-5 sm:p-6 md:p-7 lg:p-8 border shadow-2xl relative"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 borderColor: 'var(--theme-border)',
@@ -708,7 +711,7 @@ export default function PartnerRequest() {
                   >
                     <label
                       htmlFor="companyName"
-                      className="block text-sm font-semibold mb-3"
+                      className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                       style={{ color: 'var(--theme-text)' }}
                     >
                       🏢 {isGerman ? 'Unternehmensname' : 'Company Name'}
@@ -748,7 +751,7 @@ export default function PartnerRequest() {
                   >
                     <label
                       htmlFor="contactPerson"
-                      className="block text-sm font-semibold mb-3"
+                      className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                       style={{ color: 'var(--theme-text)' }}
                     >
                       👤 {isGerman ? 'Kontaktperson' : 'Contact Person'}
@@ -781,7 +784,7 @@ export default function PartnerRequest() {
                   </motion.div>
 
                   {/* Email and Phone - Two Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
                     {/* Email */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -790,7 +793,7 @@ export default function PartnerRequest() {
                     >
                       <label 
                         htmlFor="email" 
-                        className="block text-sm font-semibold mb-3"
+                        className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
                         📧 E-Mail
@@ -837,12 +840,13 @@ export default function PartnerRequest() {
                     >
                       <label 
                         htmlFor="phone" 
-                        className="block text-sm font-semibold mb-3"
+                        className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
                         📞 {isGerman ? 'Telefonnummer' : 'Phone Number'}
                       </label>
-                      <div className="relative">
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 bg-blue-500 text-white px-2 py-1 rounded text-xs sm:text-sm font-semibold z-10 whitespace-nowrap">+49</span>
                         <input
                           id="phone"
                           name="phone"
@@ -859,7 +863,7 @@ export default function PartnerRequest() {
                           }}
                           onInput={(e) => e.target.setCustomValidity('')}
                           className={`
-                            appearance-none relative block w-full px-3 py-3 sm:px-4 sm:py-4 border-2 rounded-xl
+                            appearance-none relative block w-full pl-16 pr-3 py-3 sm:pl-20 sm:pr-4 sm:py-4 border-2 rounded-xl
                             backdrop-blur-sm transition-all duration-300
                             focus:outline-none focus:ring-4 focus:ring-opacity-30 focus:scale-105 text-sm sm:text-base
                             border-gray-300 dark:border-gray-300
@@ -869,11 +873,17 @@ export default function PartnerRequest() {
                             backgroundColor: 'var(--theme-bg-secondary, rgba(0, 0, 0, 0.05)) !important',
                             borderColor: errors.phone ? '#EF4444' : 'var(--theme-border)',
                             color: 'var(--theme-text)',
-                            backdropFilter: 'blur(10px)'
+                            backdropFilter: 'blur(10px)',
+                            textAlign: 'left'
                           }}
                           placeholder={isGerman ? 'Telefonnummer eingeben' : 'Enter phone number'}
                         />
                       </div>
+                      {errors.phone && (
+                        <p style={{ color: '#EF4444' }} className="text-sm mt-2">
+                          {errors.phone}
+                        </p>
+                      )}
                     </motion.div>
                   </div>
 
@@ -889,7 +899,7 @@ export default function PartnerRequest() {
                     <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>
                       🗺️ In welchen Regionen sind Einsätze möglich?
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-2 sm:gap-2.5">
                       {[
                         { id: 'bw', label: 'Baden-Württemberg' },
                         { id: 'by', label: 'Bayern' },
@@ -909,16 +919,16 @@ export default function PartnerRequest() {
                         { id: 'th', label: 'Thüringen' },
                         { id: 'nationwide', label: 'Bundesweit' }
                       ].map(region => (
-                        <label key={region.id} className="flex items-center space-x-2 cursor-pointer">
+                        <label key={region.id} className="flex items-start space-x-2 cursor-pointer py-1 min-w-0">
                           <input
                             type="checkbox"
                             name="regions"
                             value={region.id}
                             checked={formData.regions.includes(region.id)}
                             onChange={handleChange}
-                            className="w-4 h-4 rounded flex-shrink-0"
+                            className="w-4 h-4 rounded flex-shrink-0 mt-0.5"
                           />
-                          <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{region.label}</span>
+                          <span style={{ color: 'var(--theme-text)' }} className="text-sm sm:text-sm break-words min-w-0">{region.label}</span>
                         </label>
                       ))}
                     </div>
@@ -926,7 +936,7 @@ export default function PartnerRequest() {
                   </motion.div>
 
                   {/* Available Employees and Availability Period - Two Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -934,7 +944,7 @@ export default function PartnerRequest() {
                     >
                       <label
                         htmlFor="availableEmployees"
-                        className="block text-sm font-semibold mb-3"
+                        className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
                         👥 {isGerman ? 'Anzahl verfügbarer Mitarbeiter' : 'Number of available employees'}
@@ -975,7 +985,7 @@ export default function PartnerRequest() {
                     >
                       <label
                         htmlFor="periodOfAvailability"
-                        className="block text-sm font-semibold mb-3"
+                        className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                         style={{ color: 'var(--theme-text)' }}
                       >
                         ⏰ Verfügbarkeitszeitraum
@@ -1017,10 +1027,10 @@ export default function PartnerRequest() {
                     transition={{ delay: 1.2 }}
                     className="mt-6 mb-6"
                   >
-                    <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>
+                    <label className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3" style={{ color: 'var(--theme-text)' }}>
                       💰 Sicherheitsdienste - Welche Services bieten Sie an?
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-2 sm:gap-2.5">
                       {[
                         { id: 'sicherheitsdienst', label: 'Sicherheitsdienst' },
                         { id: 'objektschutz', label: 'Objektschutz' },
@@ -1038,16 +1048,16 @@ export default function PartnerRequest() {
                         { id: 'fluechtlingsheimbewachung', label: 'Flüchtlingsheimbewachung' },
                         { id: 'brandwache', label: 'Brandwache' }
                       ].map(scope => (
-                        <label key={scope.id} className="flex items-center space-x-2 cursor-pointer">
+                        <label key={scope.id} className="flex items-start space-x-2 cursor-pointer py-1 min-w-0">
                           <input
                             type="checkbox"
                             name="budgetScope"
                             value={scope.id}
                             checked={formData.budgetScope.includes(scope.id)}
                             onChange={handleChange}
-                            className="w-4 h-4 rounded flex-shrink-0"
+                            className="w-4 h-4 rounded flex-shrink-0 mt-0.5"
                           />
-                          <span style={{ color: 'var(--theme-text)' }} className="text-xs sm:text-sm break-words">{scope.label}</span>
+                          <span style={{ color: 'var(--theme-text)' }} className="text-sm sm:text-sm break-words min-w-0">{scope.label}</span>
                         </label>
                       ))}
                     </div>
@@ -1063,7 +1073,7 @@ export default function PartnerRequest() {
                   >
                     <label
                       htmlFor="companyDescription"
-                      className="block text-sm font-semibold mb-3"
+                      className="block text-sm sm:text-sm md:text-sm font-semibold mb-2 sm:mb-3"
                       style={{ color: 'var(--theme-text)' }}
                     >
                       💬 Kommentare und Notizen
@@ -1574,7 +1584,7 @@ export default function PartnerRequest() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { value: '27K+', label: isGerman ? 'Umzüge' : 'Moves', delay: 0.8 },
                   { value: '86+', label: isGerman ? 'Partner' : 'Partners', delay: 0.9 },

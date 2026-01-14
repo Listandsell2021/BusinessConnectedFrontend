@@ -12,6 +12,7 @@ import Link from 'next/link';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { useRouter } from 'next/router';
 import { API_BASE_URL } from '../../../lib/config';
+import { isValidGermanPhoneNumber, formatPhoneToInternational, getPhoneValidationError } from '../../../utils/phoneValidation';
 
 const SinglePageForm = ({ formType }) => {
   const { mounted, isDark } = useTheme();
@@ -138,9 +139,18 @@ const SinglePageForm = ({ formType }) => {
           }
 
           if (value && field.type === 'tel') {
-            const phoneRegex = /^[\+]?[\s\-\(\)]*([0-9][\s\-\(\)]*){6,}$/;
-            if (!phoneRegex.test(value)) {
-              newErrors[field.id] = getLocalizedText(formConfig.validationMessages?.phone);
+            // Use German phone validation for company form, generic regex for client form
+            if (formType === 'securityCompany') {
+              const phoneError = getPhoneValidationError(value);
+              if (phoneError) {
+                newErrors[field.id] = phoneError;
+              }
+            } else {
+              // For client form, use basic validation
+              const phoneRegex = /^[\+]?[\s\-\(\)]*([0-9][\s\-\(\)]*){6,}$/;
+              if (!phoneRegex.test(value)) {
+                newErrors[field.id] = getLocalizedText(formConfig.validationMessages?.phone);
+              }
             }
           }
         });
@@ -196,7 +206,7 @@ const SinglePageForm = ({ formType }) => {
           companyName: rest.companyName,
           contactPerson: contactPerson || '',  // ← STRING (just name)
           email: email || '',  // ← ROOT level
-          phone: phone || '',  // ← ROOT level
+          phone: formatPhoneToInternational(phone) || '',  // ← ROOT level, formatted to +49...
           serviceType: 'security',
           address: {
             street: '',
@@ -369,8 +379,8 @@ const SinglePageForm = ({ formType }) => {
                 <Image
                   src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
                   alt="BusinessConnected"
-                  width={200}
-                  height={60}
+                  width={280}
+                  height={80}
                   priority
                   className="h-7 sm:h-10 w-auto"
                 />
@@ -637,6 +647,26 @@ const SinglePageForm = ({ formType }) => {
                                       placeholder={getLocalizedText(field.placeholder)}
                                       className="w-full px-3 py-2 border rounded text-sm focus:outline-none transition"
                                     />
+                                  ) : field.type === 'tel' ? (
+                                    <>
+                                      <div className="relative flex items-center">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold z-10 whitespace-nowrap">+49</span>
+                                        <input
+                                          id={field.id}
+                                          type="tel"
+                                          value={formData[field.id] || ''}
+                                          onChange={(e) => handleChange(field.id, e.target.value)}
+                                          placeholder={getLocalizedText(field.placeholder)}
+                                          min={field.min}
+                                          max={field.max}
+                                          className="w-full pl-16 pr-3 py-2 border rounded text-base focus:outline-none transition focus:ring-2 focus:ring-blue-500"
+                                          style={{ textAlign: 'left' }}
+                                        />
+                                      </div>
+                                      {errors[field.id] && (
+                                        <p className="mt-1 text-red-400 text-sm">{errors[field.id]}</p>
+                                      )}
+                                    </>
                                   ) : (
                                     <input
                                       id={field.id}

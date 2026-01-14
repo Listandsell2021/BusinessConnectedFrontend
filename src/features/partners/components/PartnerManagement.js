@@ -14,6 +14,7 @@ import LeadDetailsDialog from '../../../components/ui/LeadDetailsDialog';
 import AddressAutocomplete from '../../../components/ui/AddressAutocomplete';
 import { API_BASE_URL } from '../../../lib/config';
 import { formatDateGerman, formatDateTimeGerman } from '../../../lib/dateFormatter';
+import { isValidGermanPhoneNumber, formatPhoneToInternational, getPhoneValidationError } from '../../../utils/phoneValidation';
 
 // Mapping for region codes to full names
 const regionMap = {
@@ -1275,8 +1276,10 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       errors.email = isGerman ? 'Ungültige E-Mail-Adresse' : 'Invalid email address';
     }
 
-    if (!partnerFormData.phone.trim()) {
-      errors.phone = isGerman ? 'Telefonnummer ist erforderlich' : 'Phone number is required';
+    // Phone validation - use German phone validation
+    const phoneError = getPhoneValidationError(partnerFormData.phone);
+    if (phoneError) {
+      errors.phone = phoneError;
     }
 
     if (partnerFormData.regions.length === 0) {
@@ -1316,7 +1319,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         companyName: partnerFormData.companyName,
         contactPerson: partnerFormData.contactPerson,
         email: partnerFormData.email,
-        phone: partnerFormData.phone,
+        phone: formatPhoneToInternational(partnerFormData.phone),
         securityFormData: {
           regions: partnerFormData.regions,
           nationwide: partnerFormData.nationwide,
@@ -1332,7 +1335,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
 
       const response = await partnersAPI.create(dataWithLanguage);
 
-      if (response.data.success) {
+      if (response && response.data && response.data.success) {
         toast.success(isGerman ? 'Partner erfolgreich erstellt' : 'Partner created successfully');
         setShowAddModal(false);
 
@@ -1354,41 +1357,41 @@ const PartnerManagement = ({ initialPartners = [] }) => {
         setPartnerFormErrors({});
 
         // Reload partners and stats
-        await Promise.all([loadPartners(), loadPartnerStats()]);
-      }
-    } catch (error) {
-      console.error('Error creating partner:', error);
-      
-      // Handle error messages with proper German translation
-      const errorMessage = error.response?.data?.message || 'Failed to create partner';
-      let displayMessage = errorMessage;
-      
-      if (isGerman) {
-        switch (errorMessage) {
-          case 'Partner already exists':
-            displayMessage = 'Partner existiert bereits';
-            break;
-          case 'Partner with this email already exists':
-            displayMessage = 'Partner mit dieser E-Mail-Adresse existiert bereits';
-            break;
-          case 'Partner with this company name already exists':
-            displayMessage = 'Partner mit diesem Firmennamen existiert bereits';
-            break;
-          case 'Failed to create partner':
-            displayMessage = 'Fehler beim Erstellen des Partners';
-            break;
-          default:
-            if (errorMessage.includes('email already exists')) {
-              displayMessage = 'Partner mit dieser E-Mail-Adresse existiert bereits';
-            } else if (errorMessage.includes('company name already exists')) {
-              displayMessage = 'Partner mit diesem Firmennamen existiert bereits';
-            } else {
-              displayMessage = 'Fehler beim Erstellen des Partners';
-            }
+        try {
+          await Promise.all([loadPartners(), loadPartnerStats()]);
+        } catch (reloadError) {
+          console.error('Error reloading partners:', reloadError);
+          // Don't throw - we've already successfully created the partner
         }
       }
-      
-      toast.error(displayMessage);
+    } catch (error) {
+      // Handle API error - don't re-throw to prevent error overlay in dev mode
+      try {
+        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create partner';
+        let displayMessage = errorMessage;
+
+        if (isGerman) {
+          if (errorMessage && (errorMessage.includes('email already exists') || errorMessage.includes('already exists'))) {
+            displayMessage = 'Partner mit dieser E-Mail-Adresse existiert bereits';
+          } else if (errorMessage && errorMessage.includes('company name already exists')) {
+            displayMessage = 'Partner mit diesem Firmennamen existiert bereits';
+          } else {
+            displayMessage = 'Fehler beim Erstellen des Partners';
+          }
+        }
+
+        toast.error(displayMessage);
+
+        // Only log in dev console, don't propagate
+        if (process.env.NODE_ENV === 'development') {
+          setTimeout(() => {
+            console.debug('Partner creation error (handled):', errorMessage);
+          }, 0);
+        }
+      } catch (handlerError) {
+        // Fallback error handling
+        toast.error(isGerman ? 'Fehler beim Erstellen des Partners' : 'Failed to create partner');
+      }
     } finally {
       setIsSubmittingPartner(false);
     }
@@ -1412,6 +1415,7 @@ const PartnerManagement = ({ initialPartners = [] }) => {
     });
     setPartnerFormErrors({});
     setIsServiceDropdownOpen(false);
+    setIsSubmittingPartner(false);
   };
 
   // Helper function to get date parameters for partner leads
@@ -2345,38 +2349,39 @@ const PartnerManagement = ({ initialPartners = [] }) => {
       {/* Partners Table - only show when currentView is 'table' */}
       {currentView === 'table' && (
       <motion.div
-        className="overflow-hidden rounded-lg border"
+        className="rounded-lg border"
         style={{ borderColor: 'var(--theme-border)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <div>
+        <div className="overflow-x-auto">
           <table className="min-w-full divide-y" style={{ backgroundColor: 'var(--theme-bg)' }}>
             <thead style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
               <tr>
                 <SortableHeader sortKey="partnerId">
-                  {isGerman ? 'Partner ID' : 'Partner ID'}
+                  <span className="hidden sm:inline">{isGerman ? 'Partner ID' : 'Partner ID'}</span>
+                  <span className="sm:hidden">{isGerman ? 'ID' : 'ID'}</span>
                 </SortableHeader>
                 <SortableHeader sortKey="companyName">
                   {isGerman ? 'Partner' : 'Partner'}
                 </SortableHeader>
-                <SortableHeader sortKey="partnerType">
+                <SortableHeader sortKey="partnerType" className="hidden md:table-cell">
                   {isGerman ? 'Typ' : 'Type'}
                 </SortableHeader>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+                <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {isGerman ? 'Kontakt' : 'Contact No.'}
                 </th>
                 <SortableHeader sortKey="status">
                   {isGerman ? 'Status' : 'Status'}
                 </SortableHeader>
-                <SortableHeader sortKey="metrics.totalLeadsAccepted">
+                <SortableHeader sortKey="metrics.totalLeadsAccepted" className="hidden sm:table-cell">
                   {isGerman ? 'Leads' : 'Leads'}
                 </SortableHeader>
-                <SortableHeader sortKey="registeredAt">
+                <SortableHeader sortKey="registeredAt" className="hidden lg:table-cell">
                   {isGerman ? 'Registriert am' : 'Registered Date'}
                 </SortableHeader>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
+                <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                   {isGerman ? 'Aktionen' : 'Actions'}
                 </th>
               </tr>
@@ -2408,44 +2413,45 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-opacity-50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-                      {partner.partnerId || partner.id}
+                    <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
+                      <span className="hidden sm:inline">{partner.partnerId || partner.id}</span>
+                      <span className="sm:hidden">{(partner.partnerId || partner.id).substring(0, 8)}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
+                        <div className="text-xs sm:text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
                           {partner.name}
                         </div>
-                        <div className="text-sm" style={{ color: 'var(--theme-muted)' }}>
+                        <div className="text-xs hidden sm:block" style={{ color: 'var(--theme-muted)' }}>
                           {partner.email}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getTypeColor(partner.type)}`}>
+                    <td className="hidden md:table-cell px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(partner.type)}`}>
                         {getTypeLabel(partner.type)}
                       </span>
                     </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
-                        {partner.phone || 'N/A'}
-                      </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(partner.status)}`}>
+                    <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap text-xs" style={{ color: 'var(--theme-text)' }}>
+                      {partner.phone || 'N/A'}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(partner.status)}`}>
                         {getStatusLabel(partner.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-text)' }}>
+                    <td className="hidden sm:table-cell px-3 py-3 whitespace-nowrap text-xs" style={{ color: 'var(--theme-text)' }}>
                       {partner.leadsCount}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
+                    <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap text-xs" style={{ color: 'var(--theme-muted)' }}>
                       {formatDateGerman(partner.registeredAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-3 py-3 text-xs font-medium">
+                      <div className="flex flex-wrap gap-1">
                         {/* View button - available to all users */}
                         <button
                           onClick={() => handleViewPartner(partner)}
-                          className="text-xs px-3 py-1 rounded transition-colors"
+                          className="text-xs px-2 py-1 rounded transition-colors"
                           style={{ 
                             backgroundColor: 'var(--theme-bg-secondary)',
                             color: 'var(--theme-text)',
@@ -4064,21 +4070,25 @@ const PartnerManagement = ({ initialPartners = [] }) => {
                       </svg>
                       {isGerman ? 'Telefon' : 'Phone'} *
                     </label>
-                    <input
-                      id="partner-phone"
-                      name="partner-phone"
-                      type="tel"
-                      autoComplete="off"
-                      value={partnerFormData.phone}
-                      onChange={(e) => handlePartnerFormChange('phone', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{
-                        backgroundColor: 'var(--theme-input-bg)',
-                        borderColor: partnerFormErrors.phone ? '#ef4444' : 'var(--theme-border)',
-                        color: 'var(--theme-text)'
-                      }}
-                      placeholder={isGerman ? 'Telefonnummer eingeben' : 'Enter phone number'}
-                    />
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold z-10 whitespace-nowrap">+49</span>
+                      <input
+                        id="partner-phone"
+                        name="partner-phone"
+                        type="tel"
+                        autoComplete="off"
+                        value={partnerFormData.phone}
+                        onChange={(e) => handlePartnerFormChange('phone', e.target.value)}
+                        className="w-full pl-16 pr-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{
+                          backgroundColor: 'var(--theme-input-bg)',
+                          borderColor: partnerFormErrors.phone ? '#ef4444' : 'var(--theme-border)',
+                          color: 'var(--theme-text)',
+                          textAlign: 'left'
+                        }}
+                        placeholder={isGerman ? 'Telefonnummer eingeben' : 'Enter phone number'}
+                      />
+                    </div>
                     {partnerFormErrors.phone && (
                       <p className="text-red-500 text-sm mt-1">{partnerFormErrors.phone}</p>
                     )}
