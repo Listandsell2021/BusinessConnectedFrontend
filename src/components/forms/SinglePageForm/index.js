@@ -355,13 +355,13 @@ const SinglePageForm = ({ formType }) => {
         {/* Header */}
         <header className="border-b border-slate-800">
           <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 lg:px-8">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-center relative">
               {/* Back Button - Left */}
               <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => window.history.back()}
-                className="flex items-center space-x-1 text-slate-400 hover:text-white transition text-xs sm:text-sm flex-shrink-0"
+                className="absolute left-0 flex items-center space-x-1 text-slate-400 hover:text-white transition text-xs sm:text-sm flex-shrink-0"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -369,12 +369,12 @@ const SinglePageForm = ({ formType }) => {
                 <span className="hidden sm:inline">Zurück</span>
               </motion.button>
 
-              {/* Logo - Center (Flex Grow) */}
+              {/* Logo - Center */}
               <motion.button
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={handleLogoClick}
-                className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0 mx-auto"
+                className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
               >
                 <Image
                   src={isDark ? '/Business-Connect-logoblacktheme.svg' : '/business-connected-logo.svg'}
@@ -387,7 +387,7 @@ const SinglePageForm = ({ formType }) => {
               </motion.button>
 
               {/* Right: WhatsApp & Phone - Right */}
-              <div className="flex items-center space-x-3 flex-shrink-0">
+              <div className="absolute right-0 flex items-center space-x-3 flex-shrink-0">
                 {/* WhatsApp Button */}
                 <motion.a
                   initial={{ opacity: 0, x: 20 }}
@@ -396,18 +396,22 @@ const SinglePageForm = ({ formType }) => {
                   href="https://wa.me/4917675768479?text=Hallo%2C%20ich%20m%C3%B6chte%20mehr%20Informationen"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center space-x-1 hover:opacity-80 transition text-xs sm:text-sm flex-shrink-0 whitespace-nowrap"
+                  className="flex flex-col items-center justify-center px-2 py-1 hover:opacity-80 transition text-xs sm:text-sm flex-shrink-0"
                   style={{ color: '#25D366' }}
                 >
-                  <motion.svg
-                    className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M17.6 6.32c-1.63-1.6-3.8-2.48-6.1-2.48-4.76 0-8.63 3.87-8.63 8.63 0 1.52.39 3 1.13 4.32L3.06 21.5l4.63-1.22c1.26.68 2.68 1.04 4.15 1.04h.01c4.76 0 8.63-3.87 8.63-8.63 0-2.3-.89-4.47-2.5-6.1zM11.7 18.72h-.01c-1.3 0-2.57-.35-3.67-1.01l-.26-.16-2.71.71.72-2.66-.17-.27c-.73-1.15-1.12-2.48-1.12-3.86 0-3.96 3.23-7.19 7.19-7.19 1.92 0 3.72.78 5.08 2.14 1.36 1.36 2.11 3.17 2.11 5.08 0 3.96-3.23 7.19-7.19 7.19zm3.9-5.38c-.21-.11-1.26-.62-1.46-.69-.2-.07-.35-.11-.49.11-.14.21-.54.69-.67.83-.13.15-.26.17-.47.06-.21-.11-.88-.33-1.67-.99-.62-.56-1.04-1.23-1.16-1.44-.12-.21-.01-.32.09-.43.09-.1.21-.25.31-.37.1-.12.13-.21.2-.35.07-.14.03-.26-.02-.37-.05-.11-.49-1.17-.67-1.6-.18-.41-.35-.36-.49-.36-.13 0-.27-.01-.41-.01-.14 0-.37.05-.56.25-.2.2-.75.74-.75 1.8 0 1.06.77 2.09.88 2.23.11.14 1.5 2.3 3.65 3.22.51.22.91.35 1.22.45.51.16.98.14 1.35.08.41-.06 1.26-.52 1.44-1.02.18-.5.18-.92.12-1.02-.05-.1-.2-.16-.41-.27z" />
-                  </motion.svg>
-                  <span className="hidden md:inline font-medium text-xs lg:text-sm">24 Stunden über Whatsapp erreichbar</span>
-                  <span className="inline md:hidden font-medium text-xs">24h WhatsApp</span>
+                  <div className="flex items-center gap-1">
+                    <motion.svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M17.6 6.32c-1.63-1.6-3.8-2.48-6.1-2.48-4.76 0-8.63 3.87-8.63 8.63 0 1.52.39 3 1.13 4.32L3.06 21.5l4.63-1.22c1.26.68 2.68 1.04 4.15 1.04h.01c4.76 0 8.63-3.87 8.63-8.63 0-2.3-.89-4.47-2.5-6.1zM11.7 18.72h-.01c-1.3 0-2.57-.35-3.67-1.01l-.26-.16-2.71.71.72-2.66-.17-.27c-.73-1.15-1.12-2.48-1.12-3.86 0-3.96 3.23-7.19 7.19-7.19 1.92 0 3.72.78 5.08 2.14 1.36 1.36 2.11 3.17 2.11 5.08 0 3.96-3.23 7.19-7.19 7.19zm3.9-5.38c-.21-.11-1.26-.62-1.46-.69-.2-.07-.35-.11-.49.11-.14.21-.54.69-.67.83-.13.15-.26.17-.47.06-.21-.11-.88-.33-1.67-.99-.62-.56-1.04-1.23-1.16-1.44-.12-.21-.01-.32.09-.43.09-.1.21-.25.31-.37.1-.12.13-.21.2-.35.07-.14.03-.26-.02-.37-.05-.11-.49-1.17-.67-1.6-.18-.41-.35-.36-.49-.36-.13 0-.27-.01-.41-.01-.14 0-.37.05-.56.25-.2.2-.75.74-.75 1.8 0 1.06.77 2.09.88 2.23.11.14 1.5 2.3 3.65 3.22.51.22.91.35 1.22.45.51.16.98.14 1.35.08.41-.06 1.26-.52 1.44-1.02.18-.5.18-.92.12-1.02-.05-.1-.2-.16-.41-.27z" />
+                    </motion.svg>
+                    <span className="hidden md:inline font-medium text-xs lg:text-sm">24 Stunden</span>
+                    <span className="inline md:hidden font-medium text-xs">24h</span>
+                  </div>
+                  <span className="hidden md:inline font-medium text-xs lg:text-sm text-center">über Whatsapp</span>
+                  <span className="inline md:hidden font-medium text-xs text-center">WhatsApp</span>
                 </motion.a>
 
                 {/* Phone Button */}
