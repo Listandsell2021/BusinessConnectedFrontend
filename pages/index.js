@@ -33,6 +33,16 @@ export default function Home() {
   const redirectAfterLogin = useRef(false);
   const hasShownSuccessToast = useRef(false);
 
+// Redirect to admin login for production, staging, and localhost domains
+useEffect(() => {
+  if (typeof window !== 'undefined' && router.isReady) {
+    const hostname = window.location.hostname;
+    if (hostname === 'app.business-connected24.de' || hostname === 'dv-app-business-connected24.listandsell.eu' || hostname === 'localhost' || hostname === '127.0.0.1') {
+      router.replace('/admin-login');
+    }
+  }
+}, [router]);
+
 useEffect(() => {
   if (!loading && isAuthenticated()) {
     router.replace('/dashboard');

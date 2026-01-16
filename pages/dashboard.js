@@ -535,11 +535,11 @@ export default function Dashboard({ initialData = {} }) {
 
     if (isSuperAdmin) {
       menuItems.push(
-        { id: 'leads', label: isGerman ? 'Lead-Verwaltung' : 'Lead Management', icon: MenuIcons.leads, roles: ['superadmin'], description: isGerman ? 'Verwalten Sie alle Leads' : 'Manage all leads' },
-        { id: 'partners', label: isGerman ? 'Partner-Verwaltung' : 'Partner Management', icon: MenuIcons.partners, roles: ['superadmin'], description: isGerman ? 'Partner verwalten' : 'Manage partners' },
-        { id: 'logs', label: isGerman ? 'System-Protokolle' : 'System Logs', icon: MenuIcons.logs, roles: ['superadmin'], description: isGerman ? 'System-Aktivitäten' : 'System activities' },
-        { id: 'income', label: isGerman ? 'Umsätze & Rechnungen' : 'Income & Invoices', icon: MenuIcons.income, roles: ['superadmin'], description: isGerman ? 'Finanzen verwalten' : 'Manage finances' },
-        { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: MenuIcons.settings, roles: ['superadmin'], description: isGerman ? 'System-Einstellungen' : 'System settings' }
+        { id: 'leads', label: isGerman ? 'Lead-Verwaltung' : 'Lead Management', icon: MenuIcons.leads, roles: ['superadmin'], description: isGerman ? 'Verwalten Sie alle Leads' : 'Manage all leads' }
+        // { id: 'partners', label: isGerman ? 'Partner-Verwaltung' : 'Partner Management', icon: MenuIcons.partners, roles: ['superadmin'], description: isGerman ? 'Partner verwalten' : 'Manage partners' },
+        // { id: 'logs', label: isGerman ? 'System-Protokolle' : 'System Logs', icon: MenuIcons.logs, roles: ['superadmin'], description: isGerman ? 'System-Aktivitäten' : 'System activities' },
+        // { id: 'income', label: isGerman ? 'Umsätze & Rechnungen' : 'Income & Invoices', icon: MenuIcons.income, roles: ['superadmin'], description: isGerman ? 'Finanzen verwalten' : 'Manage finances' },
+        // { id: 'settings', label: isGerman ? 'Einstellungen' : 'Settings', icon: MenuIcons.settings, roles: ['superadmin'], description: isGerman ? 'System-Einstellungen' : 'System settings' }
       );
     }
 

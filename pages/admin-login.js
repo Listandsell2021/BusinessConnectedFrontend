@@ -581,6 +581,7 @@ const handleSubmit = async (e) => {
                   </motion.div>
 
                   {/* Admin Login Link */}
+                  {/* Partner Login Link - Hidden
                   <motion.div
                     className="text-center mt-6 pt-4 border-t border-gray-200/20"
                     initial={{ opacity: 0 }}
@@ -598,6 +599,7 @@ const handleSubmit = async (e) => {
                       🤝 {isGerman ? 'Partner-Anmeldung' : 'Partner Login'}
                     </Link>
                   </motion.div>
+                  */}
 
                 </form>
               </div>
@@ -760,7 +762,7 @@ const handleSubmit = async (e) => {
                 ))}
               </div>
               
-              {/* Stats */}
+              {/* Stats - Hidden
               <div className="grid grid-cols-3 gap-6">
                 {[
                   { value: '2.5K+', label: isGerman ? 'Partner' : 'Partners', delay: 0.8 },
@@ -772,22 +774,22 @@ const handleSubmit = async (e) => {
                     className="p-4 rounded-xl backdrop-blur-sm bg-gradient-to-br from-white/10 to-white/5 border border-white/20"
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ 
-                      delay: stat.delay, 
-                      type: "spring", 
-                      stiffness: 200 
+                    transition={{
+                      delay: stat.delay,
+                      type: "spring",
+                      stiffness: 200
                     }}
-                    whileHover={{ 
+                    whileHover={{
                       scale: 1.05,
                       boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)"
                     }}
                   >
-                    <motion.div 
+                    <motion.div
                       className="font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
                       animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ 
-                        duration: 2, 
-                        repeat: Infinity, 
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
                         ease: "easeInOut",
                         delay: index * 0.3
                       }}
@@ -800,6 +802,7 @@ const handleSubmit = async (e) => {
                   </motion.div>
                 ))}
               </div>
+              */}
 
               {/* Trust Badge */}
               <motion.div

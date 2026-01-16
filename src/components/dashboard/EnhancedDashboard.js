@@ -171,23 +171,22 @@ const EnhancedDashboard = ({ onNavigate }) => {
       {/* KPI Stats */}
       <DashboardStats className="mb-8" onNavigate={onNavigate} />
 
-      {/* Main Dashboard Grid */}
+      {/* Main Dashboard Grid - Hidden
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Revenue Chart - Full width */}
+
         <div className="xl:col-span-2">
           <RevenueChart />
         </div>
 
-        {/* Lead Distribution */}
         <div className="xl:col-span-1">
           <LeadsPieChart />
         </div>
 
-        {/* Partner Performance */}
         <div className="xl:col-span-1">
           <PartnerPerformance />
         </div>
       </div>
+      */}
 
 
       {/* Footer Info */}

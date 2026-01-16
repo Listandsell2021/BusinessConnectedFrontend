@@ -135,52 +135,55 @@ const DashboardStats = ({ className = "", onNavigate }) => {
       gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       description: isGerman ? 'Diesen Monat' : 'This Month',
       navigateTo: { tab: 'leads' }
-    },
-    {
-      id: 'pending',
-      title: isGerman ? 'Wartende Leads' : 'Pending Leads',
-      value: stats.pendingLeads?.toString() || '0',
-      change: stats.monthlyGrowth?.pending || '0%',
-      trend: stats.trends?.pending || 'neutral',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
-        </svg>
-      ),
-      gradient: 'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)',
-      description: isGerman ? 'In Bearbeitung' : 'Processing',
-      navigateTo: { tab: 'leads', filter: 'pending' }
-    },
-    {
-      id: 'accepted',
-      title: isGerman ? 'Angenommene Leads' : 'Accepted Leads',
-      value: stats.acceptedLeads?.toString() || '0',
-      change: stats.monthlyGrowth?.accepted ? `+${stats.monthlyGrowth.accepted}%` : '+0%',
-      trend: stats.trends?.accepted || 'neutral',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-        </svg>
-      ),
-      gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-      description: isGerman ? 'Bestätigt' : 'Confirmed',
-      navigateTo: { tab: 'partners' }
-    },
-    {
-      id: 'cancelled',
-      title: isGerman ? 'Stornierte Leads' : 'Cancelled Leads',
-      value: stats.cancelledLeads?.toString() || '0',
-      change: stats.monthlyGrowth?.cancelled || '0%',
-      trend: stats.trends?.cancelled || 'neutral',
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
-        </svg>
-      ),
-      gradient: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
-      description: isGerman ? 'Storniert' : 'Cancelled',
-      navigateTo: { tab: 'leads', filter: 'cancelled' }
     }
+    // Pending Leads - Hidden
+    // {
+    //   id: 'pending',
+    //   title: isGerman ? 'Wartende Leads' : 'Pending Leads',
+    //   value: stats.pendingLeads?.toString() || '0',
+    //   change: stats.monthlyGrowth?.pending || '0%',
+    //   trend: stats.trends?.pending || 'neutral',
+    //   icon: (
+    //     <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+    //       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
+    //     </svg>
+    //   ),
+    //   gradient: 'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)',
+    //   description: isGerman ? 'In Bearbeitung' : 'Processing',
+    //   navigateTo: { tab: 'leads', filter: 'pending' }
+    // },
+    // Accepted Leads - Hidden
+    // {
+    //   id: 'accepted',
+    //   title: isGerman ? 'Angenommene Leads' : 'Accepted Leads',
+    //   value: stats.acceptedLeads?.toString() || '0',
+    //   change: stats.monthlyGrowth?.accepted ? `+${stats.monthlyGrowth.accepted}%` : '+0%',
+    //   trend: stats.trends?.accepted || 'neutral',
+    //   icon: (
+    //     <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+    //       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+    //     </svg>
+    //   ),
+    //   gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+    //   description: isGerman ? 'Bestätigt' : 'Confirmed',
+    //   navigateTo: { tab: 'partners' }
+    // },
+    // Cancelled Leads - Hidden
+    // {
+    //   id: 'cancelled',
+    //   title: isGerman ? 'Stornierte Leads' : 'Cancelled Leads',
+    //   value: stats.cancelledLeads?.toString() || '0',
+    //   change: stats.monthlyGrowth?.cancelled || '0%',
+    //   trend: stats.trends?.cancelled || 'neutral',
+    //   icon: (
+    //     <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+    //       <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
+    //     </svg>
+    //   ),
+    //   gradient: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+    //   description: isGerman ? 'Storniert' : 'Cancelled',
+    //   navigateTo: { tab: 'leads', filter: 'cancelled' }
+    // }
   ];
 
   // Partner-related cards (second row) - using real API data
@@ -301,7 +304,7 @@ const DashboardStats = ({ className = "", onNavigate }) => {
         </div>
       </div>
 
-      {/* Partner-related cards - Second row */}
+      {/* Partner-related cards - Second row - Hidden
       <div>
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>
           {isGerman ? 'Partner-Statistiken' : 'Partner Statistics'}
@@ -312,6 +315,7 @@ const DashboardStats = ({ className = "", onNavigate }) => {
           ))}
         </div>
       </div>
+      */}
     </div>
   );
 };

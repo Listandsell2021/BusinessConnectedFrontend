@@ -2804,6 +2804,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                 (isGerman ? 'Reinigungs-Lead-Verwaltung' : 'Cleaning Lead Management') :
                 (isGerman ? 'Lead-Verwaltung' : 'Lead Management')}
             </h2>
+          {/* Export Button - Hidden
           {(isSuperAdmin || isPartner) && (
             <div className="relative export-menu-container">
               <motion.button
@@ -2859,6 +2860,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               )}
             </div>
           )}
+          */}
           </div>
           
         </div>
@@ -2899,6 +2901,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           >
             {isGerman ? 'Leads' : 'Leads'}
           </button>
+          {/* Cancelled Requests Tab - Hidden
           <button
             onClick={() => setActiveTab('cancelled')}
             className={`px-6 py-3 font-medium transition-colors ${
@@ -2913,6 +2916,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
           >
             {isGerman ? 'Stornierte Anfragen' : 'Cancelled Requests'}
           </button>
+          */}
         </div>
       )}
 
@@ -2939,7 +2943,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             />
           </div>
 
-          {/* Status Filter */}
+          {/* Status Filter - Hidden
           <div className="min-w-0">
             <select
               value={filters.status}
@@ -2956,7 +2960,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               <option value="all">{isGerman ? 'Alle Status' : 'All Status'}</option>
               {activeTab === 'leads' ? (
                 isPartner ? (
-                  // Partner-specific status options
                   <>
                     <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
                     <option value="accepted">{isGerman ? 'Akzeptiert' : 'Accepted'}</option>
@@ -2965,7 +2968,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     <option value="cancelled">{isGerman ? 'Storniert' : 'Cancelled'}</option>
                   </>
                 ) : (
-                  // Admin status options (unchanged)
                   <>
                     <option value="pending">{isGerman ? 'Ausstehend' : 'Pending'}</option>
                     <option value="assigned">{isGerman ? 'Zugewiesen' : 'Assigned'}</option>
@@ -2981,6 +2983,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
               )}
             </select>
           </div>
+          */}
 
           {/* City Filter */}
           <div className="min-w-0">
@@ -3184,22 +3187,22 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
             </svg>
           ), color: 'gray' }
         ] : [
-          // Admin-specific stats (original: All, Pending, Assigned only)
+          // Admin-specific stats (only Total Leads shown, Pending and Assigned hidden)
           { label: t('leads.totalLeads'), value: leadStats.total, icon: (
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-          ), color: 'blue' },
-          { label: translateStatus('pending'), value: leadStats.pending || 0, icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ), color: 'yellow' },
-          { label: translateStatus('assigned'), value: leadStats.assigned || 0, icon: (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-          ), color: 'indigo' }
+          ), color: 'blue' }
+          // { label: translateStatus('pending'), value: leadStats.pending || 0, icon: (
+          //   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          //     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          //   </svg>
+          // ), color: 'yellow' },
+          // { label: translateStatus('assigned'), value: leadStats.assigned || 0, icon: (
+          //   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          //     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          //   </svg>
+          // ), color: 'indigo' }
         ]).map((stat, index) => (
           <motion.div
             key={index}
@@ -3246,14 +3249,18 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                     : t('common.city')
                   }
                 </SortableHeader>
+                {/* Status Column Header - Hidden
                 <SortableHeader sortKey="status">
                   {t('common.status')}
                 </SortableHeader>
+                */}
+                {/* Partners Column Header - Hidden
                 {!isPartner && (
                   <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--theme-muted)' }}>
                     {isGerman ? 'Partner' : 'Partners'}
                   </th>
                 )}
+                */}
                 <SortableHeader sortKey="pickupDate">
                   {currentService === 'security'
                     ? (isGerman ? 'Startdatum' : 'Start Date')
@@ -3360,6 +3367,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       ? `${lead.formData?.location?.city || lead.city || ''} ${lead.formData?.location?.postalCode || lead.postalCode || ''}`.trim()
                       : lead.city}
                   </td>
+                  {/* Status Column Data - Hidden
                   <td className="px-6 py-4 whitespace-nowrap">
                     {(() => {
                       const statusToShow = isPartner ? (lead.partnerStatus || lead.status) : lead.status;
@@ -3372,6 +3380,8 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       );
                     })()}
                   </td>
+                  */}
+                  {/* Partners Column Data - Hidden
                   {!isPartner && (
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {(() => {
@@ -3386,7 +3396,6 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                           return <span style={{ color: 'var(--theme-muted)' }}>-</span>;
                         }
 
-                        // Determine partner count badge color based on partner type
                         const hasExclusive = lead.partnerAssignments?.some(
                           a => (a.status !== 'rejected' && a.status !== 'cancelled') &&
                                (a.partnerType === 'exclusive' || a.partner?.partnerType === 'exclusive')
@@ -3407,6 +3416,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                       })()}
                     </td>
                   )}
+                  */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--theme-muted)' }}>
                     {lead.dateDisplay || formatDateGerman(new Date(lead.createdAt))}
                   </td>
@@ -3433,11 +3443,12 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                           👁️ {t('common.view')}
                         </button>
                       )}
+                      {/* Assign Lead Button - Hidden
                       {isSuperAdmin && (lead.status === 'pending' || lead.status === 'partial_assigned') && (
                         <button
                           onClick={() => handleAssignLead(lead)}
                           className="text-xs px-3 py-1 rounded transition-colors"
-                          style={{ 
+                          style={{
                             backgroundColor: 'var(--theme-bg-secondary)',
                             color: 'var(--theme-text)',
                             border: '1px solid var(--theme-border)'
@@ -3452,6 +3463,7 @@ const LeadManagement = ({ initialLeads = [], initialStats = {} }) => {
                           👤 {t('leads.assignLead')}
                         </button>
                       )}
+                      */}
                       {isPartner && (() => {
                         const partnerStatus = getPartnerAssignmentStatus(lead);
 
