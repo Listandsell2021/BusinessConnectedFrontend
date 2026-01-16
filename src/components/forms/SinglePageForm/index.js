@@ -27,7 +27,7 @@ const SinglePageForm = ({ formType }) => {
 
   // Handle logo click to redirect to production home page
   const handleLogoClick = () => {
-    window.location.href = 'https://business-connected.shop-template.de/';
+    window.location.href = 'https://www.business-connected24.de/';
   };
 
   // Load form configuration
@@ -705,8 +705,8 @@ const SinglePageForm = ({ formType }) => {
                 className="w-full mt-8 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-base shadow-lg hover:shadow-xl"
               >
                 {isSubmitting
-                  ? 'Wird eingereicht...'
-                  : 'Anfrage einreichen'}
+                  ? formType === 'securityClient' ? 'Wird eingereicht...' : 'Wird eingereicht...'
+                  : formType === 'securityClient' ? 'Kostenlos anfragen' : 'Anfrage einreichen'}
               </motion.button>
             </motion.form>
           </div>
@@ -737,11 +737,11 @@ const SinglePageForm = ({ formType }) => {
               transition={{ delay: 1.2 }}
               className="text-slate-500 text-xs flex gap-6"
             >
-              <a href="https://business-connected.shop-template.de/impressum/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Impressum</a>
+              <a href="https://www.business-connected24.de/impressum/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Impressum</a>
               <span>/</span>
-              <a href="https://business-connected.shop-template.de/datenschutz/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Datenschutzerklärung</a>
+              <a href="https://www.business-connected24.de/datenschutz/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">Datenschutzerklärung</a>
               <span>/</span>
-              <a href="https://business-connected.shop-template.de/datenschutz/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">AGB</a>
+              <a href="https://www.business-connected24.de/agb/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition">AGB</a>
             </motion.div>
           </div>
         </motion.footer>
