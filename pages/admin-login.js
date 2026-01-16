@@ -607,11 +607,12 @@ const handleSubmit = async (e) => {
           </div>
         </div>
 
-        {/* Right Side - Business Benefits */}
+        {/* Right Side - Business Benefits - Hidden */}
+        {/*
         <div className="hidden lg:block relative w-0 flex-1">
-          <motion.div 
+          <motion.div
             className="absolute inset-0 h-full w-full flex items-center justify-center backdrop-blur-xl"
-            style={{ 
+            style={{
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 50%, rgba(168, 85, 247, 0.1) 100%)',
               borderLeft: '1px solid rgba(255, 255, 255, 0.1)'
             }}
@@ -619,7 +620,6 @@ const handleSubmit = async (e) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
           >
-            {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
               <svg width="100%" height="100%" className="absolute inset-0">
                 <defs>
@@ -632,7 +632,6 @@ const handleSubmit = async (e) => {
             </div>
 
             <div className="text-center p-8 max-w-lg relative z-10">
-              {/* Floating Icons */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
                   className="absolute top-10 left-10 text-4xl opacity-30"
@@ -657,14 +656,14 @@ const handleSubmit = async (e) => {
                 </motion.div>
               </div>
 
-              <motion.div 
+              <motion.div
                 className="text-8xl mb-8 relative"
-                animate={{ 
+                animate={{
                   rotate: [0, 5, -5, 0],
                   scale: [1, 1.05, 1]
                 }}
-                transition={{ 
-                  duration: 6, 
+                transition={{
+                  duration: 6,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
@@ -673,19 +672,19 @@ const handleSubmit = async (e) => {
                   💼
                   <motion.div
                     className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-full"
-                    animate={{ 
+                    animate={{
                       scale: [1, 1.3, 1],
                       opacity: [0.7, 1, 0.7]
                     }}
-                    transition={{ 
-                      duration: 2, 
+                    transition={{
+                      duration: 2,
                       repeat: Infinity,
                       ease: "easeInOut"
                     }}
                   />
                 </div>
               </motion.div>
-              
+
               <motion.h3
                 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
                 initial={{ opacity: 0, y: 20 }}
@@ -694,21 +693,20 @@ const handleSubmit = async (e) => {
               >
                 {isGerman ? 'CRM-Dashboard' : 'CRM Dashboard'}
               </motion.h3>
-              
-              <motion.p 
-                className="text-xl mb-10 leading-relaxed" 
+
+              <motion.p
+                className="text-xl mb-10 leading-relaxed"
                 style={{ color: 'var(--theme-muted)' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                {isGerman 
+                {isGerman
                   ? 'Verwalten Sie Leads professionell, steigern Sie Conversions und wachsen Sie mit unserem fortschrittlichen CRM-System.'
                   : 'Manage leads professionally, boost conversions, and grow your business with our advanced CRM system.'
                 }
               </motion.p>
 
-              {/* Business Features */}
               <div className="space-y-4 mb-10">
                 {[
                   {
@@ -735,15 +733,15 @@ const handleSubmit = async (e) => {
                     transition={{ duration: 0.6, delay: 0.7 + index * 0.15 }}
                     whileHover={{ x: 5, scale: 1.02 }}
                   >
-                    <motion.div 
+                    <motion.div
                       className="text-3xl p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20"
-                      animate={{ 
+                      animate={{
                         rotate: [0, 10, -10, 0],
                         scale: [1, 1.1, 1]
                       }}
-                      transition={{ 
-                        duration: 4, 
-                        repeat: Infinity, 
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
                         ease: "easeInOut",
                         delay: index * 0.5
                       }}
@@ -761,50 +759,7 @@ const handleSubmit = async (e) => {
                   </motion.div>
                 ))}
               </div>
-              
-              {/* Stats - Hidden
-              <div className="grid grid-cols-3 gap-6">
-                {[
-                  { value: '2.5K+', label: isGerman ? 'Partner' : 'Partners', delay: 0.8 },
-                  { value: '150K+', label: isGerman ? 'Leads' : 'Leads', delay: 0.9 },
-                  { value: '€8M+', label: isGerman ? 'Umsatz' : 'Revenue', delay: 1.0 }
-                ].map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    className="p-4 rounded-xl backdrop-blur-sm bg-gradient-to-br from-white/10 to-white/5 border border-white/20"
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{
-                      delay: stat.delay,
-                      type: "spring",
-                      stiffness: 200
-                    }}
-                    whileHover={{
-                      scale: 1.05,
-                      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)"
-                    }}
-                  >
-                    <motion.div
-                      className="font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: index * 0.3
-                      }}
-                    >
-                      {stat.value}
-                    </motion.div>
-                    <div className="text-xs mt-1 font-medium" style={{ color: 'var(--theme-muted)' }}>
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              */}
 
-              {/* Trust Badge */}
               <motion.div
                 className="mt-8 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -827,6 +782,7 @@ const handleSubmit = async (e) => {
             </div>
           </motion.div>
         </div>
+        */}
       </div>
     </>
   );
