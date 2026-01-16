@@ -163,8 +163,10 @@ const EnhancedIncomeInvoices = () => {
 
       setPartners(paginatedPartners);
 
-      // Calculate total revenue from already fetched invoices
-      const monthlyRevenue = allInvoices.reduce((total, invoice) => total + (invoice.total || 0), 0);
+      // Calculate total revenue from PAID invoices only
+      const monthlyRevenue = allInvoices
+        .filter(invoice => invoice.status === 'paid')
+        .reduce((total, invoice) => total + (invoice.total || 0), 0);
       setTotalRevenue(monthlyRevenue);
     } catch (error) {
       console.error('Error loading partners:', error);
@@ -602,8 +604,8 @@ const EnhancedIncomeInvoices = () => {
           amount: item.currentAssignment?.leadPrice || 30
         })),
         subtotal: selectedLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0),
-        tax: selectedLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0) * 0.19,
-        total: selectedLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0) * 1.19
+        tax: 0,
+        total: selectedLeads.reduce((total, item) => total + (item.currentAssignment?.leadPrice || 30), 0)
       };
 
       console.log('🚀 FRONTEND DEBUG - Sending invoice data:', {
@@ -1627,14 +1629,6 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
         value: `${formatDate(invoice.billingPeriod.from || invoice.billingPeriod.startDate)} - ${formatDate(invoice.billingPeriod.to || invoice.billingPeriod.endDate)}`
       },
       {
-        label: isGerman ? 'Zwischensumme' : 'Subtotal',
-        value: formatCurrency(invoice.subtotal)
-      },
-      {
-        label: isGerman ? 'MwSt. (19%)' : 'Tax (19%)',
-        value: formatCurrency(invoice.tax || 0)
-      },
-      {
         label: isGerman ? 'Gesamtsumme' : 'Total Amount',
         value: formatCurrency(invoice.total)
       },
@@ -1752,23 +1746,7 @@ ${isGerman ? 'Ihr Business Connected Team' : 'Your Business Connected Team'}`;
                 </tr>
               ))}
 
-              {/* Total Row */}
-              <tr className="bg-gray-50 border-t-2 border-gray-300">
-                <td colSpan="3" className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                  {isGerman ? 'Zwischensumme:' : 'Subtotal:'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                  {formatCurrency(invoice.subtotal)}
-                </td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td colSpan="3" className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                  {isGerman ? 'MwSt. (19%):' : 'Tax (19%):'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                  {formatCurrency(invoice.tax || 0)}
-                </td>
-              </tr>
+              {/* Total Row (No Tax) */}
               <tr className="bg-blue-50 border-t-2 border-blue-300">
                 <td colSpan="3" className="px-6 py-4 text-right text-lg font-bold text-blue-900">
                   {isGerman ? 'GESAMTSUMME:' : 'TOTAL TO PAY:'}
