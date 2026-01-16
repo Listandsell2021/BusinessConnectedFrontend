@@ -26,7 +26,8 @@ app.prepare().then(() => {
     // Add CORS headers for cross-origin requests if needed
     if (req.method === 'OPTIONS') {
       res.writeHead(200, {
-        'Access-Control-Allow-Origin':'dv-app-business-connected24.listandsell.eu',
+        // 'Access-Control-Allow-Origin':'dv-app-business-connected24.listandsell.eu',
+        'Access-Control-Allow-Origin':'app.business-connected24.de',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true'
@@ -46,8 +47,10 @@ app.prepare().then(() => {
     }
 
     console.log(`✅ Next.js server running on http://${host}:${port}`);
-    console.log(`🌐 Frontend should be accessible at: https://dv-app-business-connected24.listandsell.eu`);
-    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://dv-api-business-connected24.listandsell.eu/'}`);
+    // console.log(`🌐 Frontend should be accessible at: https://dv-app-business-connected24.listandsell.eu`);
+    // console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://dv-api-business-connected24.listandsell.eu/'}`);
+    console.log(`🌐 Frontend should be accessible at: https://app.business-connected24.de`);
+    console.log(`📡 API calls will go to: ${process.env.NEXT_PUBLIC_API_URL || 'https://api.business-connected24.de/'}`);
   });
 
   // Graceful shutdown

@@ -26,8 +26,11 @@ const getApiBaseUrl = () => {
   }
 
   // Staging/Production environment
-  if (hostname === 'dv-app-business-connected24.listandsell.eu') {
-    return 'https://dv-api-business-connected24.listandsell.eu/api';
+  // if (hostname === 'dv-app-business-connected24.listandsell.eu') {
+  //   return 'https://dv-api-business-connected24.listandsell.eu/api';
+  // }
+    if (hostname === 'app.business-connected24.de') {
+    return 'https://api.business-connected24.de/api';
   }
 
   // Fallback: construct based on current domain for other production environments
