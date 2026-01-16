@@ -601,6 +601,22 @@ const handleSubmit = async (e) => {
                   </motion.div>
                   */}
 
+                  {/* Admin Forgot Password Link */}
+                  <motion.div
+                    className="text-center mt-6 pt-4 border-t border-gray-200/20"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.05 }}
+                  >
+                    <Link
+                      href="/admin-forgot-password"
+                      className="text-sm font-medium transition-all duration-200 hover:underline"
+                      style={{ color: 'var(--theme-accent)' }}
+                    >
+                      {isGerman ? '🔑 Passwort vergessen?' : '🔑 Forgot Password?'}
+                    </Link>
+                  </motion.div>
+
                 </form>
               </div>
             </motion.div>
