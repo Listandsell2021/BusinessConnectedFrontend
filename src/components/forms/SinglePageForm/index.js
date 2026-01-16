@@ -727,7 +727,7 @@ const SinglePageForm = ({ formType }) => {
               transition={{ delay: 1.1 }}
               className="text-slate-500 text-xs"
             >
-              <p>© 2024 BusinessConnected. Alle Rechte vorbehalten.</p>
+              <p>© 2020-2026 BusinessConnected. Alle Rechte vorbehalten.</p>
             </motion.div>
 
             {/* Right: Links */}

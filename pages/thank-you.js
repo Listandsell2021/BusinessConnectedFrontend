@@ -194,7 +194,7 @@ export default function ThankYou() {
           <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
             <div className="text-center">
               <p className="text-xs sm:text-sm" style={{ color: 'var(--theme-muted)' }}>
-                © 2024 Business Connected. Alle Rechte vorbehalten.
+                © 2020-2026 Business Connected. Alle Rechte vorbehalten.
               </p>
             </div>
           </div>
